@@ -3,6 +3,7 @@ import { Menu, X, ScanLine } from "lucide-react";
 import { useState } from "react";
 import { Logo } from "./Logo";
 import { Button } from "./ui/button";
+import { VortexBackground } from "./VortexBackground";
 import { useAuth } from "@/lib/auth";
 
 const LINKS = [
@@ -103,6 +104,7 @@ export function SiteFooter() {
 export function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
+      <VortexBackground />
       <SiteNav />
       <main className="flex-1">{children}</main>
       <SiteFooter />
