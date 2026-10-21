@@ -40,7 +40,7 @@ export function normalizeSymbol(raw: string): string {
 export function canonicalInstrument(raw: string): string {
   const n = normalizeSymbol(raw);
   for (const group of ALIAS_GROUPS) {
-    if (group.some((a) => normalizeSymbol(a) === n)) return normalizeSymbol(group[1]);
+    if (group.some((a) => normalizeSymbol(a) === n)) return normalizeSymbol(group[1] ?? group[0] ?? n);
   }
   return n;
 }
