@@ -5,6 +5,7 @@ import {
   LayoutDashboard, ScanLine, History, Bot, BarChart3, LineChart, Bell, Settings, Users, ShieldCheck, LogOut, Menu, X,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { VortexBackground } from "@/components/VortexBackground";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
