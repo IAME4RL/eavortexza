@@ -14,16 +14,239 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      app_settings: {
+        Row: {
+          daily_scan_limit: number
+          id: number
+          scanner_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          daily_scan_limit?: number
+          id?: number
+          scanner_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          daily_scan_limit?: number
+          id?: number
+          scanner_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      mentor_assignments: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          mentor_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          mentor_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          mentor_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          read: boolean
+          sender_id: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          read?: boolean
+          sender_id?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          read?: boolean
+          sender_id?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          mentor_requested: boolean
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id: string
+          mentor_requested?: boolean
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          mentor_requested?: boolean
+        }
+        Relationships: []
+      }
+      scans: {
+        Row: {
+          analysis: Json | null
+          created_at: string
+          error: string | null
+          id: string
+          image_path: string | null
+          instrument: string
+          saved: boolean
+          status: string
+          timeframe: string
+          trading_style: string
+          user_id: string
+        }
+        Insert: {
+          analysis?: Json | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          image_path?: string | null
+          instrument: string
+          saved?: boolean
+          status?: string
+          timeframe: string
+          trading_style: string
+          user_id: string
+        }
+        Update: {
+          analysis?: Json | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          image_path?: string | null
+          instrument?: string
+          saved?: boolean
+          status?: string
+          timeframe?: string
+          trading_style?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      trading_accounts: {
+        Row: {
+          account_login: string
+          broker_server: string
+          connection_status: string
+          created_at: string
+          id: string
+          label: string | null
+          platform: string
+          user_id: string
+        }
+        Insert: {
+          account_login: string
+          broker_server: string
+          connection_status?: string
+          created_at?: string
+          id?: string
+          label?: string | null
+          platform: string
+          user_id: string
+        }
+        Update: {
+          account_login?: string
+          broker_server?: string
+          connection_status?: string
+          created_at?: string
+          id?: string
+          label?: string | null
+          platform?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      watchlist: {
+        Row: {
+          created_at: string
+          id: string
+          instrument: string
+          note: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instrument: string
+          note?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instrument?: string
+          note?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      admin_stats: { Args: never; Returns: Json }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_mentor_of: {
+        Args: { _client: string; _mentor: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "mentor" | "client"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +373,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "mentor", "client"],
+    },
   },
 } as const
