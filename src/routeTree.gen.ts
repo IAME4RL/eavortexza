@@ -19,7 +19,16 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ScannerRouteImport } from './routes/scanner'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
+import { Route as AuthenticatedDashboardAdminRouteImport } from './routes/_authenticated/dashboard.admin'
+import { Route as AuthenticatedDashboardAnalyticsRouteImport } from './routes/_authenticated/dashboard.analytics'
+import { Route as AuthenticatedDashboardEaRouteImport } from './routes/_authenticated/dashboard.ea'
+import { Route as AuthenticatedDashboardHistoryRouteImport } from './routes/_authenticated/dashboard.history'
+import { Route as AuthenticatedDashboardMarketRouteImport } from './routes/_authenticated/dashboard.market'
+import { Route as AuthenticatedDashboardMentorRouteImport } from './routes/_authenticated/dashboard.mentor'
+import { Route as AuthenticatedDashboardNotificationsRouteImport } from './routes/_authenticated/dashboard.notifications'
 import { Route as AuthenticatedDashboardScannerRouteImport } from './routes/_authenticated/dashboard.scanner'
+import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
+import { Route as AuthenticatedDashboardScanIdRouteImport } from './routes/_authenticated/dashboard.scan.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -71,10 +80,64 @@ const AuthenticatedDashboardIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardAdminRoute =
+  AuthenticatedDashboardAdminRouteImport.update({
+    id: '/admin',
+    path: '/admin',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardAnalyticsRoute =
+  AuthenticatedDashboardAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardEaRoute =
+  AuthenticatedDashboardEaRouteImport.update({
+    id: '/ea',
+    path: '/ea',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardHistoryRoute =
+  AuthenticatedDashboardHistoryRouteImport.update({
+    id: '/history',
+    path: '/history',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardMarketRoute =
+  AuthenticatedDashboardMarketRouteImport.update({
+    id: '/market',
+    path: '/market',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardMentorRoute =
+  AuthenticatedDashboardMentorRouteImport.update({
+    id: '/mentor',
+    path: '/mentor',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardNotificationsRoute =
+  AuthenticatedDashboardNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedDashboardScannerRoute =
   AuthenticatedDashboardScannerRouteImport.update({
     id: '/scanner',
     path: '/scanner',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardSettingsRoute =
+  AuthenticatedDashboardSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardScanIdRoute =
+  AuthenticatedDashboardScanIdRouteImport.update({
+    id: '/scan/$id',
+    path: '/scan/$id',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 
@@ -87,8 +150,17 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/scanner': typeof ScannerRoute
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/dashboard/admin': typeof AuthenticatedDashboardAdminRoute
+  '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
+  '/dashboard/ea': typeof AuthenticatedDashboardEaRoute
+  '/dashboard/history': typeof AuthenticatedDashboardHistoryRoute
+  '/dashboard/market': typeof AuthenticatedDashboardMarketRoute
+  '/dashboard/mentor': typeof AuthenticatedDashboardMentorRoute
+  '/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
   '/dashboard/scanner': typeof AuthenticatedDashboardScannerRoute
+  '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/dashboard/scan/$id': typeof AuthenticatedDashboardScanIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -98,8 +170,17 @@ export interface FileRoutesByTo {
   '/how-it-works': typeof HowItWorksRoute
   '/reset-password': typeof ResetPasswordRoute
   '/scanner': typeof ScannerRoute
+  '/dashboard/admin': typeof AuthenticatedDashboardAdminRoute
+  '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
+  '/dashboard/ea': typeof AuthenticatedDashboardEaRoute
+  '/dashboard/history': typeof AuthenticatedDashboardHistoryRoute
+  '/dashboard/market': typeof AuthenticatedDashboardMarketRoute
+  '/dashboard/mentor': typeof AuthenticatedDashboardMentorRoute
+  '/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
   '/dashboard/scanner': typeof AuthenticatedDashboardScannerRoute
+  '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
+  '/dashboard/scan/$id': typeof AuthenticatedDashboardScanIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -112,8 +193,17 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/scanner': typeof ScannerRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/_authenticated/dashboard/admin': typeof AuthenticatedDashboardAdminRoute
+  '/_authenticated/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
+  '/_authenticated/dashboard/ea': typeof AuthenticatedDashboardEaRoute
+  '/_authenticated/dashboard/history': typeof AuthenticatedDashboardHistoryRoute
+  '/_authenticated/dashboard/market': typeof AuthenticatedDashboardMarketRoute
+  '/_authenticated/dashboard/mentor': typeof AuthenticatedDashboardMentorRoute
+  '/_authenticated/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
   '/_authenticated/dashboard/scanner': typeof AuthenticatedDashboardScannerRoute
+  '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/_authenticated/dashboard/scan/$id': typeof AuthenticatedDashboardScanIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -126,8 +216,17 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/scanner'
     | '/dashboard'
+    | '/dashboard/admin'
+    | '/dashboard/analytics'
+    | '/dashboard/ea'
+    | '/dashboard/history'
+    | '/dashboard/market'
+    | '/dashboard/mentor'
+    | '/dashboard/notifications'
     | '/dashboard/scanner'
+    | '/dashboard/settings'
     | '/dashboard/'
+    | '/dashboard/scan/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -137,8 +236,17 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/reset-password'
     | '/scanner'
+    | '/dashboard/admin'
+    | '/dashboard/analytics'
+    | '/dashboard/ea'
+    | '/dashboard/history'
+    | '/dashboard/market'
+    | '/dashboard/mentor'
+    | '/dashboard/notifications'
     | '/dashboard/scanner'
+    | '/dashboard/settings'
     | '/dashboard'
+    | '/dashboard/scan/$id'
   id:
     | '__root__'
     | '/'
@@ -150,8 +258,17 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/scanner'
     | '/_authenticated/dashboard'
+    | '/_authenticated/dashboard/admin'
+    | '/_authenticated/dashboard/analytics'
+    | '/_authenticated/dashboard/ea'
+    | '/_authenticated/dashboard/history'
+    | '/_authenticated/dashboard/market'
+    | '/_authenticated/dashboard/mentor'
+    | '/_authenticated/dashboard/notifications'
     | '/_authenticated/dashboard/scanner'
+    | '/_authenticated/dashboard/settings'
     | '/_authenticated/dashboard/'
+    | '/_authenticated/dashboard/scan/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -237,6 +354,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/admin': {
+      id: '/_authenticated/dashboard/admin'
+      path: '/admin'
+      fullPath: '/dashboard/admin'
+      preLoaderRoute: typeof AuthenticatedDashboardAdminRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/analytics': {
+      id: '/_authenticated/dashboard/analytics'
+      path: '/analytics'
+      fullPath: '/dashboard/analytics'
+      preLoaderRoute: typeof AuthenticatedDashboardAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/ea': {
+      id: '/_authenticated/dashboard/ea'
+      path: '/ea'
+      fullPath: '/dashboard/ea'
+      preLoaderRoute: typeof AuthenticatedDashboardEaRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/history': {
+      id: '/_authenticated/dashboard/history'
+      path: '/history'
+      fullPath: '/dashboard/history'
+      preLoaderRoute: typeof AuthenticatedDashboardHistoryRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/market': {
+      id: '/_authenticated/dashboard/market'
+      path: '/market'
+      fullPath: '/dashboard/market'
+      preLoaderRoute: typeof AuthenticatedDashboardMarketRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/mentor': {
+      id: '/_authenticated/dashboard/mentor'
+      path: '/mentor'
+      fullPath: '/dashboard/mentor'
+      preLoaderRoute: typeof AuthenticatedDashboardMentorRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/notifications': {
+      id: '/_authenticated/dashboard/notifications'
+      path: '/notifications'
+      fullPath: '/dashboard/notifications'
+      preLoaderRoute: typeof AuthenticatedDashboardNotificationsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/scanner': {
       id: '/_authenticated/dashboard/scanner'
       path: '/scanner'
@@ -244,18 +410,51 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardScannerRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/settings': {
+      id: '/_authenticated/dashboard/settings'
+      path: '/settings'
+      fullPath: '/dashboard/settings'
+      preLoaderRoute: typeof AuthenticatedDashboardSettingsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/scan/$id': {
+      id: '/_authenticated/dashboard/scan/$id'
+      path: '/scan/$id'
+      fullPath: '/dashboard/scan/$id'
+      preLoaderRoute: typeof AuthenticatedDashboardScanIdRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
   }
 }
 
 interface AuthenticatedDashboardRouteChildren {
+  AuthenticatedDashboardAdminRoute: typeof AuthenticatedDashboardAdminRoute
+  AuthenticatedDashboardAnalyticsRoute: typeof AuthenticatedDashboardAnalyticsRoute
+  AuthenticatedDashboardEaRoute: typeof AuthenticatedDashboardEaRoute
+  AuthenticatedDashboardHistoryRoute: typeof AuthenticatedDashboardHistoryRoute
+  AuthenticatedDashboardMarketRoute: typeof AuthenticatedDashboardMarketRoute
+  AuthenticatedDashboardMentorRoute: typeof AuthenticatedDashboardMentorRoute
+  AuthenticatedDashboardNotificationsRoute: typeof AuthenticatedDashboardNotificationsRoute
   AuthenticatedDashboardScannerRoute: typeof AuthenticatedDashboardScannerRoute
+  AuthenticatedDashboardSettingsRoute: typeof AuthenticatedDashboardSettingsRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
+  AuthenticatedDashboardScanIdRoute: typeof AuthenticatedDashboardScanIdRoute
 }
 
 const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
   {
+    AuthenticatedDashboardAdminRoute: AuthenticatedDashboardAdminRoute,
+    AuthenticatedDashboardAnalyticsRoute: AuthenticatedDashboardAnalyticsRoute,
+    AuthenticatedDashboardEaRoute: AuthenticatedDashboardEaRoute,
+    AuthenticatedDashboardHistoryRoute: AuthenticatedDashboardHistoryRoute,
+    AuthenticatedDashboardMarketRoute: AuthenticatedDashboardMarketRoute,
+    AuthenticatedDashboardMentorRoute: AuthenticatedDashboardMentorRoute,
+    AuthenticatedDashboardNotificationsRoute:
+      AuthenticatedDashboardNotificationsRoute,
     AuthenticatedDashboardScannerRoute: AuthenticatedDashboardScannerRoute,
+    AuthenticatedDashboardSettingsRoute: AuthenticatedDashboardSettingsRoute,
     AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
+    AuthenticatedDashboardScanIdRoute: AuthenticatedDashboardScanIdRoute,
   }
 
 const AuthenticatedDashboardRouteWithChildren =
