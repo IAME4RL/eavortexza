@@ -134,3 +134,20 @@
 @keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
 @utility animate-scanline { animation: scanline 2.4s linear infinite; }
 @utility animate-pulse-dot { animation: pulse-dot 1.6s ease-in-out infinite; }
+
+/* Slow drifting red ambient wash for the Vortex background */
+@keyframes vortex-drift {
+  0%   { transform: translate3d(-6%, -4%, 0) scale(1); }
+  50%  { transform: translate3d(5%, 4%, 0) scale(1.12); }
+  100% { transform: translate3d(-6%, -4%, 0) scale(1); }
+}
+.vortex-wash {
+  background:
+    radial-gradient(ellipse 60% 45% at 18% 12%, color-mix(in oklab, var(--primary) 9%, transparent), transparent 70%),
+    radial-gradient(ellipse 55% 50% at 85% 78%, color-mix(in oklab, var(--primary-deep) 12%, transparent), transparent 70%),
+    radial-gradient(ellipse 40% 35% at 60% 30%, color-mix(in oklab, var(--primary) 5%, transparent), transparent 70%);
+  animation: vortex-drift 26s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vortex-wash { animation: none; }
+}
