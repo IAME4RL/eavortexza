@@ -34,6 +34,20 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   pending_integration: { label: "Awaiting integration", cls: "border-neutral/40 text-neutral" },
   completed: { label: "Completed", cls: "border-bull/40 text-bull" },
   failed: { label: "Failed", cls: "border-primary/50 text-primary" },
+  running: { label: "Running", cls: "border-bull/40 text-bull" },
+  paused: { label: "Paused", cls: "border-neutral/40 text-neutral" },
+  stopped: { label: "Stopped", cls: "border-border text-muted-foreground" },
+  terminal_online: { label: "MT5 online", cls: "border-bull/40 text-bull" },
+  terminal_offline: { label: "MT5 offline", cls: "border-primary/50 text-primary" },
+  terminal_never: { label: "MT5 not linked", cls: "border-border text-muted-foreground" },
+  demo: { label: "Demo account", cls: "border-neutral/40 text-neutral" },
+  live: { label: "Live account", cls: "border-primary/50 text-primary" },
+  sig_queued: { label: "Queued", cls: "border-neutral/40 text-neutral" },
+  sig_sent: { label: "Sent", cls: "border-neutral/40 text-neutral" },
+  sig_filled: { label: "Filled", cls: "border-bull/40 text-bull" },
+  sig_closed: { label: "Closed", cls: "border-border text-foreground" },
+  sig_rejected: { label: "Rejected", cls: "border-primary/50 text-primary" },
+  sig_cancelled: { label: "Cancelled", cls: "border-border text-muted-foreground" },
 };
 export function StatusBadge({ status }: { status: string }) {
   const s = STATUS[status] ?? { label: status, cls: "border-border text-muted-foreground" };

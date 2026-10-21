@@ -29,6 +29,7 @@ import { Route as AuthenticatedDashboardNotificationsRouteImport } from './route
 import { Route as AuthenticatedDashboardScannerRouteImport } from './routes/_authenticated/dashboard.scanner'
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
 import { Route as AuthenticatedDashboardScanIdRouteImport } from './routes/_authenticated/dashboard.scan.$id'
+import { Route as ApiPublicBridgeMt5RouteImport } from './routes/api/public/bridge.mt5'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -140,6 +141,11 @@ const AuthenticatedDashboardScanIdRoute =
     path: '/scan/$id',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const ApiPublicBridgeMt5Route = ApiPublicBridgeMt5RouteImport.update({
+  id: '/api/public/bridge/mt5',
+  path: '/api/public/bridge/mt5',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -161,6 +167,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/scan/$id': typeof AuthenticatedDashboardScanIdRoute
+  '/api/public/bridge/mt5': typeof ApiPublicBridgeMt5Route
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -181,6 +188,7 @@ export interface FileRoutesByTo {
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/scan/$id': typeof AuthenticatedDashboardScanIdRoute
+  '/api/public/bridge/mt5': typeof ApiPublicBridgeMt5Route
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -204,6 +212,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/dashboard/scan/$id': typeof AuthenticatedDashboardScanIdRoute
+  '/api/public/bridge/mt5': typeof ApiPublicBridgeMt5Route
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -227,6 +236,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashboard/'
     | '/dashboard/scan/$id'
+    | '/api/public/bridge/mt5'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -247,6 +257,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashboard'
     | '/dashboard/scan/$id'
+    | '/api/public/bridge/mt5'
   id:
     | '__root__'
     | '/'
@@ -269,6 +280,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/settings'
     | '/_authenticated/dashboard/'
     | '/_authenticated/dashboard/scan/$id'
+    | '/api/public/bridge/mt5'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -280,6 +292,7 @@ export interface RootRouteChildren {
   HowItWorksRoute: typeof HowItWorksRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ScannerRoute: typeof ScannerRoute
+  ApiPublicBridgeMt5Route: typeof ApiPublicBridgeMt5Route
 }
 
 declare module '@tanstack/react-router' {
@@ -424,6 +437,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardScanIdRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/api/public/bridge/mt5': {
+      id: '/api/public/bridge/mt5'
+      path: '/api/public/bridge/mt5'
+      fullPath: '/api/public/bridge/mt5'
+      preLoaderRoute: typeof ApiPublicBridgeMt5RouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -482,6 +502,7 @@ const rootRouteChildren: RootRouteChildren = {
   HowItWorksRoute: HowItWorksRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ScannerRoute: ScannerRoute,
+  ApiPublicBridgeMt5Route: ApiPublicBridgeMt5Route,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
