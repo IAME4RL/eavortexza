@@ -21,6 +21,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
 import { Route as AuthenticatedDashboardAdminRouteImport } from './routes/_authenticated/dashboard.admin'
 import { Route as AuthenticatedDashboardAnalyticsRouteImport } from './routes/_authenticated/dashboard.analytics'
+import { Route as AuthenticatedDashboardAutoTradeRouteImport } from './routes/_authenticated/dashboard.auto-trade'
 import { Route as AuthenticatedDashboardEaRouteImport } from './routes/_authenticated/dashboard.ea'
 import { Route as AuthenticatedDashboardHistoryRouteImport } from './routes/_authenticated/dashboard.history'
 import { Route as AuthenticatedDashboardMarketRouteImport } from './routes/_authenticated/dashboard.market'
@@ -29,6 +30,7 @@ import { Route as AuthenticatedDashboardNotificationsRouteImport } from './route
 import { Route as AuthenticatedDashboardScannerRouteImport } from './routes/_authenticated/dashboard.scanner'
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
 import { Route as AuthenticatedDashboardScanIdRouteImport } from './routes/_authenticated/dashboard.scan.$id'
+import { Route as ApiPublicBridgeMt5RouteImport } from './routes/api/public/bridge.mt5'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -92,6 +94,12 @@ const AuthenticatedDashboardAnalyticsRoute =
     path: '/analytics',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardAutoTradeRoute =
+  AuthenticatedDashboardAutoTradeRouteImport.update({
+    id: '/auto-trade',
+    path: '/auto-trade',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedDashboardEaRoute =
   AuthenticatedDashboardEaRouteImport.update({
     id: '/ea',
@@ -140,6 +148,11 @@ const AuthenticatedDashboardScanIdRoute =
     path: '/scan/$id',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const ApiPublicBridgeMt5Route = ApiPublicBridgeMt5RouteImport.update({
+  id: '/api/public/bridge/mt5',
+  path: '/api/public/bridge/mt5',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -152,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/dashboard/admin': typeof AuthenticatedDashboardAdminRoute
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
+  '/dashboard/auto-trade': typeof AuthenticatedDashboardAutoTradeRoute
   '/dashboard/ea': typeof AuthenticatedDashboardEaRoute
   '/dashboard/history': typeof AuthenticatedDashboardHistoryRoute
   '/dashboard/market': typeof AuthenticatedDashboardMarketRoute
@@ -161,6 +175,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/scan/$id': typeof AuthenticatedDashboardScanIdRoute
+  '/api/public/bridge/mt5': typeof ApiPublicBridgeMt5Route
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -172,6 +187,7 @@ export interface FileRoutesByTo {
   '/scanner': typeof ScannerRoute
   '/dashboard/admin': typeof AuthenticatedDashboardAdminRoute
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
+  '/dashboard/auto-trade': typeof AuthenticatedDashboardAutoTradeRoute
   '/dashboard/ea': typeof AuthenticatedDashboardEaRoute
   '/dashboard/history': typeof AuthenticatedDashboardHistoryRoute
   '/dashboard/market': typeof AuthenticatedDashboardMarketRoute
@@ -181,6 +197,7 @@ export interface FileRoutesByTo {
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/scan/$id': typeof AuthenticatedDashboardScanIdRoute
+  '/api/public/bridge/mt5': typeof ApiPublicBridgeMt5Route
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -195,6 +212,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_authenticated/dashboard/admin': typeof AuthenticatedDashboardAdminRoute
   '/_authenticated/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
+  '/_authenticated/dashboard/auto-trade': typeof AuthenticatedDashboardAutoTradeRoute
   '/_authenticated/dashboard/ea': typeof AuthenticatedDashboardEaRoute
   '/_authenticated/dashboard/history': typeof AuthenticatedDashboardHistoryRoute
   '/_authenticated/dashboard/market': typeof AuthenticatedDashboardMarketRoute
@@ -204,6 +222,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/dashboard/scan/$id': typeof AuthenticatedDashboardScanIdRoute
+  '/api/public/bridge/mt5': typeof ApiPublicBridgeMt5Route
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -218,6 +237,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/dashboard/admin'
     | '/dashboard/analytics'
+    | '/dashboard/auto-trade'
     | '/dashboard/ea'
     | '/dashboard/history'
     | '/dashboard/market'
@@ -227,6 +247,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashboard/'
     | '/dashboard/scan/$id'
+    | '/api/public/bridge/mt5'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -238,6 +259,7 @@ export interface FileRouteTypes {
     | '/scanner'
     | '/dashboard/admin'
     | '/dashboard/analytics'
+    | '/dashboard/auto-trade'
     | '/dashboard/ea'
     | '/dashboard/history'
     | '/dashboard/market'
@@ -247,6 +269,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashboard'
     | '/dashboard/scan/$id'
+    | '/api/public/bridge/mt5'
   id:
     | '__root__'
     | '/'
@@ -260,6 +283,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/dashboard/admin'
     | '/_authenticated/dashboard/analytics'
+    | '/_authenticated/dashboard/auto-trade'
     | '/_authenticated/dashboard/ea'
     | '/_authenticated/dashboard/history'
     | '/_authenticated/dashboard/market'
@@ -269,6 +293,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/settings'
     | '/_authenticated/dashboard/'
     | '/_authenticated/dashboard/scan/$id'
+    | '/api/public/bridge/mt5'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -280,6 +305,7 @@ export interface RootRouteChildren {
   HowItWorksRoute: typeof HowItWorksRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ScannerRoute: typeof ScannerRoute
+  ApiPublicBridgeMt5Route: typeof ApiPublicBridgeMt5Route
 }
 
 declare module '@tanstack/react-router' {
@@ -368,6 +394,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardAnalyticsRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/auto-trade': {
+      id: '/_authenticated/dashboard/auto-trade'
+      path: '/auto-trade'
+      fullPath: '/dashboard/auto-trade'
+      preLoaderRoute: typeof AuthenticatedDashboardAutoTradeRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/ea': {
       id: '/_authenticated/dashboard/ea'
       path: '/ea'
@@ -424,12 +457,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardScanIdRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/api/public/bridge/mt5': {
+      id: '/api/public/bridge/mt5'
+      path: '/api/public/bridge/mt5'
+      fullPath: '/api/public/bridge/mt5'
+      preLoaderRoute: typeof ApiPublicBridgeMt5RouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardAdminRoute: typeof AuthenticatedDashboardAdminRoute
   AuthenticatedDashboardAnalyticsRoute: typeof AuthenticatedDashboardAnalyticsRoute
+  AuthenticatedDashboardAutoTradeRoute: typeof AuthenticatedDashboardAutoTradeRoute
   AuthenticatedDashboardEaRoute: typeof AuthenticatedDashboardEaRoute
   AuthenticatedDashboardHistoryRoute: typeof AuthenticatedDashboardHistoryRoute
   AuthenticatedDashboardMarketRoute: typeof AuthenticatedDashboardMarketRoute
@@ -445,6 +486,7 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
   {
     AuthenticatedDashboardAdminRoute: AuthenticatedDashboardAdminRoute,
     AuthenticatedDashboardAnalyticsRoute: AuthenticatedDashboardAnalyticsRoute,
+    AuthenticatedDashboardAutoTradeRoute: AuthenticatedDashboardAutoTradeRoute,
     AuthenticatedDashboardEaRoute: AuthenticatedDashboardEaRoute,
     AuthenticatedDashboardHistoryRoute: AuthenticatedDashboardHistoryRoute,
     AuthenticatedDashboardMarketRoute: AuthenticatedDashboardMarketRoute,
@@ -482,6 +524,7 @@ const rootRouteChildren: RootRouteChildren = {
   HowItWorksRoute: HowItWorksRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ScannerRoute: ScannerRoute,
+  ApiPublicBridgeMt5Route: ApiPublicBridgeMt5Route,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
