@@ -67,6 +67,7 @@ function DashLayout() {
 
   return (
     <div className="min-h-screen lg:pl-64">
+      <VortexBackground />
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-sidebar-border bg-sidebar lg:block">{sidebar}</aside>
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur lg:hidden">
         <Logo />
