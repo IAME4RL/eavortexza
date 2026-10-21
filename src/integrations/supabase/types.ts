@@ -35,6 +35,54 @@ export type Database = {
         }
         Relationships: []
       }
+      bots: {
+        Row: {
+          account_id: string
+          bridge_token_hash: string | null
+          created_at: string
+          default_lot: number
+          demo_only: boolean
+          id: string
+          last_heartbeat: string | null
+          max_lot: number
+          max_open_trades: number
+          status: string
+          terminal_info: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          bridge_token_hash?: string | null
+          created_at?: string
+          default_lot?: number
+          demo_only?: boolean
+          id?: string
+          last_heartbeat?: string | null
+          max_lot?: number
+          max_open_trades?: number
+          status?: string
+          terminal_info?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          bridge_token_hash?: string | null
+          created_at?: string
+          default_lot?: number
+          demo_only?: boolean
+          id?: string
+          last_heartbeat?: string | null
+          max_lot?: number
+          max_open_trades?: number
+          status?: string
+          terminal_info?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       mentor_assignments: {
         Row: {
           client_id: string
@@ -151,6 +199,80 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      trade_signals: {
+        Row: {
+          bot_id: string
+          close_price: number | null
+          closed_at: string | null
+          comment: string | null
+          created_at: string
+          error: string | null
+          fill_price: number | null
+          filled_at: string | null
+          id: string
+          profit: number | null
+          sent_at: string | null
+          side: string
+          status: string
+          stop_loss: number | null
+          symbol: string
+          take_profit: number | null
+          ticket: string | null
+          user_id: string
+          volume: number
+        }
+        Insert: {
+          bot_id: string
+          close_price?: number | null
+          closed_at?: string | null
+          comment?: string | null
+          created_at?: string
+          error?: string | null
+          fill_price?: number | null
+          filled_at?: string | null
+          id?: string
+          profit?: number | null
+          sent_at?: string | null
+          side: string
+          status?: string
+          stop_loss?: number | null
+          symbol: string
+          take_profit?: number | null
+          ticket?: string | null
+          user_id: string
+          volume: number
+        }
+        Update: {
+          bot_id?: string
+          close_price?: number | null
+          closed_at?: string | null
+          comment?: string | null
+          created_at?: string
+          error?: string | null
+          fill_price?: number | null
+          filled_at?: string | null
+          id?: string
+          profit?: number | null
+          sent_at?: string | null
+          side?: string
+          status?: string
+          stop_loss?: number | null
+          symbol?: string
+          take_profit?: number | null
+          ticket?: string | null
+          user_id?: string
+          volume?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_signals_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trading_accounts: {
         Row: {
