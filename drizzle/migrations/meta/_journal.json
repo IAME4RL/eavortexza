@@ -1,27 +1,5 @@
 {
   "version": "7",
   "dialect": "postgresql",
-  "entries": [
-    {
-      "idx": 0,
-      "version": "7",
-      "when": 1792592858576,
-      "tag": "0000_migration",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1792596398825,
-      "tag": "0001_handle_mentor_request_on_signup",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1792598599884,
-      "tag": "0002_auto_trade_bots_and_signals",
-      "breakpoints": true
-    }
-  ]
+  "entries": []
 }
