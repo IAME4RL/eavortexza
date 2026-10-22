@@ -12,12 +12,12 @@ export interface DeliveryInput {
   terminalType: TerminalType;
   terminalLogin: string;
   accountLogin: string;
-  terminalServer?: string;
-  accountServer?: string;
+  terminalServer?: string | undefined;
+  accountServer?: string | undefined;
   openTrades: number;
   maxOpenTrades: number;
-  dayPL?: number | null;
-  maxDailyLoss?: number;
+  dayPL?: number | null | undefined;
+  maxDailyLoss?: number | undefined;
 }
 
 const norm = (s: string | undefined) => (s ?? "").trim().toLowerCase();

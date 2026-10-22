@@ -164,7 +164,7 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {bot.status !== "running" && <Button variant="hero" onClick={() => update.mutate({ status: "running" })}><Play />{bot.status === "paused" ? "Resume" : "Start"}</Button>}
+          {bot.status !== "running" && <Button variant="hero" onClick={() => toast.error("Use the verified Start action (dashboard update pending)")}><Play />{bot.status === "paused" ? "Resume" : "Start"}</Button>}
           {bot.status === "running" && <Button variant="frame" onClick={() => update.mutate({ status: "paused" })}><Pause />Pause</Button>}
           {bot.status !== "stopped" && <Button variant="outline" onClick={() => stopAll.mutate()}><Square />Stop</Button>}
         </div>
@@ -213,7 +213,7 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
           <div className="mt-3 flex flex-wrap gap-2">
             <Button variant="hero" onClick={async () => { try { const r = await genToken({ data: { botId: bot.id } }); setToken(r.token); refresh(); } catch { toast.error("Could not create token"); } }}>
               <KeyRound />{bot.bridge_token_hash ? "Replace token" : "Create token"}</Button>
-            <Button variant="outline" asChild><a href="/EAVortexBridge.mq5" download><Download />Download Bridge EA</a></Button>
+            <Button variant="outline" asChild><a href="/EA_VORTEX_Bridge.mq5" download><Download />Download Bridge EA</a></Button>
           </div>
         </div>
       </div>

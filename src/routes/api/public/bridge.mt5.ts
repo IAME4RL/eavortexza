@@ -4,6 +4,7 @@ import {
   deliverySlots, formatConfigLine, formatSignalLine, holdReason, reportTransition, sha256Hex, volumeAllowed,
   type BotStatus, type TradingMode,
 } from "@/lib/bridge";
+import type { Database } from "@/integrations/supabase/types";
 import { decide, parseBars, type StrategySetting } from "@/lib/strategy";
 
 const text = (body: string, status = 200) =>
@@ -60,7 +61,7 @@ export const Route = createFileRoute("/api/public/bridge/mt5")({
             openTrades: h.open, maxOpenTrades: bot.max_open_trades, dayPL: h.daypl ?? null, maxDailyLoss: Number(bot.max_daily_loss),
           });
           const identityOk = reason !== "LOGIN_MISMATCH" && reason !== "SERVER_MISMATCH";
-          const patch: Record<string, unknown> = {
+          const patch: Database["public"]["Tables"]["bots"]["Update"] = {
             last_heartbeat: now, last_error: reason,
             terminal_info: {
               login: h.login, server: h.server, type: h.type, demo: h.type === "demo", balance: h.balance ?? null, equity: h.equity ?? null,
