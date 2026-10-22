@@ -15,6 +15,13 @@
       "when": 1792685050335,
       "tag": "0001_bridge_live_mode_strategies",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792685060662,
+      "tag": "0002_bots_insert_demo_only",
+      "breakpoints": true
     }
   ]
 }
