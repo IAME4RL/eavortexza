@@ -17,7 +17,15 @@ import { HEARTBEAT_ONLINE_MS } from "@/lib/bridge";
 import type { Database } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/dashboard/auto-trade")({
-  head: () => ({ meta: [{ title: "Auto Trade — EA VORTEX" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [
+    { title: "Auto Trade — EA VORTEX" },
+    { name: "description", content: "Connect your MT5 terminal with the EA VORTEX Bridge and manage queued orders and execution reports." },
+    { property: "og:title", content: "Auto Trade — EA VORTEX" },
+    { property: "og:description", content: "MT5 Bridge connection, order controls and terminal-reported trade history." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
+    { name: "robots", content: "noindex" },
+  ] }),
   component: Page,
 });
 
@@ -33,8 +41,8 @@ function Page() {
     refetchInterval: 15_000,
     queryFn: async () => {
       const [a, b] = await Promise.all([
-        supabase.from("trading_accounts").select("*").eq("user_id", user!.id).eq("platform", "MT5").order("created_at"),
-        supabase.from("bots").select("*").eq("user_id", user!.id),
+        supabase.from("trading_accounts").select("*").eq("user_id", user?.id ?? "").eq("platform", "MT5").order("created_at"),
+        supabase.from("bots").select("*").eq("user_id", user?.id ?? ""),
       ]);
       return { accounts: a.data ?? [], bots: b.data ?? [] };
     },
@@ -42,7 +50,8 @@ function Page() {
 
   const createBot = useMutation({
     mutationFn: async (accountId: string) => {
-      const { error } = await supabase.from("bots").insert({ user_id: user!.id, account_id: accountId });
+      if (!user) throw new Error("Sign in first");
+      const { error } = await supabase.from("bots").insert({ user_id: user.id, account_id: accountId });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["auto-trade"] }),
@@ -119,10 +128,11 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
 
   const queue = useMutation({
     mutationFn: async () => {
+      if (!user) throw new Error("Sign in first");
       const v = Number(vol);
       if (!(v > 0) || v > Number(bot.max_lot)) throw new Error(`Volume must be between 0.01 and your max lot (${bot.max_lot})`);
       const { error } = await supabase.from("trade_signals").insert({
-        user_id: user!.id, bot_id: bot.id, symbol: symbol.trim().toUpperCase(), side, volume: v,
+        user_id: user.id, bot_id: bot.id, symbol: symbol.trim(), side, volume: v,
         stop_loss: sl ? Number(sl) : null, take_profit: tp ? Number(tp) : null, comment: "EA VORTEX",
       });
       if (error) throw error;
@@ -185,10 +195,12 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
         <div className="rounded-md border border-border p-4">
           <h3 className="font-bold uppercase">Connect MT5</h3>
           <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
-            <li>Download the EA VORTEX Bridge and copy it to MT5 → File → Open Data Folder → MQL5/Experts.</li>
+            <li>Download the EA VORTEX Bridge and copy it to MT5 → File → Open Data Folder → MQL5/Experts. Open it in MetaEditor and press Compile (F7).</li>
             <li>In MT5: Tools → Options → Expert Advisors → allow WebRequest for the URL below.</li>
-            <li>Attach the Bridge to any chart, paste your token, and enable Algo Trading.</li>
+            <li>Attach the Bridge to one chart only. Set BridgeURL to the published address below, BridgeToken to your private token, ExpectedLogin to {account.account_login}, and ExpectedServer to {account.broker_server}.</li>
+            <li>Use an MT5 demo hedging account first. Keep DemoOnly enabled, check the terminal lot, spread and position limits, then enable Algo Trading. Keep MT5 open on your PC or VPS.</li>
           </ol>
+          <p className="mt-2 text-xs text-muted-foreground">This Bridge executes queued orders; it does not generate a strategy. Pause and Stop do not close existing positions. If an order remains Sent after a connection interruption, check MT5 history before replacing it. Do not run the same bot on multiple terminals.</p>
           <div className="mt-3 flex items-center gap-2"><Input readOnly value={endpoint} className="font-mono text-xs" />
             <Button size="icon" variant="outline" aria-label="Copy URL" onClick={() => { navigator.clipboard.writeText(endpoint); toast.success("URL copied"); }}><Copy /></Button></div>
           {token && (
@@ -233,7 +245,7 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
                   <td className="py-2">{new Date(r.created_at).toLocaleString()}</td><td>{r.symbol}</td><td className="uppercase">{r.side}</td><td>{r.volume}</td>
                   <td><StatusBadge status={`sig_${r.status}`} />{r.error && <span className="ml-2 text-muted-foreground">{r.error}</span>}</td>
                   <td>{r.ticket ?? "—"}</td><td>{r.fill_price ?? "—"}</td><td>{r.profit ?? "—"}</td>
-                  <td>{r.status === "queued" && <button aria-label="Cancel order" onClick={() => cancel.mutate(r.id)} className="text-muted-foreground hover:text-primary"><X className="h-4 w-4" /></button>}</td>
+                  <td>{r.status === "queued" && <Button size="icon" variant="ghost" aria-label="Cancel order" onClick={() => cancel.mutate(r.id)}><X className="h-4 w-4" /></Button>}</td>
                 </tr>))}</tbody>
             </table>
           </div>
