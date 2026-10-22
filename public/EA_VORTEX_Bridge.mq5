@@ -351,7 +351,7 @@ int OnInit() {
    for(int i=4;i<52;i++) { ushort c=StringGetCharacter(BridgeToken,i); if(!((c>=48 && c<=57) || (c>=97 && c<=102))) return INIT_PARAMETERS_INCORRECT; }
    if(!IdentityOK()) { Print("Bridge: terminal login/server do not match ExpectedLogin/ExpectedServer. Not connecting."); return INIT_FAILED; }
    if(AccountInfoInteger(ACCOUNT_MARGIN_MODE)!=ACCOUNT_MARGIN_MODE_RETAIL_HEDGING) { Print("Bridge requires a hedging account."); return INIT_FAILED; }
-   PrintFormat("Bridge: connected account type is %s.",StringUpper(AccountType()) ? AccountType() : AccountType());
+   PrintFormat("Bridge: connected account type is %s.",AccountType());
    string safeServer=ExpectedServer; StringReplace(safeServer,"/","_"); StringReplace(safeServer,"\\","_"); StringReplace(safeServer,":","_");
    string base="EVX_"+safeServer+"_"+(string)ExpectedLogin;
    lockFile=FileOpen(base+".lock",FILE_READ|FILE_WRITE|FILE_BIN|FILE_COMMON);
