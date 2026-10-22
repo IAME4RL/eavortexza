@@ -17,13 +17,13 @@ export type Decision = { trade: TradeIdea } | { trade: null; reason: string };
 
 export function ema(values: number[], period: number): number[] {
   const k = 2 / (period + 1); const out: number[] = [];
-  values.forEach((v, i) => out.push(i === 0 ? v : v * k + out[i - 1] * (1 - k)));
+  values.forEach((v, i) => out.push(i === 0 ? v : v * k + out[i - 1]! * (1 - k)));
   return out;
 }
 export function rsi(closes: number[], period = 14): number {
   let gain = 0, loss = 0;
   for (let i = closes.length - period; i < closes.length; i++) {
-    const d = closes[i] - closes[i - 1];
+    const d = closes[i]! - closes[i - 1]!;
     if (d > 0) gain += d; else loss -= d;
   }
   if (loss === 0) return gain === 0 ? 50 : 100;
@@ -32,7 +32,7 @@ export function rsi(closes: number[], period = 14): number {
 export function atr(bars: Bar[], period = 14): number {
   let sum = 0;
   for (let i = bars.length - period; i < bars.length; i++) {
-    const p = bars[i - 1].c, b = bars[i];
+    const p = bars[i - 1]!.c, b = bars[i]!;
     sum += Math.max(b.h - b.l, Math.abs(b.h - p), Math.abs(b.l - p));
   }
   return sum / period;
@@ -47,13 +47,13 @@ function build(strategy: StrategyId, side: "buy" | "sell", last: Bar, a: number,
 
 export function evaluateStrategy(id: StrategyId, bars: Bar[], symbol: string, tf: string, digits: number): TradeIdea | null {
   if (bars.length < MIN_BARS) return null;
-  const closes = bars.map((b) => b.c), last = bars[bars.length - 1], prev = bars[bars.length - 2];
+  const closes = bars.map((b) => b.c), last = bars[bars.length - 1]!, prev = bars[bars.length - 2]!;
   const a = atr(bars); if (!(a > 0)) return null;
   if (id === "ema_trend") {
     const e20 = ema(closes, 20), e50 = ema(closes, 50), n = closes.length - 1, r = rsi(closes);
-    if (e20[n] > e50[n] && prev.c <= e20[n - 1] && last.c > e20[n] && r >= 50 && r <= 70)
+    if (e20[n]! > e50[n]! && prev.c <= e20[n - 1]! && last.c > e20[n]! && r >= 50 && r <= 70)
       return build(id, "buy", last, a, digits, symbol, tf, `EMA20>EMA50, close reclaimed EMA20, RSI ${r.toFixed(1)}`);
-    if (e20[n] < e50[n] && prev.c >= e20[n - 1] && last.c < e20[n] && r <= 50 && r >= 30)
+    if (e20[n]! < e50[n]! && prev.c >= e20[n - 1]! && last.c < e20[n]! && r <= 50 && r >= 30)
       return build(id, "sell", last, a, digits, symbol, tf, `EMA20<EMA50, close lost EMA20, RSI ${r.toFixed(1)}`);
     return null;
   }
@@ -84,10 +84,10 @@ export function parseBars(raw: string): Bar[] | null {
   for (const row of raw.split(";").slice(0, 300)) {
     const p = row.split(",").map(Number);
     if (p.length !== 5 || p.some((x) => !Number.isFinite(x))) return null;
-    const [t, o, h, l, c] = p;
+    const [t, o, h, l, c] = p as [number, number, number, number, number];
     if (h < l || c <= 0) return null;
     out.push({ t, o, h, l, c });
   }
-  for (let i = 1; i < out.length; i++) if (out[i].t <= out[i - 1].t) return null;
+  for (let i = 1; i < out.length; i++) if (out[i]!.t <= out[i - 1]!.t) return null;
   return out;
 }

@@ -2,12 +2,17 @@ import { describe, expect, it } from "vitest";
 import { deliverySlots, formatSignalLine, holdReason, reportTransition, volumeAllowed } from "@/lib/bridge";
 
 describe("MT5 queued-order bridge", () => {
-  const input = { status: "running" as const, demoOnly: true, terminalIsDemo: true, terminalLogin: "12345", accountLogin: "12345", openTrades: 0, maxOpenTrades: 3 };
+  const input = { status: "running" as const, mode: "demo" as const, liveConfirmed: false, terminalType: "demo" as const, terminalLogin: "12345", accountLogin: "12345", openTrades: 0, maxOpenTrades: 3 };
   it("holds orders when the registered account login differs", () => {
     expect(holdReason({ ...input, terminalLogin: "99999" })).toBe("LOGIN_MISMATCH");
   });
-  it("holds live accounts when demo-only is enabled", () => {
-    expect(holdReason({ ...input, terminalIsDemo: false })).toBe("DEMO_ONLY");
+  it("never trades a live account in demo mode, or a demo account in live mode", () => {
+    expect(holdReason({ ...input, terminalType: "real" })).toBe("LIVE_ACCOUNT_IN_DEMO_MODE");
+    expect(holdReason({ ...input, mode: "live", liveConfirmed: true })).toBe("DEMO_ACCOUNT_IN_LIVE_MODE");
+    expect(holdReason({ ...input, mode: "live", terminalType: "real" })).toBe("LIVE_NOT_CONFIRMED");
+    expect(holdReason({ ...input, terminalType: "contest" })).toBe("ACCOUNT_TYPE_UNVERIFIED");
+    expect(holdReason({ ...input, maxDailyLoss: 50, dayPL: -50 })).toBe("DAILY_LOSS_LIMIT");
+    expect(holdReason({ ...input, maxDailyLoss: 50, dayPL: null })).toBe("DAILY_PL_UNVERIFIED");
   });
   it("holds paused orders", () => { expect(holdReason({ ...input, status: "paused" })).toBe("PAUSED"); });
   it("holds stopped orders", () => { expect(holdReason({ ...input, status: "stopped" })).toBe("STOPPED"); });
