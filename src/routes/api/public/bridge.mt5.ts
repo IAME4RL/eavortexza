@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { deliverySlots, formatSignalLine, holdReason, sha256Hex, volumeAllowed, type BotStatus } from "@/lib/bridge";
+import { deliverySlots, formatSignalLine, holdReason, reportTransition, sha256Hex, volumeAllowed, type BotStatus } from "@/lib/bridge";
 
 const text = (body: string, status = 200) =>
   new Response(body, { status, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } });
@@ -68,15 +68,23 @@ export const Route = createFileRoute("/api/public/bridge/mt5")({
           const r = Report.safeParse(fields);
           if (!r.success) return text("ERR|BAD_REQUEST", 400);
           const d = r.data;
+          const { data: existing, error: readError } = await supabaseAdmin.from("trade_signals").select("status")
+            .eq("id", d.id).eq("bot_id", bot.id).maybeSingle();
+          if (readError) return text("ERR|RETRY", 503);
+          if (!existing) return text("ERR|NOT_FOUND", 404);
+          const transition = reportTransition(existing.status, d.result);
+          if (transition === "ack") return text("OK");
+          if (transition === "reject") return text("ERR|INVALID_TRANSITION", 409);
           const now = new Date().toISOString();
           const patch =
             d.result === "filled" ? { status: "filled", ticket: d.ticket ?? null, fill_price: d.price ?? null, filled_at: now }
             : d.result === "closed" ? { status: "closed", close_price: d.price ?? null, profit: d.profit ?? null, closed_at: now }
             : { status: "rejected", error: d.error ?? "Rejected by terminal" };
-          const { data: updated } = await supabaseAdmin.from("trade_signals").update(patch)
-            .eq("id", d.id).eq("bot_id", bot.id).select("id,user_id,symbol,side");
+          const { data: updated, error: updateError } = await supabaseAdmin.from("trade_signals").update(patch)
+            .eq("id", d.id).eq("bot_id", bot.id).eq("status", existing.status).select("id,user_id,symbol,side");
+          if (updateError) return text("ERR|RETRY", 503);
           const row = updated?.[0];
-          if (!row) return text("ERR|NOT_FOUND", 404);
+          if (!row) return text("ERR|RETRY", 503);
           await supabaseAdmin.from("notifications").insert({
             user_id: row.user_id, title: `${row.side.toUpperCase()} ${row.symbol} ${d.result}`,
             body: d.result === "rejected" ? d.error ?? "Order rejected by MT5" : d.ticket ? `MT5 ticket ${d.ticket}` : null,

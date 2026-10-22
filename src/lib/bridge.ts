@@ -47,3 +47,13 @@ export async function sha256Hex(value: string): Promise<string> {
 
 /** Terminal counts as online if it checked in within this window. */
 export const HEARTBEAT_ONLINE_MS = 90_000;
+
+export type ExecutionReport = "filled" | "rejected" | "closed";
+
+/** Retries acknowledge the same result without regressing a later terminal state. */
+export function reportTransition(current: string, result: ExecutionReport): "apply" | "ack" | "reject" {
+  if (current === result || (current === "closed" && result === "filled")) return "ack";
+  if (current === "sent" && (result === "filled" || result === "rejected")) return "apply";
+  if (current === "filled" && result === "closed") return "apply";
+  return "reject";
+}
