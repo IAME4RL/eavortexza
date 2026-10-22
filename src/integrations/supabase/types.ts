@@ -42,12 +42,24 @@ export type Database = {
           created_at: string
           default_lot: number
           demo_only: boolean
+          emergency_close_ack_at: string | null
+          emergency_close_requested_at: string | null
+          emergency_close_result: string | null
           id: string
+          last_decision: string | null
+          last_error: string | null
           last_heartbeat: string | null
+          live_confirmed_at: string | null
+          max_daily_loss: number
           max_lot: number
           max_open_trades: number
+          risk_per_trade_pct: number
           status: string
+          stop_ack_at: string | null
+          stop_requested_at: string | null
+          strategy: string
           terminal_info: Json | null
+          trading_mode: string
           updated_at: string
           user_id: string
         }
@@ -57,12 +69,24 @@ export type Database = {
           created_at?: string
           default_lot?: number
           demo_only?: boolean
+          emergency_close_ack_at?: string | null
+          emergency_close_requested_at?: string | null
+          emergency_close_result?: string | null
           id?: string
+          last_decision?: string | null
+          last_error?: string | null
           last_heartbeat?: string | null
+          live_confirmed_at?: string | null
+          max_daily_loss?: number
           max_lot?: number
           max_open_trades?: number
+          risk_per_trade_pct?: number
           status?: string
+          stop_ack_at?: string | null
+          stop_requested_at?: string | null
+          strategy?: string
           terminal_info?: Json | null
+          trading_mode?: string
           updated_at?: string
           user_id: string
         }
@@ -72,12 +96,24 @@ export type Database = {
           created_at?: string
           default_lot?: number
           demo_only?: boolean
+          emergency_close_ack_at?: string | null
+          emergency_close_requested_at?: string | null
+          emergency_close_result?: string | null
           id?: string
+          last_decision?: string | null
+          last_error?: string | null
           last_heartbeat?: string | null
+          live_confirmed_at?: string | null
+          max_daily_loss?: number
           max_lot?: number
           max_open_trades?: number
+          risk_per_trade_pct?: number
           status?: string
+          stop_ack_at?: string | null
+          stop_requested_at?: string | null
+          strategy?: string
           terminal_info?: Json | null
+          trading_mode?: string
           updated_at?: string
           user_id?: string
         }
@@ -214,8 +250,10 @@ export type Database = {
           profit: number | null
           sent_at: string | null
           side: string
+          signal_key: string | null
           status: string
           stop_loss: number | null
+          strategy: string | null
           symbol: string
           take_profit: number | null
           ticket: string | null
@@ -235,8 +273,10 @@ export type Database = {
           profit?: number | null
           sent_at?: string | null
           side: string
+          signal_key?: string | null
           status?: string
           stop_loss?: number | null
+          strategy?: string | null
           symbol: string
           take_profit?: number | null
           ticket?: string | null
@@ -256,8 +296,10 @@ export type Database = {
           profit?: number | null
           sent_at?: string | null
           side?: string
+          signal_key?: string | null
           status?: string
           stop_loss?: number | null
+          strategy?: string | null
           symbol?: string
           take_profit?: number | null
           ticket?: string | null
