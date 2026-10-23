@@ -1,34 +1,5 @@
 {
   "version": "7",
   "dialect": "postgresql",
-  "entries": [
-    {
-      "idx": 0,
-      "version": "7",
-      "when": 1792684874585,
-      "tag": "0000_restore_signup_profile_trigger",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1792685050335,
-      "tag": "0001_bridge_live_mode_strategies",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1792685060662,
-      "tag": "0002_bots_insert_demo_only",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1792739967055,
-      "tag": "0003_strategy_engine_v2_backtests",
-      "breakpoints": true
-    }
-  ]
+  "entries": []
 }
