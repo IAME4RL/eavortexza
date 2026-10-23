@@ -1,7 +1,7 @@
 # EA VORTEX — Resume & Complete
 
 ## MT5 Bridge download
-- [ ] Implement the authenticated MT5 polling EA with durable execution reports and duplicate protection.
+- [x] MT5 bridge EA + dashboard controls (start/stop, live mode, emergency close, strategies)
 - [ ] Verify the download and bridge protocol tests; MT5 compilation and demo execution require a Windows MT5 terminal.
 
 - [ ] Recreate database schema on new backend (profiles, roles, scans, accounts, watchlist, notifications, mentor assignments, settings + RLS + helpers)
