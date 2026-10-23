@@ -8,7 +8,7 @@ export const Route = createFileRoute("/get-app")({
   head: () => ({
     meta: [
       { title: "Get the App — EA VORTEX" },
-      { name: "description", content: "Add EA VORTEX to your iPhone home screen and check Android APK availability." },
+      { name: "description", content: "Add EA VORTEX to your iPhone home screen or download the Android app." },
       { property: "og:title", content: "Get the App — EA VORTEX" },
       { property: "og:description", content: "EA VORTEX installation options for iOS and Android." },
       { property: "og:type", content: "website" },
@@ -46,10 +46,14 @@ function GetApp() {
           <section className="rounded-lg border border-border bg-card p-6 sm:p-8" aria-labelledby="android-title">
             <Smartphone className="h-8 w-8 text-primary" aria-hidden />
             <h2 id="android-title" className="mt-5 text-2xl font-bold">Android</h2>
-            <p className="mt-2 text-sm text-muted-foreground">APK download</p>
-            <p className="mt-6 text-sm text-muted-foreground">The Android APK has not been compiled, signed and tested yet. No installation file is available.</p>
-            <Button variant="frame" size="xl" className="mt-8 w-full" disabled><Download /> Download APK</Button>
-            <p className="mt-4 text-xs text-muted-foreground">Not available yet</p>
+            <p className="mt-2 text-sm text-muted-foreground">APK download · Version 1.0.0 (test build)</p>
+            <ol className="mt-6 space-y-4 text-sm">
+              <li className="flex gap-3"><span className="font-mono text-primary">01</span><span>Download the APK below on your Android phone (Android 7.0 or newer).</span></li>
+              <li className="flex gap-3"><span className="font-mono text-primary">02</span><span>Open the file and allow installation from this source when Android asks.</span></li>
+              <li className="flex gap-3"><span className="font-mono text-primary">03</span><span>Open EA VORTEX from your app drawer and sign in.</span></li>
+            </ol>
+            <Button variant="hero" size="xl" className="mt-8 w-full" asChild><a href="/downloads/EA-VORTEX.apk" download="EA-VORTEX.apk"><Download /> Download APK</a></Button>
+            <p className="mt-4 text-xs text-muted-foreground">Test build signed with a development certificate · Loads the live EA VORTEX web app · Internet connection required</p>
             <Button variant="link" className="mt-4 px-0" asChild><Link to="/dashboard">Use EA VORTEX in your browser <ArrowRight /></Link></Button>
           </section>
         </div>
