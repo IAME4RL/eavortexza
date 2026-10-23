@@ -42,7 +42,7 @@ function Home() {
               AI chart analysis, an MT5 Auto Trade bridge and Expert Advisor management — one connected platform.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button variant="hero" size="xl" asChild><Link to="/scanner">ACTIVATE BOT <ArrowRight /></Link></Button>
+              <Button variant="hero" size="xl" asChild><Link to="/get-app">ACTIVATE BOT <ArrowRight /></Link></Button>
               <Button variant="frame" size="xl" asChild><Link to="/features">Explore the Platform</Link></Button>
             </div>
             <ul className="mt-10 grid gap-3 text-sm sm:grid-cols-3">
