@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/lib/auth";
-import { createBridgeToken } from "@/lib/bot.functions";
+import { createBridgeToken, startBot, stopBot, enableLiveMode, disableLiveMode, requestEmergencyClose, LIVE_CONFIRM_PHRASE, CLOSE_CONFIRM_PHRASE } from "@/lib/bot.functions";
+import { STRATEGIES } from "@/lib/strategy";
 import { HEARTBEAT_ONLINE_MS } from "@/lib/bridge";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -89,6 +90,19 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const genToken = useServerFn(createBridgeToken);
+  const startFn = useServerFn(startBot);
+  const stopFn = useServerFn(stopBot);
+  const liveOn = useServerFn(enableLiveMode);
+  const liveOff = useServerFn(disableLiveMode);
+  const closeFn = useServerFn(requestEmergencyClose);
+  const [blockers, setBlockers] = useState<string[]>([]);
+  const [liveText, setLiveText] = useState("");
+  const [liveAck, setLiveAck] = useState(false);
+  const [closeText, setCloseText] = useState("");
+  const [strategy, setStrategy] = useState(bot.strategy);
+  const [riskPct, setRiskPct] = useState(String(bot.risk_per_trade_pct));
+  const [maxLoss, setMaxLoss] = useState(String(bot.max_daily_loss));
+  const run = async (fn: () => Promise<unknown>, ok?: string) => { try { await fn(); if (ok) toast.success(ok); refresh(); } catch (e) { toast.error(e instanceof Error ? e.message : "Action failed"); } };
   const [token, setToken] = useState<string | null>(null);
   const [lot, setLot] = useState(String(bot.default_lot));
   const [maxLot, setMaxLot] = useState(String(bot.max_lot));
@@ -118,14 +132,8 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Update failed"),
   });
 
-  const stopAll = useMutation({
-    mutationFn: async () => {
-      await supabase.from("bots").update({ status: "stopped" }).eq("id", bot.id);
-      await supabase.from("trade_signals").update({ status: "cancelled" }).eq("bot_id", bot.id).eq("status", "queued");
-    },
-    onSuccess: () => { toast.success("Bot stopped and queued orders cancelled"); refresh(); qc.invalidateQueries({ queryKey: ["signals", bot.id] }); },
-  });
-
+  const doStart = () => run(async () => { const r = await startFn({ data: { botId: bot.id } }); setBlockers(r.blockers); if (!r.ok) throw new Error("Start blocked — see checks below"); }, "Bot started");
+  const doStop = () => run(async () => { const r = await stopFn({ data: { botId: bot.id } }); qc.invalidateQueries({ queryKey: ["signals", bot.id] }); return r; }, "Bot stopped — new orders blocked, queued orders cancelled");
   const queue = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Sign in first");
@@ -160,16 +168,23 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
           <div className="mt-3 flex flex-wrap gap-2">
             <StatusBadge status={bot.status} />
             <StatusBadge status={online ? "terminal_online" : bot.last_heartbeat ? "terminal_offline" : "terminal_never"} />
-            {info && <StatusBadge status={info.demo ? "demo" : "live"} />}
+            <StatusBadge status={bot.trading_mode === "live" ? "live" : "demo"} />
+            {bot.stop_requested_at && !bot.stop_ack_at && <span className="text-xs text-muted-foreground">Stop awaiting terminal confirmation</span>}
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {bot.status !== "running" && <Button variant="hero" onClick={() => toast.error("Use the verified Start action (dashboard update pending)")}><Play />{bot.status === "paused" ? "Resume" : "Start"}</Button>}
+          {bot.status !== "running" && <Button variant="hero" onClick={doStart}><Play />{bot.status === "paused" ? "Resume" : "Start"}</Button>}
           {bot.status === "running" && <Button variant="frame" onClick={() => update.mutate({ status: "paused" })}><Pause />Pause</Button>}
-          {bot.status !== "stopped" && <Button variant="outline" onClick={() => stopAll.mutate()}><Square />Stop</Button>}
+          {bot.status !== "stopped" && <Button variant="outline" onClick={doStop}><Square />Stop</Button>}
         </div>
       </div>
 
+      {blockers.length > 0 && (
+        <div className="mt-4 rounded-md border border-destructive/50 p-3 text-sm">
+          <p className="font-semibold">Start blocked:</p>
+          <ul className="mt-1 list-disc pl-5 text-muted-foreground">{blockers.map((b) => <li key={b}>{b}</li>)}</ul>
+        </div>
+      )}
       <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Balance" value={info?.balance != null ? `${info.balance.toFixed(2)} ${info.currency ?? ""}` : "—"} hint="Reported by your MT5 terminal" />
         <Stat label="Equity" value={info?.equity != null ? info.equity.toFixed(2) : "—"} />
@@ -180,16 +195,27 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="rounded-md border border-border p-4">
           <h3 className="font-bold uppercase">Risk settings</h3>
-          <div className="mt-3 grid grid-cols-3 gap-3">
+          <div className="mt-3 space-y-1"><Label className={lbl}>Strategy</Label>
+            <Select value={strategy} onValueChange={setStrategy}><SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="manual">Manual orders only</SelectItem>
+                <SelectItem value="auto">Auto (all built-in strategies)</SelectItem>
+                {STRATEGIES.map((st) => <SelectItem key={st.id} value={st.id}>{st.name}</SelectItem>)}
+              </SelectContent></Select>
+            <p className="text-xs text-muted-foreground">{STRATEGIES.find((st) => st.id === strategy)?.rules ?? (strategy === "auto" ? "The terminal sends recent candles and the bot opens trades when a built-in strategy's rules are met." : "The bot only sends orders you queue yourself.")}</p>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div className="space-y-1"><Label className={lbl}>Default lot</Label><Input inputMode="decimal" value={lot} onChange={(e) => setLot(e.target.value)} /></div>
             <div className="space-y-1"><Label className={lbl}>Max lot</Label><Input inputMode="decimal" value={maxLot} onChange={(e) => setMaxLot(e.target.value)} /></div>
             <div className="space-y-1"><Label className={lbl}>Max open</Label><Input inputMode="numeric" value={maxOpen} onChange={(e) => setMaxOpen(e.target.value)} /></div>
+            <div className="space-y-1"><Label className={lbl}>Risk % / trade</Label><Input inputMode="decimal" value={riskPct} onChange={(e) => setRiskPct(e.target.value)} /></div>
+            <div className="space-y-1"><Label className={lbl}>Max daily loss</Label><Input inputMode="decimal" value={maxLoss} onChange={(e) => setMaxLoss(e.target.value)} /></div>
           </div>
           <label className="mt-4 flex items-center justify-between gap-3 text-sm">
             <span>Demo accounts only <span className="block text-xs text-muted-foreground">Orders are held if the terminal reports a live account.</span></span>
             <Switch checked={bot.demo_only} onCheckedChange={(v) => update.mutate({ demo_only: v })} />
           </label>
-          <Button variant="frame" className="mt-4" onClick={() => update.mutate({ default_lot: Number(lot), max_lot: Number(maxLot), max_open_trades: Number(maxOpen) }, { onSuccess: () => toast.success("Settings saved") })}>Save settings</Button>
+          <Button variant="frame" className="mt-4" onClick={() => update.mutate({ default_lot: Number(lot), max_lot: Number(maxLot), max_open_trades: Number(maxOpen), strategy, risk_per_trade_pct: Number(riskPct), max_daily_loss: Number(maxLoss) }, { onSuccess: () => toast.success("Settings saved") })}>Save settings</Button>
         </div>
 
         <div className="rounded-md border border-border p-4">
@@ -215,6 +241,30 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
               <KeyRound />{bot.bridge_token_hash ? "Replace token" : "Create token"}</Button>
             <Button variant="outline" asChild><a href="/EA_VORTEX_Bridge.mq5" download><Download />Download Bridge EA</a></Button>
           </div>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <div className="rounded-md border border-border p-4">
+          <h3 className="font-bold uppercase">Trading mode: {bot.trading_mode === "live" ? "LIVE" : "DEMO"}</h3>
+          {bot.trading_mode === "live" ? (
+            <><p className="mt-1 text-xs text-muted-foreground">Live mode uses real money. Switching back to demo stops the bot.</p>
+            <Button variant="frame" className="mt-3" onClick={() => run(() => liveOff({ data: { botId: bot.id } }), "Switched to demo mode")}>Switch to demo</Button></>
+          ) : (
+            <><p className="mt-1 text-xs text-muted-foreground">Live trading risks real money and has not been verified on your terminal. To enable it, type <span className="font-mono">{LIVE_CONFIRM_PHRASE}</span>.</p>
+            <Input className="mt-2" value={liveText} onChange={(e) => setLiveText(e.target.value)} placeholder={LIVE_CONFIRM_PHRASE} />
+            <label className="mt-2 flex items-center gap-2 text-xs"><Switch checked={liveAck} onCheckedChange={setLiveAck} />I understand I can lose money and no profit is guaranteed.</label>
+            <Button variant="outline" className="mt-3" disabled={!liveAck || liveText.trim() !== LIVE_CONFIRM_PHRASE}
+              onClick={() => run(() => liveOn({ data: { botId: bot.id, confirm: liveText, acknowledged: true } }), "Live mode enabled — press Start to verify and run")}>Enable live mode</Button></>
+          )}
+        </div>
+        <div className="rounded-md border border-destructive/40 p-4">
+          <h3 className="font-bold uppercase">Emergency close</h3>
+          <p className="mt-1 text-xs text-muted-foreground">Stops the bot and asks MT5 to close this bot's open positions (subject to broker rules). Type <span className="font-mono">{CLOSE_CONFIRM_PHRASE}</span>.</p>
+          {bot.emergency_close_requested_at && <p className="mt-1 text-xs">{bot.emergency_close_ack_at ? `Terminal result: ${bot.emergency_close_result ?? "done"}` : "Waiting for terminal…"}</p>}
+          <Input className="mt-2" value={closeText} onChange={(e) => setCloseText(e.target.value)} placeholder={CLOSE_CONFIRM_PHRASE} />
+          <Button variant="destructive" className="mt-3" disabled={closeText.trim() !== CLOSE_CONFIRM_PHRASE}
+            onClick={() => run(async () => { await closeFn({ data: { botId: bot.id, confirm: closeText } }); setCloseText(""); }, "Emergency close sent")}>Close all positions</Button>
         </div>
       </div>
 
