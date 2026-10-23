@@ -22,6 +22,13 @@
       "when": 1792685060662,
       "tag": "0002_bots_insert_demo_only",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792739967055,
+      "tag": "0003_strategy_engine_v2_backtests",
+      "breakpoints": true
     }
   ]
 }
