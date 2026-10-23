@@ -12,3 +12,4 @@
 - Ship the MT5 connector as same-origin MQL5 source at `public/EA_VORTEX_Bridge.mq5`, matching the dashboard download and existing pipe-delimited bridge protocol.
 - The terminal connector journals execution intent before broker submission and retries reports, never uncertain orders, to avoid duplicate trades after interruptions.
 - Mobile web installation uses manifest-only metadata, without an app-shell service worker; Android APK downloads require a genuine compiled, signed artifact, not a renamed web file.
+- The Android APK is a minimal native WebView wrapper (no Capacitor) built from `/root/eavortex-android` (Gradle + AGP 8.5.2, SDK 34, package `co.eavortex.app`); the shipped artifact lives at `public/downloads/EA-VORTEX.apk` and its target URL is a single constant in `MainActivity.java` — rebuild with the published URL after launch.

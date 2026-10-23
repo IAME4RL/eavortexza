@@ -9,6 +9,7 @@
   "background_color": "#080808",
   "icons": [
     { "src": "/icons/vortex-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/vortex-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+    { "src": "/icons/vortex-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/vortex-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

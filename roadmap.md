@@ -1,8 +1,8 @@
 # EA VORTEX — Resume & Complete
 
 ## Get the app
-- [ ] Link ACTIVATE BOT to iOS and Android installation options and add iOS home-screen metadata.
-- [ ] Provide Android APK download — blocked until a genuine compiled, signed APK for the published app is available.
+- [x] ACTIVATE BOT links to /get-app with iOS Add-to-Home-Screen steps and Android APK download; home-screen icons (192/512/maskable/180) in manifest + head.
+- [ ] Rebuild the APK with the published site URL (current build loads the preview address) and sign a release build with a proper release keystore before public distribution.
 
 ## MT5 Bridge download
 - [x] MT5 bridge EA + dashboard controls (start/stop, live mode, emergency close, strategies)
