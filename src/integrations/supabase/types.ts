@@ -35,6 +35,45 @@ export type Database = {
         }
         Relationships: []
       }
+      backtest_runs: {
+        Row: {
+          bar_count: number
+          created_at: string
+          first_bar: string | null
+          id: string
+          last_bar: string | null
+          metrics: Json
+          strategy: string
+          symbol: string
+          timeframe: string
+          user_id: string
+        }
+        Insert: {
+          bar_count: number
+          created_at?: string
+          first_bar?: string | null
+          id?: string
+          last_bar?: string | null
+          metrics?: Json
+          strategy: string
+          symbol: string
+          timeframe: string
+          user_id: string
+        }
+        Update: {
+          bar_count?: number
+          created_at?: string
+          first_bar?: string | null
+          id?: string
+          last_bar?: string | null
+          metrics?: Json
+          strategy?: string
+          symbol?: string
+          timeframe?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       bots: {
         Row: {
           account_id: string
