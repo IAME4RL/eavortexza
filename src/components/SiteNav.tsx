@@ -14,6 +14,15 @@ const LINKS = [
   { to: "/faq", label: "FAQ" },
 ] as const;
 
+const APP_LINKS = [
+  { to: "/dashboard", label: "Dashboard" },
+  { to: "/dashboard/scanner", label: "AI Scanner" },
+  { to: "/dashboard/auto-trade", label: "Auto Trade" },
+  { to: "/dashboard/ea", label: "EA Management" },
+  { to: "/dashboard/history", label: "Scan History" },
+  { to: "/dashboard/market", label: "Market Analysis" },
+] as const;
+
 export function SiteNav() {
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
@@ -52,7 +61,7 @@ export function SiteNav() {
         </button>
       </div>
       {open && (
-        <div className="border-t border-border bg-surface lg:hidden">
+        <div className="max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-border bg-surface lg:hidden">
           <nav className="flex flex-col px-4 py-3">
             {LINKS.map((l) => (
               <Link key={l.to} to={l.to} onClick={() => setOpen(false)}
@@ -60,6 +69,15 @@ export function SiteNav() {
                 {l.label}
               </Link>
             ))}
+            <p className="mt-3 px-3 font-mono text-[10px] uppercase tracking-wider text-primary">Portal</p>
+            <div className="mt-1 grid grid-cols-2 gap-2">
+              {APP_LINKS.map((l) => (
+                <Link key={l.to} to={l.to} onClick={() => setOpen(false)}
+                  className="rounded-md border border-border px-3 py-3 text-sm text-muted-foreground hover:border-primary/60 hover:text-foreground">
+                  {l.label}
+                </Link>
+              ))}
+            </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
               {user ? (
                 <Button variant="hero" className="col-span-2" asChild><Link to="/dashboard">Dashboard</Link></Button>
