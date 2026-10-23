@@ -11,3 +11,4 @@
 
 - Ship the MT5 connector as same-origin MQL5 source at `public/EA_VORTEX_Bridge.mq5`, matching the dashboard download and existing pipe-delimited bridge protocol.
 - The terminal connector journals execution intent before broker submission and retries reports, never uncertain orders, to avoid duplicate trades after interruptions.
+- Mobile web installation uses manifest-only metadata, without an app-shell service worker; Android APK downloads require a genuine compiled, signed artifact, not a renamed web file.
