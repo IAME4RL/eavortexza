@@ -134,6 +134,9 @@
 @keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
 @utility animate-scanline { animation: scanline 2.4s linear infinite; }
 @utility animate-pulse-dot { animation: pulse-dot 1.6s ease-in-out infinite; }
+@keyframes fade-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@utility animate-fade-up { animation: fade-up .6s ease-out both; }
+@media (prefers-reduced-motion: reduce) { .animate-fade-up { animation: none; } }
 
 /* Slow drifting red ambient wash for the Vortex background */
 @keyframes vortex-drift {
