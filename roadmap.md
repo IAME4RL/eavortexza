@@ -1,5 +1,10 @@
 # EA VORTEX — Resume & Complete
 
+## Market Signals (rule-based scanner)
+- [x] Real market-data layer (Yahoo Finance chart API, GOLD via GC=F futures), 15-strategy engine, HTF confirmation, expiry, dedupe, signals table + RLS
+- [x] Market Signals dashboard page with signal card, history, and walk-forward backtesting (verified in browser: NO TRADE honesty + backtest metrics)
+- [ ] Wire scanner signals into Auto Trade bot queue (Auto-Trade AI Signals toggle) — deferred by user until credits allow
+
 ## Get the app
 - [x] ACTIVATE BOT links to /get-app with iOS Add-to-Home-Screen steps and Android APK download; home-screen icons (192/512/maskable/180) in manifest + head.
 - [ ] Rebuild the APK with the published site URL (current build loads the preview address) and sign a release build with a proper release keystore before public distribution.
