@@ -18,6 +18,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 const NAV = [
   { to: "/dashboard", label: "Overview", I: LayoutDashboard, exact: true },
   { to: "/dashboard/scanner", label: "AI Chart Scanner", I: ScanLine },
+  { to: "/dashboard/signals", label: "Market Signals", I: Activity },
   { to: "/dashboard/history", label: "Scan History", I: History },
   { to: "/dashboard/auto-trade", label: "Auto Trade", I: Zap },
   { to: "/dashboard/ea", label: "EA Management", I: Bot },

@@ -275,6 +275,66 @@ export type Database = {
         }
         Relationships: []
       }
+      signals: {
+        Row: {
+          created_at: string
+          data_at: string
+          entry: number
+          expires_at: string
+          explanation: string
+          id: string
+          reason: string
+          risk_reward: number
+          side: string
+          signal_key: string
+          status: string
+          stop_loss: number
+          strategy: string
+          symbol: string
+          take_profit: number
+          timeframe: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_at: string
+          entry: number
+          expires_at: string
+          explanation: string
+          id?: string
+          reason: string
+          risk_reward: number
+          side: string
+          signal_key: string
+          status?: string
+          stop_loss: number
+          strategy: string
+          symbol: string
+          take_profit: number
+          timeframe: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data_at?: string
+          entry?: number
+          expires_at?: string
+          explanation?: string
+          id?: string
+          reason?: string
+          risk_reward?: number
+          side?: string
+          signal_key?: string
+          status?: string
+          stop_loss?: number
+          strategy?: string
+          symbol?: string
+          take_profit?: number
+          timeframe?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       trade_signals: {
         Row: {
           bot_id: string
