@@ -13,7 +13,7 @@ export interface FeedSpec { symbol: string; digits: number; staleMs: number }
 /** Canonical instrument → Yahoo symbol, price precision and staleness tolerance.
  *  Forex/indices tolerate weekends (Fri close → Mon open); crypto trades 24/7. */
 export const FEEDS: Record<string, FeedSpec> = {
-  XAUUSD: { symbol: "XAUUSD=X", digits: 2, staleMs: 3 * D },
+  XAUUSD: { symbol: "GC=F", digits: 2, staleMs: 3 * D }, // COMEX gold futures — Yahoo does not serve spot XAUUSD=X
   EURUSD: { symbol: "EURUSD=X", digits: 5, staleMs: 3 * D },
   GBPUSD: { symbol: "GBPUSD=X", digits: 5, staleMs: 3 * D },
   USDJPY: { symbol: "USDJPY=X", digits: 3, staleMs: 3 * D },
