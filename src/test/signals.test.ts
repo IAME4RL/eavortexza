@@ -105,8 +105,11 @@ describe("backtest", () => {
     const k = 180;
     const full = backtest("auto", bars, "XAUUSD", "H1", 2);
     const prefix = backtest("auto", bars.slice(0, k), "XAUUSD", "H1", 2);
-    // Every trade completed in the prefix run must appear identically in the full run.
-    expect(full.rMultiples.slice(0, prefix.rMultiples.length)).toEqual(prefix.rMultiples);
+    // Every trade closed before the prefix ends must be identical in the full run.
+    // (The prefix's last trade may still be open at the boundary and time out there,
+    // while the full run sees it through — that is data availability, not lookahead.)
+    const settled = prefix.rMultiples.slice(0, -1);
+    expect(full.rMultiples.slice(0, settled.length)).toEqual(settled);
   });
 
   it("reports honest zero-trade metrics when nothing qualifies", () => {
