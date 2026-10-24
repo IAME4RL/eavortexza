@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-rout
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
-  LayoutDashboard, ScanLine, History, Bot, BarChart3, LineChart, Bell, Settings, Users, ShieldCheck, LogOut, Menu, X, Zap,
+  LayoutDashboard, ScanLine, History, Bot, BarChart3, LineChart, Bell, Settings, Users, ShieldCheck, LogOut, Menu, X, Zap, Activity,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { VortexBackground } from "@/components/VortexBackground";
@@ -18,6 +18,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 const NAV = [
   { to: "/dashboard", label: "Overview", I: LayoutDashboard, exact: true },
   { to: "/dashboard/scanner", label: "AI Chart Scanner", I: ScanLine },
+  { to: "/dashboard/signals", label: "Market Signals", I: Activity },
   { to: "/dashboard/history", label: "Scan History", I: History },
   { to: "/dashboard/auto-trade", label: "Auto Trade", I: Zap },
   { to: "/dashboard/ea", label: "EA Management", I: Bot },
