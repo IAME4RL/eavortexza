@@ -16,11 +16,12 @@ import { cn } from "@/lib/utils";
 type SignalsSearch = { instrument?: string; timeframe?: string; auto?: boolean };
 
 export const Route = createFileRoute("/_authenticated/dashboard/signals")({
-  validateSearch: (s: Record<string, unknown>): SignalsSearch => ({
-    instrument: typeof s["instrument"] === "string" ? s["instrument"] : undefined,
-    timeframe: typeof s["timeframe"] === "string" ? s["timeframe"] : undefined,
-    auto: s["auto"] === true || s["auto"] === "true",
-  }),
+  validateSearch: (s: Record<string, unknown>): SignalsSearch => {
+    const out: SignalsSearch = { auto: s["auto"] === true || s["auto"] === "true" };
+    if (typeof s["instrument"] === "string") out.instrument = s["instrument"];
+    if (typeof s["timeframe"] === "string") out.timeframe = s["timeframe"];
+    return out;
+  },
   head: () => ({ meta: [{ title: "Market Signals — EA VORTEX" }, { name: "robots", content: "noindex" }] }),
   component: SignalsPage,
 });
