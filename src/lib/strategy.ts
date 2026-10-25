@@ -248,7 +248,7 @@ function finalize(def: StrategyDef, c: Candidate, ctx: Ctx, symbol: string, tf: 
   if (!(risk > 0) || risk > MAX_RISK_ATR * ctx.a) return null; // invalid or oversized invalidation
   let tp = c.tp ?? entry + d * 2 * risk;
   if ((tp - entry) * d < MIN_RR * risk) { if (c.tp != null) return null; tp = entry + d * MIN_RR * risk; }
-  return { strategy: def.id, side: c.side, entry, sl: round(c.sl, digits), tp: round(tp, digits),
+  return { strategy: def.id, side: c.side, entry: round(entry, digits), sl: round(c.sl, digits), tp: round(tp, digits),
     key: `${def.id}:${symbol}:${tf}:${ctx.last.t}`, reason: c.reason };
 }
 

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Activity, AlertTriangle, ArrowDownRight, ArrowUpRight, FlaskConical, Minus, RefreshCw } from "lucide-react";
 import { generateSignal, listSignals, runSignalBacktest } from "@/lib/signal.functions";
 import { FEED_INSTRUMENTS, FEED_TIMEFRAMES } from "@/lib/marketdata";
@@ -13,7 +13,15 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
+type SignalsSearch = { instrument?: string; timeframe?: string; auto?: boolean };
+
 export const Route = createFileRoute("/_authenticated/dashboard/signals")({
+  validateSearch: (s: Record<string, unknown>): SignalsSearch => {
+    const out: SignalsSearch = { auto: s["auto"] === true || s["auto"] === "true" };
+    if (typeof s["instrument"] === "string") out.instrument = s["instrument"];
+    if (typeof s["timeframe"] === "string") out.timeframe = s["timeframe"];
+    return out;
+  },
   head: () => ({ meta: [{ title: "Market Signals — EA VORTEX" }, { name: "robots", content: "noindex" }] }),
   component: SignalsPage,
 });
@@ -23,20 +31,25 @@ type GenResult =
   | { ok: false; reason?: string; error?: string };
 
 function SignalsPage() {
+  const search = Route.useSearch();
   const qc = useQueryClient();
   const genFn = useServerFn(generateSignal);
   const listFn = useServerFn(listSignals);
   const btFn = useServerFn(runSignalBacktest);
   const history = useQuery({ queryKey: ["signals"], queryFn: () => listFn() });
 
-  const [instrument, setInstrument] = useState("XAUUSD");
-  const [timeframe, setTimeframe] = useState("H1");
+  const [instrument, setInstrument] = useState(() =>
+    search.instrument && FEED_INSTRUMENTS.includes(search.instrument) ? search.instrument : "XAUUSD");
+  const [timeframe, setTimeframe] = useState(() =>
+    search.timeframe && FEED_TIMEFRAMES.includes(search.timeframe) ? search.timeframe : "H1");
   const [strategy, setStrategy] = useState("auto");
   const [busy, setBusy] = useState(false);
   const [btBusy, setBtBusy] = useState(false);
   const [result, setResult] = useState<GenResult | null>(null);
   const [bt, setBt] = useState<{ metrics: BacktestMetrics; barCount: number; source: string } | null>(null);
   const [btError, setBtError] = useState<string | null>(null);
+  const [autoPending, setAutoPending] = useState(false);
+  const autoKeyRef = useRef<string | null>(null);
 
   async function generate() {
     setBusy(true); setResult(null);
@@ -50,6 +63,18 @@ function SignalsPage() {
       setBusy(false);
     }
   }
+
+  // Arriving from the AI Chart Scanner (?instrument=…&timeframe=…&auto=true):
+  // generate a signal immediately, once per unique parameter set.
+  useEffect(() => {
+    if (!search.auto) return;
+    const key = `${search.instrument}|${search.timeframe}`;
+    if (autoKeyRef.current === key) return;
+    autoKeyRef.current = key;
+    setAutoPending(true);
+    void generate().finally(() => setAutoPending(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.auto, search.instrument, search.timeframe]);
 
   async function runBacktest() {
     setBtBusy(true); setBt(null); setBtError(null);
@@ -106,8 +131,13 @@ function SignalsPage() {
               ? "All implemented strategies are evaluated on the latest closed bar; at most one is selected, with its reasoning shown."
               : STRATEGIES.find((s) => s.id === strategy)?.rules}
           </p>
-          <Button variant="hero" size="xl" className="w-full" disabled={busy} onClick={generate}>
-            {busy ? <><RefreshCw className="animate-spin" />Analysing…</> : <><Activity />Generate Signal</>}
+          {autoPending && (
+            <p className="rounded border border-primary/50 bg-card p-3 text-xs text-muted-foreground">
+              Requested from your chart scan — analysing live {instrument} {timeframe} data automatically…
+            </p>
+          )}
+          <Button variant="hero" size="xl" className="w-full" disabled={busy || autoPending} onClick={generate}>
+            {busy || autoPending ? <><RefreshCw className="animate-spin" />Analysing…</> : <><Activity />Generate Signal</>}
           </Button>
           <Button variant="frame" className="w-full" disabled={btBusy} onClick={runBacktest}>
             {btBusy ? <><RefreshCw className="animate-spin" />Backtesting…</> : <><FlaskConical />Backtest on history</>}
