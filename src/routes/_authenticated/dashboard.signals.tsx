@@ -130,8 +130,13 @@ function SignalsPage() {
               ? "All implemented strategies are evaluated on the latest closed bar; at most one is selected, with its reasoning shown."
               : STRATEGIES.find((s) => s.id === strategy)?.rules}
           </p>
-          <Button variant="hero" size="xl" className="w-full" disabled={busy} onClick={generate}>
-            {busy ? <><RefreshCw className="animate-spin" />Analysing…</> : <><Activity />Generate Signal</>}
+          {autoPending && (
+            <p className="rounded border border-primary/50 bg-card p-3 text-xs text-muted-foreground">
+              Requested from your chart scan — analysing live {instrument} {timeframe} data automatically…
+            </p>
+          )}
+          <Button variant="hero" size="xl" className="w-full" disabled={busy || autoPending} onClick={generate}>
+            {busy || autoPending ? <><RefreshCw className="animate-spin" />Analysing…</> : <><Activity />Generate Signal</>}
           </Button>
           <Button variant="frame" className="w-full" disabled={btBusy} onClick={runBacktest}>
             {btBusy ? <><RefreshCw className="animate-spin" />Backtesting…</> : <><FlaskConical />Backtest on history</>}
