@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Activity, AlertTriangle, ArrowDownRight, ArrowUpRight, FlaskConical, Minus, RefreshCw } from "lucide-react";
 import { generateSignal, listSignals, runSignalBacktest } from "@/lib/signal.functions";
 import { FEED_INSTRUMENTS, FEED_TIMEFRAMES } from "@/lib/marketdata";
@@ -13,7 +13,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
+type SignalsSearch = { instrument?: string; timeframe?: string; auto?: boolean };
+
 export const Route = createFileRoute("/_authenticated/dashboard/signals")({
+  validateSearch: (s: Record<string, unknown>): SignalsSearch => ({
+    instrument: typeof s.instrument === "string" ? s.instrument : undefined,
+    timeframe: typeof s.timeframe === "string" ? s.timeframe : undefined,
+    auto: s.auto === true || s.auto === "true",
+  }),
   head: () => ({ meta: [{ title: "Market Signals — EA VORTEX" }, { name: "robots", content: "noindex" }] }),
   component: SignalsPage,
 });
