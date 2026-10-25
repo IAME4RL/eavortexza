@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authenticated/dashboard/signals")({
   validateSearch: (s: Record<string, unknown>): SignalsSearch => ({
     instrument: typeof s.instrument === "string" ? s.instrument : undefined,
     timeframe: typeof s.timeframe === "string" ? s.timeframe : undefined,
-    auto: s.auto === true || s.auto === "true",
+    auto: s["auto"] === true || s["auto"] === "true",
   }),
   head: () => ({ meta: [{ title: "Market Signals — EA VORTEX" }, { name: "robots", content: "noindex" }] }),
   component: SignalsPage,
