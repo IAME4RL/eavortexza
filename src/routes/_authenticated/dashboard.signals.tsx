@@ -63,6 +63,18 @@ function SignalsPage() {
     }
   }
 
+  // Arriving from the AI Chart Scanner (?instrument=…&timeframe=…&auto=true):
+  // generate a signal immediately, once per unique parameter set.
+  useEffect(() => {
+    if (!search.auto) return;
+    const key = `${instrument}|${timeframe}`;
+    if (autoKeyRef.current === key) return;
+    autoKeyRef.current = key;
+    setAutoPending(true);
+    void generate().finally(() => setAutoPending(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.auto, instrument, timeframe]);
+
   async function runBacktest() {
     setBtBusy(true); setBt(null); setBtError(null);
     try {
