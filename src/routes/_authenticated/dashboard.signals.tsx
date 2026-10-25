@@ -47,6 +47,8 @@ function SignalsPage() {
   const [result, setResult] = useState<GenResult | null>(null);
   const [bt, setBt] = useState<{ metrics: BacktestMetrics; barCount: number; source: string } | null>(null);
   const [btError, setBtError] = useState<string | null>(null);
+  const [autoPending, setAutoPending] = useState(false);
+  const autoKeyRef = useRef<string | null>(null);
 
   async function generate() {
     setBusy(true); setResult(null);
