@@ -67,13 +67,13 @@ function SignalsPage() {
   // generate a signal immediately, once per unique parameter set.
   useEffect(() => {
     if (!search.auto) return;
-    const key = `${instrument}|${timeframe}`;
+    const key = `${search.instrument}|${search.timeframe}`;
     if (autoKeyRef.current === key) return;
     autoKeyRef.current = key;
     setAutoPending(true);
     void generate().finally(() => setAutoPending(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search.auto, instrument, timeframe]);
+  }, [search.auto, search.instrument, search.timeframe]);
 
   async function runBacktest() {
     setBtBusy(true); setBt(null); setBtError(null);
