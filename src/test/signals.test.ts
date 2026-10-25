@@ -47,7 +47,7 @@ describe("buildSignal", () => {
     if (!r.ok) return;
     const s = r.signal;
     expect(s.side).toBe("buy");
-    expect(s.entry).toBe(bars[bars.length - 1]!.c);
+    expect(s.entry).toBe(Number(bars[bars.length - 1]!.c.toFixed(2))); // entry rounded to instrument digits
     expect(s.sl).toBeLessThan(s.entry); // stop below entry for a buy
     expect(s.tp).toBeGreaterThan(s.entry); // target above entry for a buy
     expect(s.rr).toBeGreaterThanOrEqual(1.5);
