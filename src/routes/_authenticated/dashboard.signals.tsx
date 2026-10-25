@@ -30,14 +30,17 @@ type GenResult =
   | { ok: false; reason?: string; error?: string };
 
 function SignalsPage() {
+  const search = Route.useSearch();
   const qc = useQueryClient();
   const genFn = useServerFn(generateSignal);
   const listFn = useServerFn(listSignals);
   const btFn = useServerFn(runSignalBacktest);
   const history = useQuery({ queryKey: ["signals"], queryFn: () => listFn() });
 
-  const [instrument, setInstrument] = useState("XAUUSD");
-  const [timeframe, setTimeframe] = useState("H1");
+  const [instrument, setInstrument] = useState(() =>
+    search.instrument && FEED_INSTRUMENTS.includes(search.instrument) ? search.instrument : "XAUUSD");
+  const [timeframe, setTimeframe] = useState(() =>
+    search.timeframe && FEED_TIMEFRAMES.includes(search.timeframe) ? search.timeframe : "H1");
   const [strategy, setStrategy] = useState("auto");
   const [busy, setBusy] = useState(false);
   const [btBusy, setBtBusy] = useState(false);
