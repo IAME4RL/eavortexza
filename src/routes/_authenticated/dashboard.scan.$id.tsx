@@ -1,6 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { canonicalInstrument } from "@/lib/instruments";
+import { FEEDS, FEED_TIMEFRAMES } from "@/lib/marketdata";
 import { PageHeader } from "@/components/dash";
 import { Button } from "@/components/ui/button";
 
