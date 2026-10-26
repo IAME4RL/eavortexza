@@ -103,7 +103,7 @@ Analyse this chart for: market structure, trend, support/resistance zones, candl
       let text = "";
       if (geminiKey) {
         // Free-tier models get overloaded; try several in order until one answers.
-        const models = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.1-flash-lite"];
+        const models = ["gemini-flash-lite-latest", "gemini-3.1-flash-lite", "gemini-3.5-flash"];
         let res: Response | null = null;
         for (const m of models) {
           res = await fetch(
@@ -190,5 +190,5 @@ export const getScanQuota = createServerFn({ method: "GET" })
     const { count } = await supabase.from("scans").select("id", { count: "exact", head: true })
       .eq("user_id", userId).eq("status", "completed").gte("created_at", since.toISOString());
     const limit = settings?.daily_scan_limit ?? 5;
-    return { limit, used: count ?? 0, enabled: settings?.scanner_enabled ?? true, aiConfigured: !!(process.env["OPENAI_API_KEY"] || process.env["LOVABLE_API_KEY"]) };
+    return { limit, used: count ?? 0, enabled: settings?.scanner_enabled ?? true, aiConfigured: !!(process.env["OPENAI_API_KEY"] || process.env["LOVABLE_API_KEY"] || process.env["GEMINI_API_KEY"])
   });
