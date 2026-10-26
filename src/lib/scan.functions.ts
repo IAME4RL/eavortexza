@@ -130,7 +130,7 @@ Analyse this chart for: market structure, trend, support/resistance zones, candl
     } catch (err) {
       const e = err as { statusCode?: number; message?: string };
       const msg =
-        e.statusCode === 402 ? "AI credits are exhausted for this workspace. Please contact the administrator."
+        e.statusCode === 402 ? "The AI scanner account is out of credit. Please contact the administrator."
         : e.statusCode === 429 ? "The AI service is busy. Please wait a moment and retry."
         : e.statusCode === 403 ? "The AI service refused this request."
         : e.message ?? "AI analysis failed.";
@@ -159,5 +159,5 @@ export const getScanQuota = createServerFn({ method: "GET" })
     const { count } = await supabase.from("scans").select("id", { count: "exact", head: true })
       .eq("user_id", userId).eq("status", "completed").gte("created_at", since.toISOString());
     const limit = settings?.daily_scan_limit ?? 5;
-    return { limit, used: count ?? 0, enabled: settings?.scanner_enabled ?? true, aiConfigured: !!process.env["LOVABLE_API_KEY"] };
+    return { limit, used: count ?? 0, enabled: settings?.scanner_enabled ?? true, aiConfigured: !!(process.env["OPENAI_API_KEY"] || process.env["LOVABLE_API_KEY"]) };
   });
