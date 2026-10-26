@@ -68,7 +68,7 @@ export const runScan = createServerFn({ method: "POST" })
 
     const apiKey = process.env["LOVABLE_API_KEY"];
     const geminiKey = process.env["GEMINI_API_KEY"];
-    if (!apiKey && !geminiKey) return { ok: false as const, error: "AI service is not configured." };
+    if (!apiKey && !geminiKey && !process.env["OPENAI_API_KEY"]) return { ok: false as const, error: "AI service is not configured." };
 
     const { data: file, error: dlErr } = await supabase.storage.from("charts").download(data.imagePath);
     if (dlErr || !file) return { ok: false as const, error: "Could not read the uploaded chart." };
@@ -89,23 +89,26 @@ Analyse this chart for: market structure, trend, support/resistance zones, candl
 
     const { createOpenAI } = await import("@ai-sdk/openai");
     const { streamText } = await import("ai");
-    const openai = createOpenAI({
-      baseURL: "https://ai.gateway.lovable.dev/v1",
-      apiKey,
-      headers: { "Lovable-API-Key": apiKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
-    });
+    const openaiKey = process.env["OPENAI_API_KEY"];
+    const openai = openaiKey
+      ? createOpenAI({ apiKey: openaiKey })
+      : createOpenAI({
+          baseURL: "https://ai.gateway.lovable.dev/v1",
+          apiKey: apiKey ?? "",
+          headers: { "Lovable-API-Key": apiKey ?? "", "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
+        });
 
     let analysis: unknown;
     try {
       const result = streamText({
-        model: openai.responses(MODEL),
+        model: openaiKey ? openai.chat("gpt-4o") : openai.responses(MODEL),
         maxRetries: 0,
         system: SYSTEM,
         messages: [{ role: "user", content: [
           { type: "text", text: userText },
           { type: "image", image: base64, mediaType },
         ] }],
-        providerOptions: {
+        ...(openaiKey ? {} : { providerOptions: {
           openai: {
             forceReasoning: true,
             reasoningEffort: "low",
@@ -113,7 +116,7 @@ Analyse this chart for: market structure, trend, support/resistance zones, candl
             store: false,
             include: ["reasoning.encrypted_content"],
           },
-        },
+        } }),
       });
       let text = "";
       let streamErr: unknown = null;
@@ -127,7 +130,7 @@ Analyse this chart for: market structure, trend, support/resistance zones, candl
     } catch (err) {
       const e = err as { statusCode?: number; message?: string };
       const msg =
-        e.statusCode === 402 ? "AI credits are exhausted for this workspace. Please contact the administrator."
+        (e.statusCode === 402 || /quota|credits/i.test(e.message ?? "")) ? "The AI scanner account is out of credit. Please contact the administrator."
         : e.statusCode === 429 ? "The AI service is busy. Please wait a moment and retry."
         : e.statusCode === 403 ? "The AI service refused this request."
         : e.message ?? "AI analysis failed.";
@@ -156,5 +159,5 @@ export const getScanQuota = createServerFn({ method: "GET" })
     const { count } = await supabase.from("scans").select("id", { count: "exact", head: true })
       .eq("user_id", userId).eq("status", "completed").gte("created_at", since.toISOString());
     const limit = settings?.daily_scan_limit ?? 5;
-    return { limit, used: count ?? 0, enabled: settings?.scanner_enabled ?? true, aiConfigured: !!process.env["LOVABLE_API_KEY"] };
+    return { limit, used: count ?? 0, enabled: settings?.scanner_enabled ?? true, aiConfigured: !!(process.env["OPENAI_API_KEY"] || process.env["LOVABLE_API_KEY"]) };
   });
