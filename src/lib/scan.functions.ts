@@ -130,7 +130,7 @@ Analyse this chart for: market structure, trend, support/resistance zones, candl
     } catch (err) {
       const e = err as { statusCode?: number; message?: string };
       const msg =
-        e.statusCode === 402 ? "The AI scanner account is out of credit. Please contact the administrator."
+        (e.statusCode === 402 || /quota|credits/i.test(e.message ?? "")) ? "The AI scanner account is out of credit. Please contact the administrator."
         : e.statusCode === 429 ? "The AI service is busy. Please wait a moment and retry."
         : e.statusCode === 403 ? "The AI service refused this request."
         : e.message ?? "AI analysis failed.";
