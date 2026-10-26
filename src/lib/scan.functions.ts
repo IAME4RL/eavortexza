@@ -67,7 +67,8 @@ export const runScan = createServerFn({ method: "POST" })
     if ((count ?? 0) >= limit) return { ok: false as const, error: `You've used all ${limit} free scans for today. Your allowance resets at 00:00 UTC.` };
 
     const apiKey = process.env["LOVABLE_API_KEY"];
-    if (!apiKey) return { ok: false as const, error: "AI service is not configured (LOVABLE_API_KEY missing)." };
+    const geminiKey = process.env["GEMINI_API_KEY"];
+    if (!apiKey && !geminiKey) return { ok: false as const, error: "AI service is not configured." };
 
     const { data: file, error: dlErr } = await supabase.storage.from("charts").download(data.imagePath);
     if (dlErr || !file) return { ok: false as const, error: "Could not read the uploaded chart." };
