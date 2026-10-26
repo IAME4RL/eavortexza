@@ -94,7 +94,7 @@ Analyse this chart for: market structure, trend, support/resistance zones, candl
       ? createOpenAI({ apiKey: openaiKey })
       : createOpenAI({
           baseURL: "https://ai.gateway.lovable.dev/v1",
-          apiKey,
+          apiKey: apiKey ?? "",
           headers: { "Lovable-API-Key": apiKey ?? "", "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
         });
 
