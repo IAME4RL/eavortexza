@@ -68,7 +68,7 @@ export const runScan = createServerFn({ method: "POST" })
 
     const apiKey = process.env["LOVABLE_API_KEY"];
     const geminiKey = process.env["GEMINI_API_KEY"];
-    if (!apiKey && !geminiKey) return { ok: false as const, error: "AI service is not configured." };
+    if (!apiKey && !geminiKey && !process.env["OPENAI_API_KEY"]) return { ok: false as const, error: "AI service is not configured." };
 
     const { data: file, error: dlErr } = await supabase.storage.from("charts").download(data.imagePath);
     if (dlErr || !file) return { ok: false as const, error: "Could not read the uploaded chart." };
@@ -89,23 +89,26 @@ Analyse this chart for: market structure, trend, support/resistance zones, candl
 
     const { createOpenAI } = await import("@ai-sdk/openai");
     const { streamText } = await import("ai");
-    const openai = createOpenAI({
-      baseURL: "https://ai.gateway.lovable.dev/v1",
-      apiKey,
-      headers: { "Lovable-API-Key": apiKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
-    });
+    const openaiKey = process.env["OPENAI_API_KEY"];
+    const openai = openaiKey
+      ? createOpenAI({ apiKey: openaiKey })
+      : createOpenAI({
+          baseURL: "https://ai.gateway.lovable.dev/v1",
+          apiKey,
+          headers: { "Lovable-API-Key": apiKey ?? "", "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
+        });
 
     let analysis: unknown;
     try {
       const result = streamText({
-        model: openai.responses(MODEL),
+        model: openaiKey ? openai.chat("gpt-4o") : openai.responses(MODEL),
         maxRetries: 0,
         system: SYSTEM,
         messages: [{ role: "user", content: [
           { type: "text", text: userText },
           { type: "image", image: base64, mediaType },
         ] }],
-        providerOptions: {
+        ...(openaiKey ? {} : { providerOptions: {
           openai: {
             forceReasoning: true,
             reasoningEffort: "low",
@@ -113,7 +116,7 @@ Analyse this chart for: market structure, trend, support/resistance zones, candl
             store: false,
             include: ["reasoning.encrypted_content"],
           },
-        },
+        } }),
       });
       let text = "";
       let streamErr: unknown = null;
