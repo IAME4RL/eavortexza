@@ -190,5 +190,4 @@ export const getScanQuota = createServerFn({ method: "GET" })
     const { count } = await supabase.from("scans").select("id", { count: "exact", head: true })
       .eq("user_id", userId).eq("status", "completed").gte("created_at", since.toISOString());
     const limit = settings?.daily_scan_limit ?? 5;
-    return { limit, used: count ?? 0, enabled: settings?.scanner_enabled ?? true, aiConfigured: !!(process.env["OPENAI_API_KEY"] || process.env["LOVABLE_API_KEY"] || process.env["GEMINI_API_KEY"])
-  });
+    return { limit, used: count ?? 0, enabled: settings?.scanner_enabled ?? true, aiConfigured: !!(process.env["OPENAI_API_KEY"] || process.env["LOVABLE_API_KEY"] || process.env["GEMINI_API_KEY"])  });
