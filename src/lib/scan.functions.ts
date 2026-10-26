@@ -100,6 +100,30 @@ Analyse this chart for: market structure, trend, support/resistance zones, candl
 
     let analysis: unknown;
     try {
+      let text = "";
+      if (geminiKey) {
+        const res = await fetch(
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-goog-api-key": geminiKey },
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: SYSTEM }] },
+              contents: [{ role: "user", parts: [
+                { text: userText },
+                { inlineData: { mimeType: mediaType, data: base64 } },
+              ] }],
+              generationConfig: { responseMimeType: "application/json" },
+            }),
+          },
+        );
+        if (!res.ok) {
+          const body = await res.text();
+          throw Object.assign(new Error(res.status === 429 ? "rate limited" : `Gemini error ${res.status}: ${body.slice(0, 200)}`), { statusCode: res.status });
+        }
+        const json = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
+        text = json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
+      } else {
       const result = streamText({
         model: openaiKey ? openai.chat("gpt-4o") : openai.responses(MODEL),
         maxRetries: 0,
@@ -118,20 +142,20 @@ Analyse this chart for: market structure, trend, support/resistance zones, candl
           },
         } }),
       });
-      let text = "";
       let streamErr: unknown = null;
       for await (const part of result.fullStream) {
         if (part.type === "text-delta") text += part.text;
         if (part.type === "error") streamErr = part.error;
       }
       if (streamErr) throw streamErr;
+      }
       if (!text.trim()) throw new Error("The AI service returned an empty response (it may have declined the request).");
       analysis = extractJson(text);
     } catch (err) {
       const e = err as { statusCode?: number; message?: string };
       const msg =
         (e.statusCode === 402 || /quota|credits/i.test(e.message ?? "")) ? "The AI scanner account is out of credit. Please contact the administrator."
-        : e.statusCode === 429 ? "The AI service is busy. Please wait a moment and retry."
+        : (e.statusCode === 429 || e.statusCode === 503) ? "The AI service is busy right now. Please wait a moment and tap Retry."
         : e.statusCode === 403 ? "The AI service refused this request."
         : e.message ?? "AI analysis failed.";
       console.error("scan failed", e.statusCode, e.message);
