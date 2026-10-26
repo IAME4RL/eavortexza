@@ -102,24 +102,31 @@ Analyse this chart for: market structure, trend, support/resistance zones, candl
     try {
       let text = "";
       if (geminiKey) {
-        const res = await fetch(
-          "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "x-goog-api-key": geminiKey },
-            body: JSON.stringify({
-              systemInstruction: { parts: [{ text: SYSTEM }] },
-              contents: [{ role: "user", parts: [
-                { text: userText },
-                { inlineData: { mimeType: mediaType, data: base64 } },
-              ] }],
-              generationConfig: { responseMimeType: "application/json" },
-            }),
-          },
-        );
-        if (!res.ok) {
-          const body = await res.text();
-          throw Object.assign(new Error(res.status === 429 ? "rate limited" : `Gemini error ${res.status}: ${body.slice(0, 200)}`), { statusCode: res.status });
+        // Free-tier models get overloaded; try several in order until one answers.
+        const models = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.1-flash-lite"];
+        let res: Response | null = null;
+        for (const m of models) {
+          res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "x-goog-api-key": geminiKey },
+              body: JSON.stringify({
+                systemInstruction: { parts: [{ text: SYSTEM }] },
+                contents: [{ role: "user", parts: [
+                  { text: userText },
+                  { inlineData: { mimeType: mediaType, data: base64 } },
+                ] }],
+                generationConfig: { responseMimeType: "application/json" },
+              }),
+            },
+          );
+          if (res.ok || ![404, 429, 500, 503].includes(res.status)) break;
+        }
+        if (!res || !res.ok) {
+          const body = res ? await res.text() : "";
+          const status = res?.status ?? 503;
+          throw Object.assign(new Error(status === 429 ? "rate limited" : `Gemini error ${status}: ${body.slice(0, 200)}`), { statusCode: status });
         }
         const json = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
         text = json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
