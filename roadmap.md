@@ -1,5 +1,14 @@
 # EA VORTEX — Resume & Complete
 
+## Separate mentor and client portals
+- [x] Inspect current authentication, routes, database, strategy registry, client controls, and MT5 Bridge
+- [ ] Add separately guarded mentor login/dashboard and mentor navigation
+- [ ] Add mentor-owned robot configurations, client assignments, invitation codes, and secure license lifecycle
+- [ ] Add client license activation, authorized robot selection, and execution entitlement checks to existing START and bridge polling
+- [ ] Apply reference-inspired portal styling while preserving scanner and existing platform
+- [ ] Verify ownership isolation, activation limits/expiry/revocation, client START/STOP, existing tests, and Android/desktop layouts
+- [ ] Exact visual comparison against original trading video and EA NEXUS screenshot — original media must be reuploaded
+
 ## Market Signals (rule-based scanner)
 - [x] Real market-data layer (Yahoo Finance chart API, GOLD via GC=F futures), 15-strategy engine, HTF confirmation, expiry, dedupe, signals table + RLS
 - [x] Market Signals dashboard page with signal card, history, and walk-forward backtesting (verified in browser: NO TRADE honesty + backtest metrics)
