@@ -30,8 +30,6 @@ import { Route as AuthenticatedDashboardMentorRouteImport } from './routes/_auth
 import { Route as AuthenticatedDashboardNotificationsRouteImport } from './routes/_authenticated/dashboard.notifications'
 import { Route as AuthenticatedDashboardScannerRouteImport } from './routes/_authenticated/dashboard.scanner'
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
-import { Route as AuthenticatedDashboardSignalsRouteImport } from './routes/_authenticated/dashboard.signals'
-import { Route as AuthenticatedDashboardScanIdRouteImport } from './routes/_authenticated/dashboard.scan.$id'
 import { Route as ApiPublicBridgeMt5RouteImport } from './routes/api/public/bridge.mt5'
 
 const IndexRoute = IndexRouteImport.update({
@@ -149,18 +147,6 @@ const AuthenticatedDashboardSettingsRoute =
     path: '/settings',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
-const AuthenticatedDashboardSignalsRoute =
-  AuthenticatedDashboardSignalsRouteImport.update({
-    id: '/signals',
-    path: '/signals',
-    getParentRoute: () => AuthenticatedDashboardRoute,
-  } as any)
-const AuthenticatedDashboardScanIdRoute =
-  AuthenticatedDashboardScanIdRouteImport.update({
-    id: '/scan/$id',
-    path: '/scan/$id',
-    getParentRoute: () => AuthenticatedDashboardRoute,
-  } as any)
 const ApiPublicBridgeMt5Route = ApiPublicBridgeMt5RouteImport.update({
   id: '/api/public/bridge/mt5',
   path: '/api/public/bridge/mt5',
@@ -187,9 +173,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
   '/dashboard/scanner': typeof AuthenticatedDashboardScannerRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
-  '/dashboard/signals': typeof AuthenticatedDashboardSignalsRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
-  '/dashboard/scan/$id': typeof AuthenticatedDashboardScanIdRoute
   '/api/public/bridge/mt5': typeof ApiPublicBridgeMt5Route
 }
 export interface FileRoutesByTo {
@@ -211,9 +195,7 @@ export interface FileRoutesByTo {
   '/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
   '/dashboard/scanner': typeof AuthenticatedDashboardScannerRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
-  '/dashboard/signals': typeof AuthenticatedDashboardSignalsRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
-  '/dashboard/scan/$id': typeof AuthenticatedDashboardScanIdRoute
   '/api/public/bridge/mt5': typeof ApiPublicBridgeMt5Route
 }
 export interface FileRoutesById {
@@ -238,9 +220,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
   '/_authenticated/dashboard/scanner': typeof AuthenticatedDashboardScannerRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
-  '/_authenticated/dashboard/signals': typeof AuthenticatedDashboardSignalsRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
-  '/_authenticated/dashboard/scan/$id': typeof AuthenticatedDashboardScanIdRoute
   '/api/public/bridge/mt5': typeof ApiPublicBridgeMt5Route
 }
 export interface FileRouteTypes {
@@ -265,9 +245,7 @@ export interface FileRouteTypes {
     | '/dashboard/notifications'
     | '/dashboard/scanner'
     | '/dashboard/settings'
-    | '/dashboard/signals'
     | '/dashboard/'
-    | '/dashboard/scan/$id'
     | '/api/public/bridge/mt5'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -289,9 +267,7 @@ export interface FileRouteTypes {
     | '/dashboard/notifications'
     | '/dashboard/scanner'
     | '/dashboard/settings'
-    | '/dashboard/signals'
     | '/dashboard'
-    | '/dashboard/scan/$id'
     | '/api/public/bridge/mt5'
   id:
     | '__root__'
@@ -315,9 +291,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/notifications'
     | '/_authenticated/dashboard/scanner'
     | '/_authenticated/dashboard/settings'
-    | '/_authenticated/dashboard/signals'
     | '/_authenticated/dashboard/'
-    | '/_authenticated/dashboard/scan/$id'
     | '/api/public/bridge/mt5'
   fileRoutesById: FileRoutesById
 }
@@ -483,20 +457,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardSettingsRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
-    '/_authenticated/dashboard/signals': {
-      id: '/_authenticated/dashboard/signals'
-      path: '/signals'
-      fullPath: '/dashboard/signals'
-      preLoaderRoute: typeof AuthenticatedDashboardSignalsRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
-    }
-    '/_authenticated/dashboard/scan/$id': {
-      id: '/_authenticated/dashboard/scan/$id'
-      path: '/scan/$id'
-      fullPath: '/dashboard/scan/$id'
-      preLoaderRoute: typeof AuthenticatedDashboardScanIdRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
-    }
     '/api/public/bridge/mt5': {
       id: '/api/public/bridge/mt5'
       path: '/api/public/bridge/mt5'
@@ -518,9 +478,7 @@ interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardNotificationsRoute: typeof AuthenticatedDashboardNotificationsRoute
   AuthenticatedDashboardScannerRoute: typeof AuthenticatedDashboardScannerRoute
   AuthenticatedDashboardSettingsRoute: typeof AuthenticatedDashboardSettingsRoute
-  AuthenticatedDashboardSignalsRoute: typeof AuthenticatedDashboardSignalsRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
-  AuthenticatedDashboardScanIdRoute: typeof AuthenticatedDashboardScanIdRoute
 }
 
 const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
@@ -536,9 +494,7 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
       AuthenticatedDashboardNotificationsRoute,
     AuthenticatedDashboardScannerRoute: AuthenticatedDashboardScannerRoute,
     AuthenticatedDashboardSettingsRoute: AuthenticatedDashboardSettingsRoute,
-    AuthenticatedDashboardSignalsRoute: AuthenticatedDashboardSignalsRoute,
     AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
-    AuthenticatedDashboardScanIdRoute: AuthenticatedDashboardScanIdRoute,
   }
 
 const AuthenticatedDashboardRouteWithChildren =
