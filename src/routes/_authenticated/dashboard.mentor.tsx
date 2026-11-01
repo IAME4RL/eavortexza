@@ -227,55 +227,69 @@ export function MentorPortalPage() {
               Create Bot
             </button>
           </div>
-
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {mentorBots.map((bot) => (
-              <div
-                key={bot.id}
-                className="group overflow-hidden rounded-2xl border border-border/80 bg-surface/90 shadow-xl transition-all hover:border-primary/50"
+          {mentorBots.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border/80 p-12 text-center bg-surface/50">
+              <Bot className="mx-auto h-12 w-12 text-muted-foreground/40" />
+              <h3 className="mt-4 font-display text-base font-bold uppercase text-foreground">
+                No Bots Created Yet
+              </h3>
+              <p className="mt-1 text-xs text-muted-foreground max-w-sm mx-auto">
+                You haven't created any trading bots yet. Click "+ Create Bot" above to build your first bot for your students.
+              </p>
+              <button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="mt-5 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-primary-foreground hover:bg-primary/90"
               >
-                {/* Bot Cover / Avatar */}
-                <div className="relative aspect-[16/9] w-full overflow-hidden bg-black/60">
-                  <img
-                    src={bot.backgroundUrl || bot.avatarUrl}
-                    alt={bot.name}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent" />
-                </div>
+                <Plus className="h-4 w-4" /> Create Your First Bot
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {mentorBots.map((bot) => (
+                <div
+                  key={bot.id}
+                  className="group overflow-hidden rounded-2xl border border-border/80 bg-surface/90 shadow-xl transition-all hover:border-primary/50"
+                >
+                  <div className="relative aspect-[16/9] w-full overflow-hidden bg-black/60">
+                    <img
+                      src={bot.backgroundUrl || bot.avatarUrl}
+                      alt={bot.name}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent" />
+                  </div>
 
-                {/* Bot Details */}
-                <div className="p-5">
-                  <h3 className="font-display text-lg font-black uppercase text-foreground">
-                    {bot.name}
-                  </h3>
-                  <p className="mt-0.5 text-xs text-primary font-medium">
-                    by {bot.mentorName}
-                  </p>
-                  <p className="mt-2 text-xs text-muted-foreground line-clamp-2">
-                    {bot.description || "Institutional algorithmic trading bot."}
-                  </p>
+                  <div className="p-5">
+                    <h3 className="font-display text-lg font-black uppercase text-foreground">
+                      {bot.name}
+                    </h3>
+                    <p className="mt-0.5 text-xs text-primary font-medium">
+                      by {bot.mentorName}
+                    </p>
+                    <p className="mt-2 text-xs text-muted-foreground line-clamp-2">
+                      {bot.description || "Institutional algorithmic trading bot."}
+                    </p>
 
-                  <div className="mt-4 flex items-center justify-between border-t border-border/50 pt-3 text-xs">
-                    <button
-                      onClick={() => alert(`Edit ${bot.name}`)}
-                      className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
-                    >
-                      <Edit className="h-3.5 w-3.5" /> Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteBot(bot.id)}
-                      className="flex items-center gap-1.5 text-primary hover:text-primary/80"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" /> Delete
-                    </button>
+                    <div className="mt-4 flex items-center justify-between border-t border-border/50 pt-3 text-xs">
+                      <button
+                        onClick={() => alert(`Edit ${bot.name}`)}
+                        className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+                      >
+                        <Edit className="h-3.5 w-3.5" /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteBot(bot.id)}
+                        className="flex items-center gap-1.5 text-primary hover:text-primary/80"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+              ))}
+            </div>
+          )}
+
 
       {/* TAB 2: LICENSE KEYS (Matches Screenshot 1) */}
       {activeTab === "keys" && (
@@ -401,7 +415,7 @@ export function MentorPortalPage() {
                 <input
                   type="text"
                   required
-                  placeholder=""
+                  placeholder="e.g GOLD SCALPER PRO"
                   value={botName}
                   onChange={(e) => setBotName(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
