@@ -42,14 +42,14 @@ function useSignOut() {
   };
 }
 
-function SidebarContent({ onNavigate }: { onNavigate: () => void }) {
+function SidebarContent({ onNavigate, showNav = true }: { onNavigate: () => void; showNav?: boolean }) {
   const { user, hasRole } = useAuth();
   const signOut = useSignOut();
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center border-b border-sidebar-border px-5"><Logo /></div>
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-        {NAV.map(({ to, label, I, ...rest }) => (
+        {showNav && NAV.map(({ to, label, I, ...rest }) => (
           <Link key={to} to={to} activeOptions={{ exact: "exact" in rest }} className={linkCls} onClick={onNavigate}>
             <I className="h-4 w-4" />{label}
           </Link>
@@ -128,7 +128,7 @@ function ClientShell() {
           <div className="absolute inset-0 bg-black/80" onClick={() => setOpen(false)} />
           <aside className="absolute inset-y-0 right-0 w-72 max-w-[85vw] border-l border-primary/30 bg-sidebar">
             <button aria-label="Close menu" className="absolute right-3 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground" onClick={() => setOpen(false)}><X /></button>
-            <SidebarContent onNavigate={() => setOpen(false)} />
+            <SidebarContent onNavigate={() => setOpen(false)} showNav={false} />
           </aside>
         </div>
       )}
