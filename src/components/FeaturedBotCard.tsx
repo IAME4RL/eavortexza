@@ -1,11 +1,23 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Bot, ShieldCheck, Zap } from "lucide-react";
+import { Bot, Play, ShieldCheck, Square, Zap } from "lucide-react";
 import { parseStrategies, type AssignedMentorBot } from "@/lib/mentorBotDisplay";
 
 type UserBot = { strategy: string; trading_mode: string } | null | undefined;
 
+/** Start/Stop wiring for the client's own bridge bot. Omitted = no controls (e.g. in tests). */
+export type BotControl = {
+  /** False when the client has no bridge bot yet (no MT5 account / bot not set up). */
+  hasBot: boolean;
+  status: string;
+  busy: boolean;
+  blockers: string[];
+  onStart: () => void;
+  onStop: () => void;
+};
+
 type Props = {
+  control?: BotControl | undefined;
   /** Bot assigned through a redeemed mentor license; null/undefined keeps the default card. */
   mentorBot: AssignedMentorBot | null | undefined;
   /** True while the assignment is still being fetched, so the default card doesn't flash first. */
@@ -57,26 +69,83 @@ function Tile({
   );
 }
 
-function CardFooter() {
+function BotControls({ control }: { control: BotControl }) {
+  if (!control.hasBot) {
+    return (
+      <div className="mt-4 rounded-xl border border-border/60 bg-black/30 p-3" data-testid="bot-controls">
+        <p className="text-xs text-muted-foreground">
+          Register your MT5 account and set up your bot to start trading.
+        </p>
+        <Link
+          to="/dashboard/auto-trade"
+          className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground hover:bg-primary/90"
+        >
+          <Zap className="h-3.5 w-3.5" />
+          Set up bot
+        </Link>
+      </div>
+    );
+  }
+  const running = control.status === "running";
   return (
-    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-2">
-      <p className="text-xs text-muted-foreground">
-        Configure risk, lot size, and Windows MetaTrader 5 bridge in Auto Trade.
-      </p>
-      <Link
-        to="/dashboard/auto-trade"
-        className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground transition-all hover:bg-primary/90"
-      >
-        <Zap className="h-3.5 w-3.5" />
-        Manage Bot Controls
-      </Link>
+    <div className="mt-4" data-testid="bot-controls">
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={control.onStart}
+          disabled={control.busy || running}
+          className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-4 font-display text-sm font-bold uppercase tracking-wider text-primary-foreground transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Play className="h-4 w-4" />
+          {control.status === "paused" ? "Resume" : "Start bot"}
+        </button>
+        <button
+          type="button"
+          onClick={control.onStop}
+          disabled={control.busy || control.status === "stopped"}
+          className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-primary/50 bg-black/40 px-4 font-display text-sm font-bold uppercase tracking-wider text-foreground transition-all hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Square className="h-4 w-4" />
+          Stop bot
+        </button>
+      </div>
+      {control.blockers.length > 0 && (
+        <div role="alert" className="mt-3 rounded-xl border border-destructive/50 p-3 text-xs">
+          <p className="font-semibold">Start blocked:</p>
+          <ul className="mt-1 list-disc pl-5 text-muted-foreground">
+            {control.blockers.map((b) => (
+              <li key={b}>{b}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
+  );
+}
+
+function CardFooter({ control }: { control?: BotControl | undefined }) {
+  return (
+    <>
+      {control && <BotControls control={control} />}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-2">
+        <p className="text-xs text-muted-foreground">
+          Configure risk, lot size, and Windows MetaTrader 5 bridge in Auto Trade.
+        </p>
+        <Link
+          to="/dashboard/auto-trade"
+          className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground transition-all hover:bg-primary/90"
+        >
+          <Zap className="h-3.5 w-3.5" />
+          Manage Bot Controls
+        </Link>
+      </div>
+    </>
   );
 }
 
 /* ------------------------------ default card ------------------------------ */
 
-function DefaultCard({ userBot, running, online }: Pick<Props, "userBot" | "running" | "online">) {
+function DefaultCard({ userBot, running, online, control }: Pick<Props, "userBot" | "running" | "online" | "control">) {
   return (
     <div className={`${SHELL} p-5`} data-testid="featured-bot-default">
       <div className="flex items-start justify-between">
@@ -112,7 +181,7 @@ function DefaultCard({ userBot, running, online }: Pick<Props, "userBot" | "runn
         />
       </div>
 
-      <CardFooter />
+      <CardFooter control={control} />
     </div>
   );
 }
@@ -148,7 +217,8 @@ function MentorCard({
   userBot,
   running,
   online,
-}: { bot: AssignedMentorBot } & Pick<Props, "userBot" | "running" | "online">) {
+  control,
+}: { bot: AssignedMentorBot } & Pick<Props, "userBot" | "running" | "online" | "control">) {
   // Remember URLs that failed to load: a broken upload falls back gracefully, and a
   // re-uploaded image (new URL) is tried again without a reload.
   const [failed, setFailed] = useState<string[]>([]);
@@ -263,7 +333,7 @@ function MentorCard({
           />
         </div>
 
-        <CardFooter />
+        <CardFooter control={control} />
       </div>
     </div>
   );
@@ -271,9 +341,9 @@ function MentorCard({
 
 /* --------------------------------- public --------------------------------- */
 
-export function FeaturedBotCard({ mentorBot, loading, userBot, running, online }: Props) {
+export function FeaturedBotCard({ mentorBot, loading, userBot, running, online, control }: Props) {
   if (loading) return <LoadingCard />;
   if (mentorBot)
-    return <MentorCard bot={mentorBot} userBot={userBot} running={running} online={online} />;
-  return <DefaultCard userBot={userBot} running={running} online={online} />;
+    return <MentorCard bot={mentorBot} userBot={userBot} running={running} online={online} control={control} />;
+  return <DefaultCard userBot={userBot} running={running} online={online} control={control} />;
 }
