@@ -10,7 +10,7 @@ import { PageHeader, EmptyState } from "@/components/dash";
 import { useAuth } from "@/lib/auth";
 import { timeframeLabel } from "@/lib/instruments";
 import { STRATEGIES } from "@/lib/strategy";
-import { deleteMentorBot, issueMentorLicense, listMentorBots, listMentorLicenses, saveMentorBot } from "@/lib/mentorBots";
+import { deleteMentorBot, issueMentorLicense, listMentorBots, listMentorLicenses, saveMentorBot, updateMentorBot } from "@/lib/mentorBots";
 
 export const Route = createFileRoute("/_authenticated/dashboard/mentor")({ component: MentorPortalPage });
 
