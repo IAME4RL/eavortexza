@@ -51,3 +51,21 @@ describe("MT5 queued-order bridge", () => {
     expect(reportTransition("filled", "rejected")).toBe("reject");
   });
 });
+describe("startBlockers strategy validation", () => {
+  const base = {
+    hasToken: true, lastHeartbeat: new Date().toISOString(), now: Date.now(), mode: "demo" as const, liveConfirmed: false,
+    terminal: { type: "demo", login: "1", server: "S", daypl: 0 }, accountLogin: "1", accountServer: "S",
+    strategy: "auto", defaultLot: 0.01, maxLot: 0.1, maxOpen: 3, riskPct: 1, maxDailyLoss: 50,
+  };
+  it("accepts every built-in strategy the engine implements", async () => {
+    const { STRATEGIES } = await import("@/lib/strategy");
+    const { startBlockers } = await import("@/lib/bridge");
+    for (const id of ["auto", "manual", ...STRATEGIES.map((s) => s.id)]) {
+      expect(startBlockers({ ...base, strategy: id })).not.toContain("Selected strategy is not implemented.");
+    }
+  });
+  it("still rejects an unknown strategy", async () => {
+    const { startBlockers } = await import("@/lib/bridge");
+    expect(startBlockers({ ...base, strategy: "does_not_exist" })).toContain("Selected strategy is not implemented.");
+  });
+});
