@@ -154,3 +154,205 @@
 @media (prefers-reduced-motion: reduce) {
   .vortex-wash { animation: none; }
 }
+
+/* ==========================================================================
+   Client portal — black / red neon look (Pennywise-style app shell).
+   Additive only: nothing above this line is changed, so the mentor, admin
+   and public pages keep their existing appearance.
+   ========================================================================== */
+.pw-card {
+  position: relative;
+  border-radius: 1.15rem;
+  border: 1px solid color-mix(in oklab, var(--primary) 40%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--primary) 8%, #040404), #040404 62%);
+  box-shadow:
+    inset 0 0 26px -14px color-mix(in oklab, var(--primary) 60%, transparent),
+    0 0 34px -18px color-mix(in oklab, var(--primary) 70%, transparent);
+}
+.pw-card-quiet {
+  border-radius: 1.15rem;
+  border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
+  background: color-mix(in oklab, var(--primary) 3%, #060606);
+}
+.pw-label {
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.pw-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--primary);
+  text-shadow: 0 0 18px color-mix(in oklab, var(--primary) 55%, transparent);
+}
+.pw-btn {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.85rem;
+  border: 1px solid color-mix(in oklab, var(--primary) 65%, transparent);
+  padding: 0.55rem 1.1rem;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--primary);
+  background: color-mix(in oklab, var(--primary) 6%, transparent);
+  box-shadow: 0 0 22px -10px color-mix(in oklab, var(--primary) 80%, transparent);
+  transition: background-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.pw-btn:hover:not(:disabled) { background: color-mix(in oklab, var(--primary) 16%, transparent); }
+.pw-btn:active:not(:disabled) { transform: scale(0.98); }
+.pw-btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+.pw-btn:focus-visible, .pw-chip:focus-visible, .pw-tab:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.pw-btn-solid {
+  color: var(--primary-foreground);
+  background: var(--gradient-red);
+  border-color: color-mix(in oklab, var(--primary) 80%, white);
+}
+.pw-btn-solid:hover:not(:disabled) { background: var(--gradient-red); filter: brightness(1.12); }
+.pw-btn-danger {
+  color: var(--destructive);
+  border-color: color-mix(in oklab, var(--destructive) 55%, transparent);
+}
+.pw-chip {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.9rem;
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  background: transparent;
+  transition: color 0.15s, border-color 0.15s, background-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.pw-chip:hover { color: var(--foreground); border-color: color-mix(in oklab, var(--primary) 45%, transparent); }
+.pw-chip[data-active="true"] {
+  color: var(--primary);
+  border-color: color-mix(in oklab, var(--primary) 70%, transparent);
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
+  box-shadow: 0 0 16px -6px color-mix(in oklab, var(--primary) 80%, transparent);
+}
+.pw-field {
+  width: 100%;
+  min-height: 2.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in oklab, var(--primary) 22%, var(--border));
+  background: #050505;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.95rem;
+}
+.pw-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-display);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.pw-pill::before {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+.pw-pill[data-tone="live"] { color: var(--primary); }
+.pw-pill[data-tone="ok"] { color: var(--bull); }
+.pw-pill[data-tone="idle"] { color: var(--muted-foreground); }
+.pw-pill[data-tone="warn"] { color: var(--neutral); }
+
+/* Bottom tab bar (phones) */
+.pw-tabbar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 40;
+  padding: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to top, #000 55%, transparent);
+}
+.pw-tabbar-inner {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.25rem;
+  max-width: 28rem;
+  margin-inline: auto;
+  padding: 0.35rem;
+  border-radius: 1.2rem;
+  border: 1px solid color-mix(in oklab, var(--primary) 30%, transparent);
+  background: #050505;
+  box-shadow: 0 0 30px -14px color-mix(in oklab, var(--primary) 70%, transparent);
+}
+.pw-tab {
+  position: relative;
+  display: flex;
+  min-height: 3.25rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  border-radius: 0.9rem;
+  border: 1px solid transparent;
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  -webkit-tap-highlight-color: transparent;
+}
+.pw-tab[data-status="active"] {
+  color: var(--primary);
+  border-color: color-mix(in oklab, var(--primary) 65%, transparent);
+  background: color-mix(in oklab, var(--primary) 8%, transparent);
+  box-shadow: 0 0 20px -8px color-mix(in oklab, var(--primary) 85%, transparent);
+}
+.pw-tab[data-status="active"]::after {
+  content: "";
+  position: absolute;
+  bottom: 0.2rem;
+  width: 0.25rem;
+  height: 0.25rem;
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow: 0 0 8px var(--primary);
+}
+
+/* Soft edge darkening + red crown light over the shared background canvas */
+.pw-vignette {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 70% 38% at 50% -6%, color-mix(in oklab, var(--primary) 16%, transparent), transparent 70%),
+    radial-gradient(ellipse at 50% 50%, transparent 45%, rgb(0 0 0 / 0.65) 100%);
+}
+
+@keyframes pw-spin { to { transform: rotate(360deg); } }
+.pw-spin { transform-origin: center; transform-box: fill-box; animation: pw-spin 80s linear infinite; }
+.pw-spin-rev { animation-direction: reverse; animation-duration: 120s; }
+@media (prefers-reduced-motion: reduce) {
+  .pw-spin { animation: none; }
+}
