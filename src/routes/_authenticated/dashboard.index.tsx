@@ -1,13 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { ScanLine, Activity, Clock, ChevronRight, Globe, Key, Check } from "lucide-react";
+import { ScanLine, Clock, ChevronRight, Globe, Key, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { getScanQuota } from "@/lib/scan.functions";
 import { Gauge, NeonCard, Pill, PwLabel } from "@/components/portal";
 import { useAuth } from "@/lib/auth";
-import { timeframeLabel } from "@/lib/instruments";
 import { HEARTBEAT_ONLINE_MS } from "@/lib/bridge";
 import { formatRemaining, marketSession } from "@/lib/sessions";
 import { getMyAssignedMentorBot, redeemMentorLicense } from "@/lib/mentorBots";
@@ -27,8 +24,6 @@ const WATCHLIST = [
 function ClientOverview() {
   const { user, hasRole } = useAuth();
   const queryClient = useQueryClient();
-  const quotaFn = useServerFn(getScanQuota);
-  const quota = useQuery({ queryKey: ["quota"], queryFn: () => quotaFn() });
 
   const [licenseInput, setLicenseInput] = useState("");
   const [licenseStatus, setLicenseStatus] = useState<string | null>(null);
@@ -36,11 +31,11 @@ function ClientOverview() {
   const featuredCardRef = useRef<HTMLDivElement>(null);
 
   const recent = useQuery({
-    queryKey: ["scans", "recent"],
+    queryKey: ["signals", "recent"],
     queryFn: async () => (
       await supabase
-        .from("scans")
-        .select("id,instrument,timeframe,status,created_at")
+        .from("signals")
+        .select("id,symbol,timeframe,side,entry,status,created_at")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(5)
@@ -80,7 +75,6 @@ function ClientOverview() {
   });
 
   const userBot = bots.data?.[0];
-  const q = quota.data;
   const name = counts.data?.profile?.display_name;
 
   const running = userBot?.status === "running";
@@ -146,48 +140,26 @@ function ClientOverview() {
         />
       </div>
 
-      {/* TWO MAIN CALL TO ACTION BUTTONS (Reference Screen) */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Link
-          to="/dashboard/scanner"
-          className="group relative flex items-center justify-between overflow-hidden rounded-xl border border-primary/30 bg-surface/80 p-5 transition-all hover:border-primary hover:bg-surface hover:shadow-lg hover:shadow-primary/10"
-        >
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20 text-primary transition-transform group-hover:scale-105">
-              <ScanLine className="h-6 w-6" />
-            </div>
-            <div>
-              <h3 className="font-display text-lg font-bold uppercase text-foreground">
-                SCAN CHART
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Upload TradingView/MT5 chart for AI vision analysis
-              </p>
-            </div>
+      {/* MAIN CALL TO ACTION */}
+      <Link
+        to="/dashboard/scanner"
+        className="group relative flex items-center justify-between overflow-hidden rounded-xl border border-primary/30 bg-surface/80 p-5 transition-all hover:border-primary hover:bg-surface hover:shadow-lg hover:shadow-primary/10"
+      >
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20 text-primary transition-transform group-hover:scale-105">
+            <ScanLine className="h-6 w-6" />
           </div>
-          <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
-        </Link>
-
-        <Link
-          to="/dashboard/signals"
-          className="group relative flex items-center justify-between overflow-hidden rounded-xl border border-border bg-surface/80 p-5 transition-all hover:border-primary hover:bg-surface hover:shadow-lg hover:shadow-primary/10"
-        >
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20 text-primary transition-transform group-hover:scale-105">
-              <Activity className="h-6 w-6" />
-            </div>
-            <div>
-              <h3 className="font-display text-lg font-bold uppercase text-foreground">
-                MARKET SIGNALS
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                View 15+ automated technical setups and levels
-              </p>
-            </div>
+          <div>
+            <h3 className="font-display text-lg font-bold uppercase text-foreground">
+              AI CHART SCANNER
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Scan real market data and get BUY / SELL signals
+            </p>
           </div>
-          <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
-        </Link>
-      </div>
+        </div>
+        <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+      </Link>
 
       {/* MARKET WATCHLIST & SESSION INTELLIGENCE */}
       <div className="grid gap-5 lg:grid-cols-2">
@@ -195,13 +167,13 @@ function ClientOverview() {
         <NeonCard className="p-5">
           <div className="flex items-center justify-between">
             <PwLabel>Market Watchlist</PwLabel>
-            <span className="text-[11px] font-mono text-muted-foreground">TAP TO VIEW SIGNALS</span>
+            <span className="text-[11px] font-mono text-muted-foreground">TAP TO SCAN</span>
           </div>
           <div className="mt-3 grid grid-cols-3 gap-2">
             {WATCHLIST.map((w) => (
               <Link
                 key={w.label}
-                to="/dashboard/signals"
+                to="/dashboard/scanner"
                 search={{ instrument: w.instrument, timeframe: w.tf }}
                 className="flex flex-col items-center justify-center rounded-lg border border-border/80 bg-background/50 p-3 text-center transition-all hover:border-primary/50 hover:bg-primary/5"
               >
@@ -250,10 +222,10 @@ function ClientOverview() {
         )}
       </NeonCard>
 
-      {/* RECENT SCANS */}
+      {/* RECENT SIGNALS */}
       <NeonCard>
         <div className="flex items-center justify-between border-b border-primary/20 px-4 py-3.5 sm:px-5">
-          <PwLabel>Recent Chart Scans</PwLabel>
+          <PwLabel>Recent Signals</PwLabel>
           <Link to="/dashboard/history" className="flex items-center gap-1 text-xs text-primary">
             View all <ChevronRight className="h-4 w-4" />
           </Link>
@@ -261,33 +233,22 @@ function ClientOverview() {
         {recent.data?.length ? (
           <ul className="divide-y divide-primary/10">
             {recent.data.map((s) => (
-              <li key={s.id}>
-                <Link
-                  to="/dashboard/scan/$id"
-                  params={{ id: s.id }}
-                  className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 hover:bg-primary/5 sm:px-5"
-                >
-                  <span>
-                    <span className="block font-display text-sm font-semibold uppercase tracking-wider">
-                      {s.instrument} · {timeframeLabel(s.timeframe)}
-                    </span>
-                    <span className="block text-xs text-muted-foreground">
-                      {new Date(s.created_at).toLocaleString()}
-                    </span>
+              <li key={s.id} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 sm:px-5">
+                <span>
+                  <span className="block font-display text-sm font-semibold uppercase tracking-wider">
+                    {s.symbol} · {s.timeframe} · <span className={s.side === "buy" ? "text-bull" : "text-primary"}>{s.side}</span>
                   </span>
-                  <span className="flex items-center gap-2">
-                    <Pill tone={s.status === "completed" ? "ok" : s.status === "failed" ? "live" : "warn"}>
-                      {s.status}
-                    </Pill>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <span className="block text-xs text-muted-foreground">
+                    Entry {s.entry} · {new Date(s.created_at).toLocaleString()}
                   </span>
-                </Link>
+                </span>
+                <Pill tone={s.status === "active" ? "live" : "idle"}>{s.status}</Pill>
               </li>
             ))}
           </ul>
         ) : (
           <div className="px-5 py-8 text-center text-sm text-muted-foreground">
-            No scans yet. Upload your first chart to get started.
+            No signals yet. Run your first scan to get started.
           </div>
         )}
       </NeonCard>

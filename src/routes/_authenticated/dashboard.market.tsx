@@ -53,7 +53,7 @@ function Page() {
   return (
     <>
       <PageHeader eyebrow="Your markets" title="Market Watchlist"
-        sub="Track the instruments you trade and keep notes on what you are watching. Prices are not streamed here — scan a chart for AI analysis of current structure." />
+        sub="Track the instruments you trade and keep notes on what you are watching. Prices are not streamed here — run the scanner for a signal on current structure." />
 
       <div className="panel mb-8 p-5">
         <div className="grid gap-4 sm:grid-cols-[200px_1fr_auto] sm:items-end">
