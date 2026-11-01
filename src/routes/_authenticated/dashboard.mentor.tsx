@@ -48,6 +48,7 @@ export function MentorPortalPage() {
 
   // Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingBot, setEditingBot] = useState<MentorBotRecord | null>(null);
   const [isGenerateKeyModalOpen, setIsGenerateKeyModalOpen] = useState(false);
 
   // Bot Form State
