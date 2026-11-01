@@ -28,10 +28,11 @@ function MentorPortalPage() {
     queryKey: ["mentor-clients", user?.id],
     enabled: !!user,
     queryFn: async () => {
+      if (!user) return [];
       const { data: assignments } = await supabase
         .from("mentor_assignments")
         .select("client_id,created_at")
-        .eq("mentor_id", user!.id);
+        .eq("mentor_id", user.id);
 
       if (!assignments?.length) return [];
       const ids = assignments.map((a) => a.client_id);
@@ -55,10 +56,11 @@ function MentorPortalPage() {
     queryKey: ["mentor-bots", user?.id],
     enabled: !!user,
     queryFn: async () => {
+      if (!user) return [];
       const { data } = await supabase
         .from("bots")
         .select("*")
-        .eq("user_id", user!.id)
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       return data ?? [];
     },
@@ -258,17 +260,17 @@ function MentorPortalPage() {
                 <div key={b.id} className="rounded-xl border border-border bg-surface/70 p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-bold text-foreground">{b.name}</h4>
+                      <h4 className="font-bold text-foreground">Execution Bot</h4>
                       <p className="text-xs text-muted-foreground">
-                        {b.symbol} · {b.timeframe} · {b.strategy_id}
+                        {b.strategy}
                       </p>
                     </div>
                     <StatusBadge status={b.status} />
                   </div>
                   <div className="mt-4 flex items-center justify-between border-t border-border/50 pt-3 text-xs text-muted-foreground">
-                    <span>Lot Size: {b.lot_size}</span>
-                    <span>Max Spread: {b.max_spread_points} pts</span>
-                    <span>{b.live_mode ? "LIVE ACCOUNT" : "DEMO ACCOUNT"}</span>
+                    <span>Lot Size: {b.default_lot}</span>
+                    <span>Max Lot: {b.max_lot}</span>
+                    <span>{b.trading_mode === "live" ? "LIVE MODE" : "DEMO MODE"}</span>
                   </div>
                 </div>
               ))}
@@ -321,7 +323,7 @@ function MentorPortalPage() {
                   </span>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-                  {strat.description}
+                  {strat.rules}
                 </p>
                 <div className="mt-3 flex items-center gap-2 text-[10px] text-muted-foreground">
                   <Clock className="h-3 w-3" />
