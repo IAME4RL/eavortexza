@@ -145,70 +145,80 @@ function MentorCard({
   running,
   online,
 }: { bot: AssignedMentorBot } & Pick<Props, "userBot" | "running" | "online">) {
-  // Track the exact URL that failed so a mentor re-uploading an image recovers without a reload.
-  const [badBanner, setBadBanner] = useState<string | null>(null);
-  const [badAvatar, setBadAvatar] = useState<string | null>(null);
-  const showBanner = !!bot.background_url && badBanner !== bot.background_url;
-  const showAvatar = !!bot.avatar_url && badAvatar !== bot.avatar_url;
+  // Remember URLs that failed to load: a broken upload falls back gracefully, and a
+  // re-uploaded image (new URL) is tried again without a reload.
+  const [failed, setFailed] = useState<string[]>([]);
+  const usable = (url: string | null): url is string => !!url && !failed.includes(url);
+  const markFailed = (url: string) =>
+    setFailed((prev) => (prev.includes(url) ? prev : [...prev, url]));
+
+  const avatarUrl = usable(bot.avatar_url) ? bot.avatar_url : null;
+  // The wide hero shows the banner when there is one, otherwise the bot's picture.
+  const heroUrl = usable(bot.background_url) ? bot.background_url : avatarUrl;
   const strategies = parseStrategies(bot.strategies);
   const live = userBot?.trading_mode === "live";
 
   return (
     <div className={`${SHELL} shadow-[var(--glow-red-soft)]`} data-testid="featured-bot-mentor">
-      {/* Banner */}
-      <div className="relative h-32 w-full overflow-hidden bg-gradient-to-br from-red-950 via-neutral-950 to-black sm:h-44">
-        {showBanner && (
-          <img
-            src={bot.background_url!}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            onError={() => setBadBanner(bot.background_url)}
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-        )}
-        {/* Legibility + neon wash, so any uploaded image sits comfortably in the dark theme */}
-        <div className="absolute inset-0 bg-gradient-to-t from-surface via-black/40 to-black/30" />
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-transparent mix-blend-screen" />
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
-
-        <div className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full border border-primary/40 bg-black/60 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-primary backdrop-blur">
-          <ShieldCheck className="h-3 w-3" />
-          Mentor Bot
+      {/* Header: small round avatar, bot name, mentor, status */}
+      <div className="flex items-center gap-3 px-5 pt-5">
+        <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full border-2 border-primary/70 bg-surface shadow-[0_0_16px_-4px_var(--primary)]">
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={`${bot.name} profile`}
+              decoding="async"
+              onError={() => markFailed(avatarUrl)}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-primary/15">
+              <Bot className="h-5 w-5 text-primary" />
+            </div>
+          )}
         </div>
-        <div className="absolute right-4 top-4 backdrop-blur-sm">
+        <div className="min-w-0 flex-1">
+          <h2 className="break-words font-display text-lg font-black uppercase leading-tight tracking-wide text-foreground sm:text-2xl">
+            {bot.name}
+          </h2>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            Mentor <span className="font-semibold text-primary">{bot.mentor_name}</span>
+          </p>
+        </div>
+        <div className="shrink-0">
           <StatusBadge running={running} />
         </div>
       </div>
 
-      {/* Identity */}
-      <div className="px-5 pb-5">
-        <div className="-mt-10 flex items-end gap-4 sm:-mt-12">
-          <div className="relative z-10 h-20 w-20 shrink-0 overflow-hidden rounded-2xl border-2 border-primary/70 bg-surface shadow-[var(--glow-red)] sm:h-24 sm:w-24">
-            {showAvatar ? (
-              <img
-                src={bot.avatar_url!}
-                alt={`${bot.name} profile`}
-                decoding="async"
-                onError={() => setBadAvatar(bot.avatar_url)}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-primary/15">
-                <Bot className="h-9 w-9 text-primary" />
-              </div>
-            )}
+      {/* Hero: wide rounded image that fades into the card */}
+      <div
+        className="relative mx-5 mt-4 aspect-[4/3] overflow-hidden rounded-xl border border-primary/40 bg-gradient-to-br from-red-950 via-neutral-950 to-black shadow-[var(--glow-red)] sm:aspect-[21/9]"
+        data-testid="mentor-hero"
+      >
+        {heroUrl ? (
+          <img
+            src={heroUrl}
+            alt={`${bot.name} cover`}
+            loading="lazy"
+            decoding="async"
+            onError={() => markFailed(heroUrl)}
+            className="absolute inset-0 h-full w-full object-cover object-[center_25%]"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Bot className="h-14 w-14 text-primary/60" />
           </div>
-          <div className="min-w-0 pb-1">
-            <h2 className="break-words font-display text-xl font-black uppercase leading-tight tracking-wide text-foreground sm:text-2xl">
-              {bot.name}
-            </h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Mentor <span className="font-semibold text-primary">{bot.mentor_name}</span>
-            </p>
-          </div>
+        )}
+        {/* Fade + neon wash so any uploaded image sits comfortably in the dark theme */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-transparent mix-blend-screen" />
+        <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full border border-primary/40 bg-black/60 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-primary backdrop-blur">
+          <ShieldCheck className="h-3 w-3" />
+          Mentor Bot
         </div>
+      </div>
 
+      <div className="px-5 pb-5">
         {bot.description && (
           <p className="mt-4 whitespace-pre-line break-words text-sm leading-relaxed text-muted-foreground">
             {bot.description}
@@ -221,12 +231,12 @@ function MentorCard({
               Trading Strategies
             </p>
             <ul className="mt-2 flex flex-wrap gap-2">
-              {strategies.map((s) => (
+              {strategies.map((st) => (
                 <li
-                  key={s}
+                  key={st}
                   className="rounded-full border border-primary/35 bg-primary/10 px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider text-primary shadow-[0_0_14px_-6px_var(--primary)]"
                 >
-                  {s}
+                  {st}
                 </li>
               ))}
             </ul>
