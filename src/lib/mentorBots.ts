@@ -114,3 +114,39 @@ export async function getMyAssignedMentorBot() {
   throwIfError(error);
   return data?.bot ?? null;
 }
+export async function updateMentorBot(input: {
+  botId: string;
+  mentorId: string;
+  name: string;
+  mentorName: string;
+  description: string;
+  strategies: string;
+  avatarFile: File | null;
+  bannerFile: File | null;
+}) {
+  const [avatarUrl, backgroundUrl] = await Promise.all([
+    uploadImage(input.mentorId, input.avatarFile, "avatar"),
+    uploadImage(input.mentorId, input.bannerFile, "banner"),
+  ]);
+
+  const updates: Record<string, unknown> = {
+    name: input.name.trim(),
+    mentor_name: input.mentorName.trim(),
+    description: input.description.trim(),
+    strategies: input.strategies.trim(),
+  };
+
+  if (avatarUrl) updates.avatar_url = avatarUrl;
+  if (backgroundUrl) updates.background_url = backgroundUrl;
+
+  const { data, error } = await db
+    .from("mentor_bots")
+    .update(updates)
+    .eq("id", input.botId)
+    .eq("mentor_id", input.mentorId)
+    .select("*")
+    .single();
+
+  throwIfError(error);
+  return data as MentorBotRecord;
+}
