@@ -54,25 +54,9 @@ export function MentorPortalPage() {
   const [bgPreview, setBgPreview] = useState<string>("");
 
   // Sample or Saved Bots
-  const [mentorBots, setMentorBots] = useState<MentorBot[]>([
-    {
-      id: "bot-1",
-      mentorName: user?.email?.split("@")[0] || "",
-      description: "High precision XAUUSD scalper with ICT liquidity sweeps and tight risk.",
-      strategies: "Scalping, ICT, Order Blocks",
-      avatarUrl: "",
-      backgroundUrl: "",
-      createdAt: "2026-10-28",
-    }
-  ]);
-
-  // Sample or Saved License Keys
-  const [licenseKeys, setLicenseKeys] = useState<LicenseKeyItem[]>([
-    {
-      id: "k-1",
-      status: "active",
-    }
-  ]);
+    // Start with clean empty lists
+  const [mentorBots, setMentorBots] = useState<MentorBot[]>([]);
+  const [licenseKeys, setLicenseKeys] = useState<LicenseKeyItem[]>([]);
 
   // Selected bot for generating new key
   const [selectedBotForNewKey, setSelectedBotForNewKey] = useState(mentorBots[0]?.name || "");
