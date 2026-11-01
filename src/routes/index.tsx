@@ -20,11 +20,11 @@ export const Route = createFileRoute("/")({
 });
 
 const tools = [
-  { icon: ScanLine, title: "AI Chart Scanner", label: "CHART ANALYSIS", text: "Upload a chart screenshot and review technical structure, entry zones, stop-loss and take-profit scenarios.", to: "/scanner" },
-  { icon: ChartNoAxesCombined, title: "Market Signals", label: "STRATEGY ENGINE", text: "Explore rule-based BUY, SELL or NO TRADE setups using available market candles and supported strategies.", to: "/dashboard/signals" },
+  { icon: ScanLine, title: "AI Chart Scanner", label: "CHART ANALYSIS", text: "Scan real market candles and get rule-based BUY / SELL signals with entry, stop-loss and take-profit.", to: "/scanner" },
+  { icon: ChartNoAxesCombined, title: "Market Signals", label: "STRATEGY ENGINE", text: "Explore rule-based BUY, SELL or NO TRADE setups using available market candles and supported strategies.", to: "/dashboard/scanner" },
   { icon: Bot, title: "MT5 Auto Trade", label: "BRIDGE REQUIRED", text: "Start and stop your execution bot with your connected MT5 terminal. Demo trading and explicitly authorized live mode.", to: "/dashboard/auto-trade" },
   { icon: Activity, title: "Trading Monitor", label: "CONNECTED ACCOUNTS", text: "Review account balance, equity and trading activity reported by your MT5 connection.", to: "/dashboard/analytics" },
-  { icon: Layers, title: "Strategy Engine", label: "TECHNICAL STRATEGIES", text: "Inspect supported strategies, setup reasoning and backtests. No qualifying setup means no trade.", to: "/dashboard/signals" },
+  { icon: Layers, title: "Strategy Engine", label: "TECHNICAL STRATEGIES", text: "Inspect supported strategies, setup reasoning and backtests. No qualifying setup means no trade.", to: "/dashboard/scanner" },
   { icon: ShieldCheck, title: "EA Management & Bridge", label: "MT5 MANAGEMENT", text: "Manage trading accounts, bridge connections and execution risk limits from your private dashboard.", to: "/dashboard/ea" },
 ] as const;
 
@@ -33,7 +33,7 @@ function Home() {
   const [journey, setJourney] = useState<"client" | "mentor">("client");
   const steps = journey === "client" ? [
     { title: "Create your EA VORTEX account", text: "Register for free and open your private trading dashboard." },
-    { title: "Analyze your first chart", text: "Choose an instrument and timeframe, upload your chart and review the analysis." },
+    { title: "Analyze your first chart", text: "Choose an instrument and timeframe, run the scanner and review your signal." },
     { title: "Connect MT5 for Auto Trade", text: "Install the EA VORTEX Bridge on your terminal, link your account and review risk settings before starting." },
   ] : [
     { title: "Request mentor access", text: "Create a free account and select the mentor access request during registration." },
@@ -93,7 +93,7 @@ function Home() {
             <div className="grid items-center gap-8 lg:grid-cols-[1fr_1.3fr]">
               <div><p className="pw-label text-primary">The Vortex core</p><h2 className="pw-title mt-4 text-3xl sm:text-4xl">From chart to<br />informed action.</h2><p className="mt-4 max-w-lg leading-relaxed text-muted-foreground">Your analysis, market signals and execution controls stay connected — with clear boundaries between a setup and a real trade.</p></div>
               <div className="grid grid-cols-2 gap-3">
-                {[{ I: ScanLine, t: "Chart Analysis", d: "Your screenshot" }, { I: BrainCircuit, t: "Market Signals", d: "Available OHLC data" }, { I: ShieldCheck, t: "Risk Controls", d: "Your execution limits" }, { I: Bot, t: "MT5 Bridge", d: "Your connected terminal" }].map(({ I, t, d }) => <div key={t} className="pw-card p-4 sm:p-6"><I className="h-6 w-6 text-primary" /><h3 className="mt-4 text-sm font-bold uppercase sm:text-base">{t}</h3><p className="mt-1 text-xs text-muted-foreground">{d}</p></div>)}
+                {[{ I: ScanLine, t: "Chart Scanner", d: "Real market candles" }, { I: BrainCircuit, t: "Market Signals", d: "Available OHLC data" }, { I: ShieldCheck, t: "Risk Controls", d: "Your execution limits" }, { I: Bot, t: "MT5 Bridge", d: "Your connected terminal" }].map(({ I, t, d }) => <div key={t} className="pw-card p-4 sm:p-6"><I className="h-6 w-6 text-primary" /><h3 className="mt-4 text-sm font-bold uppercase sm:text-base">{t}</h3><p className="mt-1 text-xs text-muted-foreground">{d}</p></div>)}
               </div>
             </div>
           </div>
