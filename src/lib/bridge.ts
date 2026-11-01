@@ -1,5 +1,5 @@
 // Pure helpers for the MT5 bridge protocol (shared by the server route, server functions and tests).
-
+import { isValidSetting } from "@/lib/strategy";
 export type BotStatus = "running" | "paused" | "stopped";
 export type TradingMode = "demo" | "live";
 /** Account type exactly as MT5 reports ACCOUNT_TRADE_MODE. Anything else is unverified. */
@@ -122,7 +122,7 @@ export function startBlockers(i: StartInput): string[] {
     openTrades: 0, maxOpenTrades: Math.max(1, i.maxOpen), dayPL: i.terminal.daypl ?? null, maxDailyLoss: i.maxDailyLoss,
   });
   if (r) out.push(HOLD_TEXT[r] ?? r);
-  if (!["auto", "ema_trend", "breakout", "manual"].includes(i.strategy)) out.push("Selected strategy is not implemented.");
+  if (!isValidSetting(i.strategy)) out.push("Selected strategy is not implemented.");
   if (!(i.defaultLot > 0) || !(i.maxLot > 0) || i.defaultLot > i.maxLot) out.push("Lot sizes are invalid (default must be > 0 and ≤ max lot).");
   if (!(i.maxOpen >= 1)) out.push("Max open positions must be at least 1.");
   if (!(i.riskPct > 0 && i.riskPct <= 5)) out.push("Risk per trade must be between 0 and 5%.");
