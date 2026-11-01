@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeAssignedBot, type AssignedMentorBot } from "@/lib/mentorBotDisplay";
 
 // The generated Supabase Database type in this project predates these tables.
 // Keep this boundary typed locally until `supabase gen types` is run again.
@@ -106,14 +107,22 @@ export async function redeemMentorLicense(licenseKey: string) {
   return data as { bot_id: string; bot_name: string; mentor_name: string };
 }
 
-export async function getMyAssignedMentorBot() {
+/**
+ * The bot assigned to this client by their most recently redeemed mentor license,
+ * or null when they have not redeemed one (the home screen then keeps the default
+ * EAVORTEX card). Row-level security only exposes the client's own redeemed rows.
+ */
+export async function getMyAssignedMentorBot(userId?: string): Promise<AssignedMentorBot | null> {
+  const clientId = userId ?? (await supabase.auth.getUser()).data.user?.id;
+  if (!clientId) return null;
   const { data, error } = await db.from("mentor_bot_licenses")
     .select("id,bot:mentor_bots(id,name,mentor_name,description,strategies,avatar_url,background_url)")
-    .eq("client_id", (await supabase.auth.getUser()).data.user?.id)
+    .eq("client_id", clientId)
     .eq("status", "redeemed").order("redeemed_at", { ascending: false }).limit(1).maybeSingle();
   throwIfError(error);
-  return data?.bot ?? null;
+  return normalizeAssignedBot(data?.bot);
 }
+
 export async function updateMentorBot(input: {
   botId: string;
   mentorId: string;
@@ -136,8 +145,8 @@ export async function updateMentorBot(input: {
     strategies: input.strategies.trim(),
   };
 
-  if (avatarUrl) updates.avatar_url = avatarUrl;
-  if (backgroundUrl) updates.background_url = backgroundUrl;
+  if (avatarUrl) updates["avatar_url"] = avatarUrl;
+  if (backgroundUrl) updates["background_url"] = backgroundUrl;
 
   const { data, error } = await db
     .from("mentor_bots")
