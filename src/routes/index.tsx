@@ -20,12 +20,12 @@ export const Route = createFileRoute("/")({
 });
 
 const tools = [
-  { icon: ScanLine, title: "AI Chart Analyzer", label: "CHART ANALYSIS", text: "Upload a chart screenshot and review technical structure, entry zones, stop-loss and take-profit scenarios.", to: "/scanner" },
+  { icon: ScanLine, title: "AI Chart Scanner", label: "CHART ANALYSIS", text: "Upload a chart screenshot and review technical structure, entry zones, stop-loss and take-profit scenarios.", to: "/scanner" },
   { icon: ChartNoAxesCombined, title: "Market Signals", label: "STRATEGY ENGINE", text: "Explore rule-based BUY, SELL or NO TRADE setups using available market candles and supported strategies.", to: "/dashboard/signals" },
   { icon: Bot, title: "MT5 Auto Trade", label: "BRIDGE REQUIRED", text: "Start and stop your execution bot with your connected MT5 terminal. Demo trading and explicitly authorized live mode.", to: "/dashboard/auto-trade" },
   { icon: Activity, title: "Trading Monitor", label: "CONNECTED ACCOUNTS", text: "Review account balance, equity and trading activity reported by your MT5 connection.", to: "/dashboard/analytics" },
   { icon: Layers, title: "Strategy Engine", label: "TECHNICAL STRATEGIES", text: "Inspect supported strategies, setup reasoning and backtests. No qualifying setup means no trade.", to: "/dashboard/signals" },
-  { icon: ShieldCheck, title: "Account & Risk Controls", label: "MT5 MANAGEMENT", text: "Manage trading accounts, bridge connections and execution risk limits from your private dashboard.", to: "/dashboard/ea" },
+  { icon: ShieldCheck, title: "EA Management & Bridge", label: "MT5 MANAGEMENT", text: "Manage trading accounts, bridge connections and execution risk limits from your private dashboard.", to: "/dashboard/ea" },
 ] as const;
 
 function Home() {
@@ -72,8 +72,7 @@ function Home() {
           <div className="mx-auto max-w-5xl px-5 pb-12 pt-12 text-center sm:px-8 sm:pb-16 sm:pt-16">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-background/60 px-4 py-2 font-mono text-[10px] font-semibold text-primary sm:text-xs"><BrainCircuit className="h-4 w-4" />AI CHART ANALYSIS · MT5 EXECUTION</div>
             <h1 className="mt-7 text-[48px] font-extrabold leading-[1.08] sm:text-7xl lg:text-8xl">EA <span className="text-primary">VORTEX</span></h1>
-            <p className="home-gradient-text mt-2 text-[38px] font-extrabold leading-[1.15] sm:text-6xl lg:text-7xl">Artificial Intelligence.</p>
-            <p className="mt-3 text-3xl font-extrabold sm:text-5xl">Power Your Trading.</p>
+            <p className="home-gradient-text mt-3 text-[38px] font-extrabold leading-[1.15] sm:text-6xl lg:text-7xl">Power Your Trading.</p>
             <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-xl">Read the chart. Find the setup. Take control.<br className="hidden sm:block" /> AI-powered analysis and strategy-based trading, connected to your MetaTrader 5 terminal.</p>
             <div className="mx-auto mt-8 flex max-w-xl flex-col justify-center gap-3 sm:flex-row">
               <Button asChild size="xl" className="home-primary h-14 font-bold"><a href="/downloads/EA-VORTEX.apk" download><Download />Download Android APK</a></Button>
