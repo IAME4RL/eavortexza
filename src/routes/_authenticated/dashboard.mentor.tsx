@@ -459,29 +459,45 @@ export function MentorPortalPage() {
                   className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
                 />
               </div>
-
+                            {/* Bot Avatar with Live Thumbnail Preview */}
               <div>
                 <label className="block text-xs font-semibold uppercase text-muted-foreground">Bot Avatar</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleImageUpload(e, "avatar")}
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground file:mr-3 file:rounded file:border-0 file:bg-primary/20 file:px-2 file:py-1 file:text-xs file:font-semibold file:text-primary hover:file:bg-primary/30"
-                />
+                <div className="mt-1.5 flex items-center gap-3">
+                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-primary/40 bg-surface flex items-center justify-center">
+                    {avatarPreview && avatarPreview !== "/placeholder.svg" ? (
+                      <img src={avatarPreview} alt="Avatar preview" className="h-full w-full object-cover" />
+                    ) : (
+                      <Bot className="h-6 w-6 text-muted-foreground/40" />
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleImageUpload(e, "avatar")}
+                    className="w-full text-xs text-muted-foreground file:mr-2 file:rounded-md file:border-0 file:bg-primary/20 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary hover:file:bg-primary/30"
+                  />
+                </div>
               </div>
 
+              {/* Bot Background with Live Banner Preview */}
               <div>
-                <label className="block text-xs font-semibold uppercase text-muted-foreground">Bot Background</label>
+                <label className="block text-xs font-semibold uppercase text-muted-foreground">Bot Background Banner</label>
+                {bgPreview && (
+                  <div className="mt-1.5 h-20 w-full overflow-hidden rounded-lg border border-border">
+                    <img src={bgPreview} alt="Background preview" className="h-full w-full object-cover" />
+                  </div>
+                )}
                 <input
                   type="file"
                   accept="image/*"
                   onChange={(e) => handleImageUpload(e, "bg")}
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground file:mr-3 file:rounded file:border-0 file:bg-primary/20 file:px-2 file:py-1 file:text-xs file:font-semibold file:text-primary hover:file:bg-primary/30"
+                  className="mt-1.5 w-full text-xs text-muted-foreground file:mr-2 file:rounded-md file:border-0 file:bg-primary/20 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary hover:file:bg-primary/30"
                 />
                 <p className="mt-1 text-[10px] text-muted-foreground">
-                  Shown behind the bot avatar in the client app.
+                  Shown as the wide cover banner on your bot card.
                 </p>
               </div>
+
 
               <div className="pt-2">
                 <button
