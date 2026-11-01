@@ -90,13 +90,6 @@
   --glow-red: 0 0 40px -8px color-mix(in oklab, var(--primary) 55%, transparent);
   --glow-red-soft: 0 0 80px -20px color-mix(in oklab, var(--primary) 40%, transparent);
   --gradient-red: linear-gradient(135deg, var(--primary), var(--primary-deep));
-  --home-canvas: oklch(0.12 0 0);
-  --home-panel: oklch(0.18 0 0);
-  --home-cyan: oklch(0.65 0.235 25);
-  --home-violet: oklch(0.47 0.18 25);
-  --home-pink: oklch(0.7 0.19 25);
-  --home-gradient: linear-gradient(110deg, var(--home-cyan), var(--home-violet), var(--home-pink));
-  --home-glow: 0 8px 35px -14px color-mix(in oklab, var(--home-cyan) 65%, transparent);
 }
 
 @layer base {
@@ -163,9 +156,9 @@
 }
 
 /* ==========================================================================
-   Client portal — black / red neon look (Pennywise-style app shell).
-   Additive only: nothing above this line is changed, so the mentor, admin
-   and public pages keep their existing appearance.
+   EA VORTEX portal look — black / red neon (Pennywise-style app shell).
+   Shared by the client dashboard and the public pages (home, features, FAQ,
+   how-it-works, scanner, get-app, auth) so both use the same fonts and colours.
    ========================================================================== */
 .pw-card {
   position: relative;
@@ -363,29 +356,3 @@
 @media (prefers-reduced-motion: reduce) {
   .pw-spin { animation: none; }
 }
-
-/* Public homepage reference theme; isolated from the trading portals. */
-.vortex-home {
-  --background: var(--home-canvas);
-  --surface: var(--home-panel);
-  --card: var(--home-panel);
-  --primary: var(--home-cyan);
-  --primary-deep: var(--home-violet);
-  --accent: var(--home-panel);
-  --border: oklch(0.27 0 0);
-  --muted-foreground: oklch(0.7 0 0);
-  background: var(--background);
-  color: var(--foreground);
-}
-.vortex-home h1, .vortex-home h2, .vortex-home h3 { font-family: var(--font-display); letter-spacing: 0; }
-.vortex-home .home-gradient-text { font-family: var(--font-display); letter-spacing: 0; }
-.home-gradient-text { background: var(--home-gradient); background-clip: text; color: transparent; }
-.home-primary { background: var(--home-gradient); color: var(--foreground); box-shadow: var(--home-glow); }
-.home-primary:hover { filter: brightness(1.12); }
-.home-hero-image { opacity: .36; filter: grayscale(1); }
-.home-hero-shade { background: linear-gradient(180deg, color-mix(in oklab, var(--home-canvas) 25%, transparent), var(--home-canvas)); }
-.home-tool { background: linear-gradient(150deg, color-mix(in oklab, var(--foreground) 4%, var(--home-panel)), var(--home-canvas)); border: 1px solid var(--border); border-radius: 8px; }
-.home-tool:hover { border-color: color-mix(in oklab, var(--primary) 65%, var(--border)); }
-.home-icon { background: var(--home-gradient); box-shadow: var(--home-glow); color: var(--foreground); }
-.home-core { background: radial-gradient(ellipse at center, color-mix(in oklab, var(--home-cyan) 9%, var(--home-canvas)), var(--home-canvas)); }
-.home-grid { background-size: 64px 64px; background-image: linear-gradient(color-mix(in oklab, var(--home-cyan) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--home-cyan) 5%, transparent) 1px, transparent 1px); }
