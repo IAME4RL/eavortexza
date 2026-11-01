@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import { Save, UserRound, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { PageHeader } from "@/components/dash";
-import { Button } from "@/components/ui/button";
+import { NeonCard, PortalTitle, PwLabel } from "@/components/portal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
@@ -54,43 +53,43 @@ function Page() {
 
   return (
     <>
-      <PageHeader eyebrow="Your account" title="Settings" sub="Manage your profile and platform access." />
+      <PortalTitle title="Settings" sub="Manage your profile and platform access." />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="panel p-6">
-          <h2 className="flex items-center gap-2 font-bold uppercase"><UserRound className="h-4 w-4 text-primary" />Profile</h2>
+      <div className="grid gap-5 lg:grid-cols-2">
+        <NeonCard className="p-5 sm:p-6">
+          <PwLabel red className="flex items-center gap-2"><UserRound className="h-4 w-4" />Profile</PwLabel>
           <div className="mt-5 space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Email</Label>
-              <Input id="email" value={user?.email ?? ""} disabled />
+              <Label htmlFor="email" className="pw-label text-[0.62rem] text-muted-foreground">Email</Label>
+              <Input id="email" className="pw-field" value={user?.email ?? ""} disabled />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="display_name" className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Display name</Label>
-              <Input id="display_name" value={name} onChange={(e) => setName(e.target.value)} placeholder="How should we address you?" maxLength={60} />
+              <Label htmlFor="display_name" className="pw-label text-[0.62rem] text-muted-foreground">Display name</Label>
+              <Input id="display_name" className="pw-field" value={name} onChange={(e) => setName(e.target.value)} placeholder="How should we address you?" maxLength={60} />
             </div>
-            <Button variant="hero" onClick={() => save.mutate()} disabled={save.isPending}>
-              <Save />{save.isPending ? "Saving…" : "Save profile"}
-            </Button>
+            <button type="button" className="pw-btn pw-btn-solid" onClick={() => save.mutate()} disabled={save.isPending}>
+              <Save className="h-4 w-4" />{save.isPending ? "Saving…" : "Save profile"}
+            </button>
           </div>
-        </div>
+        </NeonCard>
 
-        <div className="panel p-6">
-          <h2 className="flex items-center gap-2 font-bold uppercase"><GraduationCap className="h-4 w-4 text-primary" />Mentor access</h2>
+        <NeonCard className="p-5 sm:p-6">
+          <PwLabel red className="flex items-center gap-2"><GraduationCap className="h-4 w-4" />Mentor access</PwLabel>
           <p className="mt-3 text-sm text-muted-foreground">
             Mentors can review their clients' chart analyses and send guidance through notifications.
           </p>
           <div className="mt-5">
             {isMentor ? (
-              <p className="rounded-md border border-bull/40 bg-card p-3 text-sm text-bull">Mentor access is active on your account.</p>
+              <p className="rounded-xl border border-bull/40 bg-card p-3 text-sm text-bull">Mentor access is active on your account.</p>
             ) : requested ? (
-              <p className="rounded-md border border-neutral/40 bg-card p-3 text-sm text-neutral">Your request is awaiting administrator approval.</p>
+              <p className="rounded-xl border border-neutral/40 bg-card p-3 text-sm text-neutral">Your request is awaiting administrator approval.</p>
             ) : (
-              <Button variant="frame" onClick={() => requestMentor.mutate()} disabled={requestMentor.isPending}>
+              <button type="button" className="pw-btn" onClick={() => requestMentor.mutate()} disabled={requestMentor.isPending}>
                 Request mentor access
-              </Button>
+              </button>
             )}
           </div>
-        </div>
+        </NeonCard>
       </div>
     </>
   );
