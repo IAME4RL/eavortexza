@@ -94,7 +94,7 @@ describe("FeaturedBotCard", () => {
 
   it("drops a broken image instead of showing a broken icon, then recovers on a new URL", () => {
     const el = mount(<FeaturedBotCard mentorBot={bot} {...base} />);
-    const avatar = q(el, `img[src="${bot.avatar_url}"]`)!;
+    const avatar = q(el, `img[alt="${bot.name} profile"]`)!;
     act(() => {
       avatar.dispatchEvent(new Event("error"));
     });
@@ -107,6 +107,30 @@ describe("FeaturedBotCard", () => {
       />,
     );
     expect(q(el, 'img[src="https://cdn.example/new.png"]')).not.toBeNull();
+  });
+
+  it("uses the bot picture as the wide hero when there is no banner", () => {
+    const el = mount(<FeaturedBotCard mentorBot={{ ...bot, background_url: null }} {...base} />);
+    const hero = q(el, '[data-testid="mentor-hero"]')!;
+    expect(q(hero as HTMLElement, `img[src="${bot.avatar_url}"]`)).not.toBeNull();
+  });
+
+  it("uses the banner for the hero and the picture for the small round avatar", () => {
+    const el = mount(<FeaturedBotCard mentorBot={bot} {...base} />);
+    const hero = q(el, '[data-testid="mentor-hero"]') as HTMLElement;
+    expect(q(hero, `img[src="${bot.background_url}"]`)).not.toBeNull();
+    expect(q(hero, `img[src="${bot.avatar_url}"]`)).toBeNull();
+    expect(q(el, `img[alt="${bot.name} profile"]`)).not.toBeNull();
+  });
+
+  it("falls back from a broken banner to the bot picture in the hero", () => {
+    const el = mount(<FeaturedBotCard mentorBot={bot} {...base} />);
+    const banner = q(el, `img[src="${bot.background_url}"]`)!;
+    act(() => {
+      banner.dispatchEvent(new Event("error"));
+    });
+    const hero = q(el, '[data-testid="mentor-hero"]') as HTMLElement;
+    expect(q(hero, `img[src="${bot.avatar_url}"]`)).not.toBeNull();
   });
 
   it("omits empty description and strategies sections cleanly", () => {
