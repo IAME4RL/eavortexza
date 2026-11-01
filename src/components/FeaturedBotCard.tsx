@@ -19,6 +19,10 @@ type Props = {
 const SHELL =
   "relative overflow-hidden rounded-2xl border border-primary/40 bg-gradient-to-br from-surface via-surface/90 to-primary/10 shadow-2xl";
 
+/** Soft vignette mask: the picture dissolves into the card instead of ending in a frame. */
+const FEATHER =
+  "[mask-image:radial-gradient(ellipse_80%_74%_at_50%_46%,#000_58%,transparent_100%)] [-webkit-mask-image:radial-gradient(ellipse_80%_74%_at_50%_46%,#000_58%,transparent_100%)]";
+
 function StatusBadge({ running }: { running: boolean }) {
   return (
     <span
@@ -190,11 +194,8 @@ function MentorCard({
         </div>
       </div>
 
-      {/* Hero: wide rounded image that fades into the card */}
-      <div
-        className="relative mx-5 mt-4 aspect-[4/3] overflow-hidden rounded-xl border border-primary/40 bg-gradient-to-br from-red-950 via-neutral-950 to-black shadow-[var(--glow-red)] sm:aspect-[21/9]"
-        data-testid="mentor-hero"
-      >
+      {/* Hero: borderless picture whose edges feather into the card */}
+      <div className="relative mt-3 aspect-[4/3] sm:aspect-[21/9]" data-testid="mentor-hero">
         {heroUrl ? (
           <img
             src={heroUrl}
@@ -202,17 +203,16 @@ function MentorCard({
             loading="lazy"
             decoding="async"
             onError={() => markFailed(heroUrl)}
-            className="absolute inset-0 h-full w-full object-cover object-[center_25%]"
+            className={`absolute inset-0 h-full w-full object-cover object-[center_25%] ${FEATHER}`}
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div
+            className={`absolute inset-0 flex items-center justify-center bg-gradient-to-br from-red-950 via-neutral-950 to-black ${FEATHER}`}
+          >
             <Bot className="h-14 w-14 text-primary/60" />
           </div>
         )}
-        {/* Fade + neon wash so any uploaded image sits comfortably in the dark theme */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-transparent mix-blend-screen" />
-        <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full border border-primary/40 bg-black/60 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-primary backdrop-blur">
+        <div className="absolute left-5 top-2 flex items-center gap-1.5 rounded-full border border-primary/40 bg-black/60 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-primary backdrop-blur">
           <ShieldCheck className="h-3 w-3" />
           Mentor Bot
         </div>
