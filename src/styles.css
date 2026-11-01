@@ -377,7 +377,8 @@
   background: var(--background);
   color: var(--foreground);
 }
-.vortex-home h1, .vortex-home h2, .vortex-home h3 { font-family: var(--font-sans); letter-spacing: 0; }
+.vortex-home h1, .vortex-home h2, .vortex-home h3 { font-family: var(--font-display); letter-spacing: 0; }
+.vortex-home .home-gradient-text { font-family: var(--font-display); letter-spacing: 0; }
 .home-gradient-text { background: var(--home-gradient); background-clip: text; color: transparent; }
 .home-primary { background: var(--home-gradient); color: var(--foreground); box-shadow: var(--home-glow); }
 .home-primary:hover { filter: brightness(1.12); }
