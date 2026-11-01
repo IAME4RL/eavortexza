@@ -90,13 +90,18 @@ export function MentorPortalPage() {
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "avatar" | "bg") => {
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "avatar" | "bg") => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    if (type === "avatar") setAvatarPreview(url);
-    if (type === "bg") setBgPreview(url);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      if (type === "avatar") setAvatarPreview(result);
+      if (type === "bg") setBgPreview(result);
+    };
+    reader.readAsDataURL(file);
   };
+
 
   const handleSaveBot = (e: React.FormEvent) => {
     e.preventDefault();
