@@ -57,7 +57,6 @@ export function MentorPortalPage() {
   const [mentorBots, setMentorBots] = useState<MentorBot[]>([
     {
       id: "bot-1",
-      name: "",
       mentorName: user?.email?.split("@")[0] || "",
       description: "High precision XAUUSD scalper with ICT liquidity sweeps and tight risk.",
       strategies: "Scalping, ICT, Order Blocks",
@@ -71,10 +70,6 @@ export function MentorPortalPage() {
   const [licenseKeys, setLicenseKeys] = useState<LicenseKeyItem[]>([
     {
       id: "k-1",
-      key: "EVX-QUVC-NW66-P99K",
-      clientName: "Earl",
-      clientEmail: "e4rlza@gmail.com",
-      botName: "PENNYWISE SNIPER EA",
       status: "active",
     }
   ]);
@@ -422,7 +417,7 @@ export function MentorPortalPage() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. PENNYWISE SNIPER EA"
+                  placeholder=
                   value={botName}
                   onChange={(e) => setBotName(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
