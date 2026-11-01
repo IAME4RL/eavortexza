@@ -417,7 +417,7 @@ export function MentorPortalPage() {
                 <input
                   type="text"
                   required
-                  placeholder=
+                  placeholder=""
                   value={botName}
                   onChange={(e) => setBotName(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
