@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { useEffect, useRef, useState } from "react";
 import { ScanLine, Clock, ChevronRight, Globe, Key, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +9,7 @@ import { Gauge, NeonCard, Pill, PwLabel } from "@/components/portal";
 import { useAuth } from "@/lib/auth";
 import { HEARTBEAT_ONLINE_MS } from "@/lib/bridge";
 import { formatRemaining, marketSession } from "@/lib/sessions";
+import { startBot, stopBot } from "@/lib/bot.functions";
 import { getMyAssignedMentorBot, redeemMentorLicense } from "@/lib/mentorBots";
 import { FeaturedBotCard } from "@/components/FeaturedBotCard";
 
@@ -75,6 +78,29 @@ function ClientOverview() {
   });
 
   const userBot = bots.data?.[0];
+
+  // Start/Stop for the client's bridge bot, available on the featured card for the default
+  // bot and for every mentor bot. The server re-checks account, bridge, mode and risk limits.
+  const startFn = useServerFn(startBot);
+  const stopFn = useServerFn(stopBot);
+  const [blockers, setBlockers] = useState<string[]>([]);
+  const botAction = useMutation({
+    mutationFn: async (kind: "start" | "stop") => {
+      if (!userBot) throw new Error("Set up your bot first");
+      if (kind === "start") {
+        const r = await startFn({ data: { botId: userBot.id } });
+        setBlockers(r.blockers);
+        if (!r.ok) throw new Error("Start blocked — see the checks on the card");
+        return "Bot started";
+      }
+      setBlockers([]);
+      await stopFn({ data: { botId: userBot.id } });
+      return "Bot stopped — new orders blocked";
+    },
+    onSuccess: (msg) => { toast.success(msg); },
+    onError: (e) => { toast.error(e instanceof Error ? e.message : "Action failed"); },
+    onSettled: () => { queryClient.invalidateQueries({ queryKey: ["portal-bot", user?.id] }); },
+  });
   const name = counts.data?.profile?.display_name;
 
   const running = userBot?.status === "running";
@@ -137,6 +163,14 @@ function ClientOverview() {
           userBot={userBot}
           running={running}
           online={!!online}
+          control={{
+            hasBot: !!userBot,
+            status: userBot?.status ?? "stopped",
+            busy: botAction.isPending,
+            blockers,
+            onStart: () => botAction.mutate("start"),
+            onStop: () => botAction.mutate("stop"),
+          }}
         />
       </div>
 
