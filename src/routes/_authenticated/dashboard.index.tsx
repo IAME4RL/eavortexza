@@ -1,11 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
-import { 
-  ScanLine, Activity, Clock, ChevronRight, Globe, Zap, 
-  Bot, ShieldCheck, Key, Check, TrendingUp, Layers
-} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ScanLine, Activity, Clock, ChevronRight, Globe, Key, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getScanQuota } from "@/lib/scan.functions";
 import { Gauge, NeonCard, Pill, PwLabel } from "@/components/portal";
@@ -14,6 +11,7 @@ import { timeframeLabel } from "@/lib/instruments";
 import { HEARTBEAT_ONLINE_MS } from "@/lib/bridge";
 import { formatRemaining, marketSession } from "@/lib/sessions";
 import { getMyAssignedMentorBot, redeemMentorLicense } from "@/lib/mentorBots";
+import { FeaturedBotCard } from "@/components/FeaturedBotCard";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({ component: ClientOverview });
 
@@ -34,6 +32,8 @@ function ClientOverview() {
 
   const [licenseInput, setLicenseInput] = useState("");
   const [licenseStatus, setLicenseStatus] = useState<string | null>(null);
+  const [redeeming, setRedeeming] = useState(false);
+  const featuredCardRef = useRef<HTMLDivElement>(null);
 
   const recent = useQuery({
     queryKey: ["scans", "recent"],
@@ -59,9 +59,13 @@ function ClientOverview() {
     },
   });
 
+  // The bot assigned through a redeemed mentor license. No row (or an error) means the
+  // default EAVORTEX card stays on screen. Polled gently so mentor edits/revocations show up.
   const assignedMentorBot = useQuery({
     queryKey: ["assigned-mentor-bot", user?.id], enabled: !!user,
-    queryFn: getMyAssignedMentorBot,
+    queryFn: () => getMyAssignedMentorBot(user!.id),
+    refetchInterval: 60_000,
+    retry: 1,
   });
 
   const bots = useQuery({
@@ -84,14 +88,25 @@ function ClientOverview() {
 
   const handleActivateLicense = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!licenseInput.trim()) return;
+    if (!licenseInput.trim() || redeeming) return;
+    setRedeeming(true);
+    setLicenseStatus(null);
     try {
       const redeemed = await redeemMentorLicense(licenseInput);
-      setLicenseStatus(`Connected to ${redeemed.bot_name} by ${redeemed.mentor_name}.`);
       setLicenseInput("");
-      await queryClient.invalidateQueries({ queryKey: ["assigned-mentor-bot", user?.id] });
+      const key = ["assigned-mentor-bot", user?.id];
+      await queryClient.refetchQueries({ queryKey: key });
+      if (queryClient.getQueryState(key)?.status === "error") {
+        setLicenseStatus(`Connected to ${redeemed.bot_name} by ${redeemed.mentor_name}. Reload the page if the card above has not updated.`);
+      } else {
+        setLicenseStatus(`Connected to ${redeemed.bot_name} by ${redeemed.mentor_name}.`);
+        // The key form sits below the card; bring the newly assigned bot into view.
+        featuredCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     } catch (error) {
       setLicenseStatus(error instanceof Error ? error.message : "Could not verify this license key.");
+    } finally {
+      setRedeeming(false);
     }
   };
 
@@ -120,76 +135,15 @@ function ClientOverview() {
         </div>
       )}
 
-      {/* FEATURED BOT CARD (Reference Screen) */}
-      <div className="relative overflow-hidden rounded-2xl border border-primary/40 bg-gradient-to-br from-surface via-surface/90 to-primary/10 p-5 shadow-2xl" style={assignedMentorBot.data?.background_url ? { backgroundImage: `linear-gradient(90deg, rgba(8,8,10,.96), rgba(8,8,10,.78)), url(${assignedMentorBot.data.background_url})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}>
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="rounded bg-primary/20 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-primary">
-                {userBot ? userBot.strategy.replace(/_/g, " ") : "QUANTUM VORTEX AI"}
-              </span>
-              <span className="font-mono text-xs text-muted-foreground">
-                {userBot?.trading_mode === "live" ? "LIVE EXECUTION" : "DEMO / TEST"}
-              </span>
-            </div>
-            <h2 className="font-display text-xl font-black uppercase tracking-wide text-foreground sm:text-2xl">
-              {assignedMentorBot.data?.name || (userBot ? "EA VORTEX ENGINE" : "GOLD VORTEX PRO AI")}
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              {assignedMentorBot.data ? `By ${assignedMentorBot.data.mentor_name} · ${assignedMentorBot.data.description || assignedMentorBot.data.strategies}` : "Institutional order block & ICT liquidity execution on XAUUSD."}
-            </p>
-          </div>
-
-          <div className="text-right">
-            <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-xs font-bold ${
-              running ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-primary/20 text-primary border border-primary/30"
-            }`}>
-              <span className={`h-2 w-2 rounded-full ${running ? "bg-emerald-400 animate-pulse" : "bg-primary"}`} />
-              {running ? "ACTIVE" : "STANDBY"}
-            </span>
-          </div>
-        </div>
-
-        {assignedMentorBot.data && (
-          <div className="mt-4 flex items-center gap-3 rounded-xl border border-primary/20 bg-black/30 p-3">
-            {assignedMentorBot.data.avatar_url ? <img src={assignedMentorBot.data.avatar_url} alt="Bot avatar" className="h-12 w-12 rounded-xl object-cover" /> : <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15"><Bot className="h-6 w-6 text-primary" /></div>}
-            <div className="min-w-0"><p className="text-xs font-bold uppercase text-foreground">{assignedMentorBot.data.name}</p><p className="text-[11px] text-muted-foreground">{assignedMentorBot.data.strategies}</p></div>
-          </div>
-        )}
-        {/* Bot Performance Metrics */}
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 border-t border-border/60 pt-4">
-          <div className="rounded-lg bg-black/40 p-2.5">
-            <p className="text-[10px] font-semibold uppercase text-muted-foreground">Target Symbol</p>
-            <p className="mt-0.5 font-mono text-sm font-bold text-foreground">GOLD / XAUUSD</p>
-          </div>
-          <div className="rounded-lg bg-black/40 p-2.5">
-            <p className="text-[10px] font-semibold uppercase text-muted-foreground">Win Rate (Backtest)</p>
-            <p className="mt-0.5 font-mono text-sm font-bold text-emerald-400">78.4%</p>
-          </div>
-          <div className="rounded-lg bg-black/40 p-2.5">
-            <p className="text-[10px] font-semibold uppercase text-muted-foreground">Max Drawdown</p>
-            <p className="mt-0.5 font-mono text-sm font-bold text-foreground">4.2%</p>
-          </div>
-          <div className="rounded-lg bg-black/40 p-2.5">
-            <p className="text-[10px] font-semibold uppercase text-muted-foreground">MT5 Bridge</p>
-            <p className="mt-0.5 font-mono text-sm font-bold text-primary">
-              {online ? "Connected" : "Disconnected"}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-2">
-          <p className="text-xs text-muted-foreground">
-            Configure risk, lot size, and Windows MetaTrader 5 bridge in Auto Trade.
-          </p>
-          <Link
-            to="/dashboard/auto-trade"
-            className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground hover:bg-primary/90 transition-all"
-          >
-            <Zap className="h-3.5 w-3.5" />
-            Manage Bot Controls
-          </Link>
-        </div>
+      {/* FEATURED BOT CARD: the mentor's bot once a license is redeemed, otherwise the default EAVORTEX bot */}
+      <div ref={featuredCardRef} className="scroll-mt-4">
+        <FeaturedBotCard
+          mentorBot={assignedMentorBot.data}
+          loading={assignedMentorBot.isLoading}
+          userBot={userBot}
+          running={running}
+          online={!!online}
+        />
       </div>
 
       {/* TWO MAIN CALL TO ACTION BUTTONS (Reference Screen) */}
@@ -282,9 +236,10 @@ function ClientOverview() {
           />
           <button
             type="submit"
-            className="rounded-lg bg-primary px-4 py-2 font-display text-xs font-bold uppercase text-primary-foreground hover:bg-primary/90 transition-all"
+            disabled={redeeming}
+            className="rounded-lg bg-primary px-4 py-2 font-display text-xs font-bold uppercase text-primary-foreground transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Activate Key
+            {redeeming ? "Verifying…" : "Activate Key"}
           </button>
         </form>
 
