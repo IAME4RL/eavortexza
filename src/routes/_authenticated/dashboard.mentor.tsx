@@ -57,12 +57,12 @@ export function MentorPortalPage() {
   const [mentorBots, setMentorBots] = useState<MentorBot[]>([
     {
       id: "bot-1",
-      name: "PENNYWISE SNIPER EA",
-      mentorName: user?.email?.split("@")[0] || "EarlJr",
+      name: "",
+      mentorName: user?.email?.split("@")[0] || "",
       description: "High precision XAUUSD scalper with ICT liquidity sweeps and tight risk.",
       strategies: "Scalping, ICT, Order Blocks",
-      avatarUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500&auto=format&fit=crop&q=60",
-      backgroundUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=60",
+      avatarUrl: "",
+      backgroundUrl: "",
       createdAt: "2026-10-28",
     }
   ]);
