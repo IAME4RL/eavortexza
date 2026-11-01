@@ -8,10 +8,10 @@ const PORTALS = {
     label: "Client Portal",
     to: "/dashboard",
     cta: "Open Client Portal",
-    blurb: "Your private trading workspace: scan charts, review signals and run your bot from one place.",
+    blurb: "Your private trading workspace: scan markets for signals and run your bot from one place.",
     points: [
-      "AI Chart Scanner with a free daily allowance",
-      "Rule-based Market Signals, or an honest NO TRADE",
+      "AI Chart Scanner that gives BUY / SELL signals",
+      "Rule-based setups, or an honest NO TRADE",
       "START / STOP for your bot through your own MT5 terminal",
       "Risk limits you set: max lot, open trades and daily loss",
     ],

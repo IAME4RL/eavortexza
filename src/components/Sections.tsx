@@ -15,9 +15,9 @@ export function SectionHead({ eyebrow, title, sub }: { eyebrow: string; title: R
 }
 
 const STEPS = [
-  { n: "01", t: "Upload", d: "Upload a chart and choose your instrument and timeframe.", I: Upload },
-  { n: "02", t: "Analyse", d: "Let the connected AI service examine your chart and identify relevant technical patterns.", I: Cpu },
-  { n: "03", t: "Review", d: "Explore your results and save your analysis to your private dashboard.", I: FolderLock },
+  { n: "01", t: "Choose", d: "Choose your instrument and timeframe.", I: Upload },
+  { n: "02", t: "Scan", d: "The scanner evaluates real closed price bars with its rule-based strategy engine.", I: Cpu },
+  { n: "03", t: "Review", d: "Review your BUY / SELL signal and keep it in your private signal history.", I: FolderLock },
 ];
 
 export function HowItWorks() {
@@ -40,7 +40,7 @@ export function HowItWorks() {
 }
 
 const FEATURES = [
-  { I: ScanLine, t: "AI Chart Scanner", d: "Upload any chart screenshot and get structured technical analysis: structure, zones, patterns and scenarios." },
+  { I: ScanLine, t: "AI Chart Scanner", d: "Scan real market data and get BUY / SELL signals with entry, stop-loss and take-profit." },
   { I: Bot, t: "EA Management", d: "A dedicated area for your Expert Advisors, built for MetaTrader integrations as they come online." },
   { I: LayoutDashboard, t: "One Dashboard", d: "Scans, accounts, analytics and notifications in a single private workspace." },
   { I: Users, t: "Mentor Portal", d: "Approved mentors can review the activity their assigned clients choose to share." },
@@ -63,12 +63,12 @@ export function FeatureGrid() {
 }
 
 export const FAQS = [
-  { q: "Is the AI Chart Scanner free?", a: "Yes. Access is free for registered users. To keep AI processing costs sustainable, each account has a daily scan allowance set by the administrator — your remaining scans are always shown on the scanner page." },
+  { q: "Is the AI Chart Scanner free?", a: "Yes. Access is free for registered users." },
   { q: "Can I scan GOLD charts?", a: "Yes. GOLD is fully supported, along with common symbol variations such as XAUUSD, XAU/USD, GOLDUSD and broker suffixes like XAUUSD.m. Select GOLD directly even if your broker labels it differently." },
   { q: "Does the scanner guarantee profitable trades?", a: "No. AI analysis is probabilistic and may be incorrect. Any setup shown is a hypothetical scenario for educational purposes, not financial advice." },
   { q: "Can I connect my Expert Advisors?", a: "Supported integrations depend on your trading platform and the connections configured. You can register MetaTrader account details today; live connection, statistics and EA control become available only once the relevant integration is enabled." },
   { q: "Do I need a paid subscription?", a: "No. Creating an account and using the free chart scanner does not require a subscription or payment." },
-  { q: "Is my scan history private?", a: "Yes. Your scans and uploaded charts are stored privately and can only be opened by you. If you have an assigned mentor, they can see only the analyses you explicitly save." },
+  { q: "Is my scan history private?", a: "Yes. Your signals are stored privately and can only be opened by you." },
 ];
 
 export function FaqList() {
@@ -92,7 +92,7 @@ export function CtaBand() {
         <div className="relative">
           <LineChart className="mx-auto h-8 w-8 text-primary" />
           <h2 className="pw-title mt-4 text-3xl sm:text-4xl">Power your trading</h2>
-          <p className="mx-auto mt-3 max-w-xl text-muted-foreground">Create a free account and run your first AI chart scan in under a minute.</p>
+          <p className="mx-auto mt-3 max-w-xl text-muted-foreground">Create a free account and run your first market scan in under a minute.</p>
           <Link to="/auth" search={{ mode: "signup" }} className="pw-btn pw-btn-solid mt-8 px-8">Get Started Free</Link>
         </div>
       </div>

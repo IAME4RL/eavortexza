@@ -25,7 +25,7 @@ export function StatusHub() {
       const [bots, accts, scans] = await Promise.all([
         supabase.from("bots").select("status,last_heartbeat,trading_mode"),
         supabase.from("trading_accounts").select("id", { count: "exact", head: true }),
-        supabase.from("scans").select("instrument,timeframe,status,created_at").order("created_at", { ascending: false }).limit(3),
+        supabase.from("signals").select("symbol,timeframe,side,created_at").order("created_at", { ascending: false }).limit(3),
       ]);
       if (!live) return;
       const b = bots.data ?? [];
@@ -40,9 +40,9 @@ export function StatusHub() {
         { I: Bot, title: "Auto Trade bot", to: "/dashboard/auto-trade", tone: running ? "ok" : b.length ? "warn" : "off",
           state: running ? `${running} running` : b.length ? "Stopped" : "Not set up",
           detail: b.length ? `${b.filter((x) => x.trading_mode === "live").length} live · ${b.filter((x) => x.trading_mode !== "live").length} demo` : "Create a bot from Auto Trade" },
-        { I: ScanLine, title: "Recent scans", to: "/dashboard/history", tone: s.length ? "ok" : "off",
+        { I: ScanLine, title: "Recent signals", to: "/dashboard/history", tone: s.length ? "ok" : "off",
           state: s.length ? `${s.length} latest` : "None yet",
-          detail: s.length ? s.map((x) => `${x.instrument} ${x.timeframe}`).join(" · ") : "Upload a chart to get your first analysis" },
+          detail: s.length ? s.map((x) => `${x.symbol} ${x.timeframe} ${String(x.side).toUpperCase()}`).join(" · ") : "Run a scan to get your first signal" },
         { I: Settings2, title: "EA Management", to: "/dashboard/ea", tone: accts.count ? "ok" : "off",
           state: accts.count ? `${accts.count} account${accts.count > 1 ? "s" : ""}` : "No accounts",
           detail: accts.count ? "Registered MT4/MT5 accounts" : "Register an MT5 account" },
@@ -54,7 +54,7 @@ export function StatusHub() {
   const shown: Card[] = cards ?? [
     { I: Cable, title: "MT5 Bridge", to: "/auth", tone: "off", state: "Sign in to view", detail: "Real terminal heartbeat status" },
     { I: Bot, title: "Auto Trade bot", to: "/auth", tone: "off", state: "Sign in to view", detail: "Start / stop state and mode" },
-    { I: ScanLine, title: "Recent scans", to: "/auth", tone: "off", state: "Sign in to view", detail: "Your private analysis history" },
+    { I: ScanLine, title: "Recent signals", to: "/auth", tone: "off", state: "Sign in to view", detail: "Your private analysis history" },
     { I: Settings2, title: "EA Management", to: "/auth", tone: "off", state: "Sign in to view", detail: "Your registered MT5 accounts" },
   ];
 
