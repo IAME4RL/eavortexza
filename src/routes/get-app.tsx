@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Apple, ArrowRight, Download, PlusSquare, Share, Smartphone } from "lucide-react";
 import { PublicLayout } from "@/components/SiteNav";
-import { Button } from "@/components/ui/button";
 import { LogoMark } from "@/components/Logo";
 
 export const Route = createFileRoute("/get-app")({
@@ -24,37 +23,37 @@ function GetApp() {
       <main className="mx-auto max-w-5xl px-4 py-14 sm:px-6 sm:py-20">
         <header className="text-center">
           <LogoMark className="mx-auto h-16 w-16" />
-          <p className="eyebrow mt-6">EA VORTEX · Power Your Trading</p>
-          <h1 className="mt-4 text-4xl font-bold uppercase sm:text-5xl">Get the <span className="text-primary">app</span></h1>
+          <p className="pw-label mt-6 text-primary">EA VORTEX · Power Your Trading</p>
+          <h1 className="pw-title mt-4 text-4xl sm:text-5xl">Get the app</h1>
           <p className="mt-4 text-muted-foreground">iOS & Android</p>
         </header>
 
         <div className="mt-10 grid gap-5 md:grid-cols-2">
-          <section className="rounded-lg border border-border bg-card p-6 sm:p-8" aria-labelledby="ios-title">
+          <section className="pw-card p-6 sm:p-8" aria-labelledby="ios-title">
             <Apple className="h-8 w-8 text-primary" aria-hidden />
-            <h2 id="ios-title" className="mt-5 text-2xl font-bold">iPhone & iPad</h2>
+            <h2 id="ios-title" className="mt-5 text-2xl font-bold uppercase">iPhone & iPad</h2>
             <p className="mt-2 text-sm text-muted-foreground">Add to Home Screen</p>
             <ol className="mt-6 space-y-4 text-sm">
               <li className="flex gap-3"><span className="font-mono text-primary">01</span><span>Open the published EA VORTEX website in Safari.</span></li>
               <li className="flex gap-3"><span className="font-mono text-primary">02</span><span>Tap <Share className="inline h-4 w-4" aria-hidden /> Share, then <PlusSquare className="inline h-4 w-4" aria-hidden /> Add to Home Screen.</span></li>
               <li className="flex gap-3"><span className="font-mono text-primary">03</span><span>If shown, enable Open as Web App. Tap Add.</span></li>
             </ol>
-            <Button variant="hero" size="xl" className="mt-8 w-full" asChild><Link to="/dashboard">Open EA VORTEX <ArrowRight /></Link></Button>
+            <Link to="/dashboard" className="pw-btn pw-btn-solid mt-8 w-full">Open EA VORTEX <ArrowRight className="h-4 w-4" /></Link>
             <p className="mt-4 text-xs text-muted-foreground">Home-screen web app · Internet connection required</p>
           </section>
 
-          <section className="rounded-lg border border-border bg-card p-6 sm:p-8" aria-labelledby="android-title">
+          <section className="pw-card p-6 sm:p-8" aria-labelledby="android-title">
             <Smartphone className="h-8 w-8 text-primary" aria-hidden />
-            <h2 id="android-title" className="mt-5 text-2xl font-bold">Android</h2>
+            <h2 id="android-title" className="mt-5 text-2xl font-bold uppercase">Android</h2>
             <p className="mt-2 text-sm text-muted-foreground">APK download · Version 1.0.1 (test build)</p>
             <ol className="mt-6 space-y-4 text-sm">
               <li className="flex gap-3"><span className="font-mono text-primary">01</span><span>Download the APK below on your Android phone (Android 7.0 or newer).</span></li>
               <li className="flex gap-3"><span className="font-mono text-primary">02</span><span>Open the file and allow installation from this source when Android asks.</span></li>
               <li className="flex gap-3"><span className="font-mono text-primary">03</span><span>Open EA VORTEX from your app drawer and sign in.</span></li>
             </ol>
-            <Button variant="hero" size="xl" className="mt-8 w-full" asChild><a href="/downloads/EA-VORTEX.apk" download="EA-VORTEX.apk"><Download /> Download APK</a></Button>
+            <a href="/downloads/EA-VORTEX.apk" download="EA-VORTEX.apk" className="pw-btn pw-btn-solid mt-8 w-full"><Download className="h-4 w-4" /> Download APK</a>
             <p className="mt-4 text-xs text-muted-foreground">Test build signed with a development certificate · Opens the live EA VORTEX site directly — sign in as a client or mentor · Internet connection required</p>
-            <Button variant="link" className="mt-4 px-0" asChild><Link to="/dashboard">Use EA VORTEX in your browser <ArrowRight /></Link></Button>
+            <Link to="/dashboard" className="pw-label mt-4 inline-flex items-center gap-2 text-primary hover:underline">Use EA VORTEX in your browser <ArrowRight className="h-4 w-4" /></Link>
           </section>
         </div>
       </main>

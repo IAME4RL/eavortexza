@@ -2,9 +2,9 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/Logo";
+import { VortexBackground } from "@/components/VortexBackground";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
@@ -29,12 +29,14 @@ function Reset() {
     navigate({ to: "/dashboard" });
   }
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <form onSubmit={save} className="panel w-full max-w-md space-y-4 p-7">
+    <div className="relative flex min-h-dvh items-center justify-center px-4">
+      <VortexBackground />
+      <div className="pw-vignette" aria-hidden />
+      <form onSubmit={save} className="pw-card relative z-10 w-full max-w-md space-y-4 p-7">
         <Logo />
-        <h1 className="text-2xl font-bold uppercase">Set new password</h1>
-        <Input type="password" minLength={8} required value={pw} onChange={(e) => setPw(e.target.value)} placeholder="New password" />
-        <Button variant="hero" className="w-full">Update password</Button>
+        <h1 className="pw-title text-2xl">Set new password</h1>
+        <Input type="password" minLength={8} required value={pw} onChange={(e) => setPw(e.target.value)} placeholder="New password" className="pw-field" />
+        <button type="submit" className="pw-btn pw-btn-solid w-full">Update password</button>
       </form>
     </div>
   );

@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ScanLine, CheckCircle2 } from "lucide-react";
 import { PublicLayout } from "@/components/SiteNav";
-import { Button } from "@/components/ui/button";
 import { HowItWorks } from "@/components/Sections";
 import { useAuth } from "@/lib/auth";
 import { INSTRUMENTS } from "@/lib/instruments";
@@ -25,16 +24,15 @@ function ScannerLanding() {
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 radial-red" aria-hidden />
         <div className="relative mx-auto max-w-4xl px-4 py-20 text-center sm:px-6">
-          <p className="eyebrow">Free for registered users</p>
-          <h1 className="mt-4 text-4xl font-bold uppercase sm:text-6xl">AI Chart <span className="text-primary">Scanner</span></h1>
+          <p className="pw-label text-primary">Free for registered users</p>
+          <h1 className="pw-title mt-4 text-4xl sm:text-6xl">AI Chart Scanner</h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-muted-foreground">
             Upload a chart screenshot. A real AI vision model reviews market structure, support and resistance, patterns,
             and bullish and bearish scenarios — and tells you honestly when the image isn't clear enough.
           </p>
-          <Button variant="hero" size="xl" className="mt-8" asChild>
-            {user ? <Link to="/dashboard/scanner"><ScanLine /> Open Scanner</Link>
-              : <Link to="/auth" search={{ mode: "signup" }}><ScanLine /> Create free account to scan</Link>}
-          </Button>
+          {user
+            ? <Link to="/dashboard/scanner" className="pw-btn pw-btn-solid mt-8 px-7"><ScanLine className="h-4 w-4" /> Open Scanner</Link>
+            : <Link to="/auth" search={{ mode: "signup" }} className="pw-btn pw-btn-solid mt-8 px-7"><ScanLine className="h-4 w-4" /> Create free account to scan</Link>}
           <ul className="mx-auto mt-10 grid max-w-2xl gap-2 text-left text-sm text-muted-foreground sm:grid-cols-2">
             {["PNG, JPG and JPEG uploads", "GOLD & XAUUSD variations recognised", "Scalping, day and swing perspectives", "Private, deletable scan history"].map((t) => (
               <li key={t} className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" />{t}</li>
@@ -42,7 +40,7 @@ function ScannerLanding() {
           </ul>
           <div className="mt-10 flex flex-wrap justify-center gap-2">
             {INSTRUMENTS.map((i) => (
-              <span key={i} className="rounded border border-border bg-card px-2.5 py-1 font-mono text-xs text-muted-foreground">{i}</span>
+              <span key={i} className="pw-chip !min-h-0 font-mono !tracking-normal !normal-case">{i}</span>
             ))}
           </div>
         </div>
