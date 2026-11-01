@@ -287,9 +287,10 @@ export function MentorPortalPage() {
                   </div>
                 </div>
               ))}
-            </div>
+                        </div>
           )}
-
+        </div>
+      )}
 
       {/* TAB 2: LICENSE KEYS (Matches Screenshot 1) */}
       {activeTab === "keys" && (
