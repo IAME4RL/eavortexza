@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { 
@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth";
 import { timeframeLabel } from "@/lib/instruments";
 import { HEARTBEAT_ONLINE_MS } from "@/lib/bridge";
 import { formatRemaining, marketSession } from "@/lib/sessions";
+import { getMyAssignedMentorBot, redeemMentorLicense } from "@/lib/mentorBots";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({ component: ClientOverview });
 
@@ -27,6 +28,7 @@ const WATCHLIST = [
 
 function ClientOverview() {
   const { user, hasRole } = useAuth();
+  const queryClient = useQueryClient();
   const quotaFn = useServerFn(getScanQuota);
   const quota = useQuery({ queryKey: ["quota"], queryFn: () => quotaFn() });
 
@@ -57,6 +59,11 @@ function ClientOverview() {
     },
   });
 
+  const assignedMentorBot = useQuery({
+    queryKey: ["assigned-mentor-bot", user?.id], enabled: !!user,
+    queryFn: getMyAssignedMentorBot,
+  });
+
   const bots = useQuery({
     queryKey: ["portal-bot", user?.id],
     refetchInterval: 15_000,
@@ -75,13 +82,16 @@ function ClientOverview() {
   const running = userBot?.status === "running";
   const online = userBot?.last_heartbeat && Date.now() - new Date(userBot.last_heartbeat).getTime() < HEARTBEAT_ONLINE_MS;
 
-  const handleActivateLicense = (e: React.FormEvent) => {
+  const handleActivateLicense = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!licenseInput.trim()) return;
-    if (licenseInput.trim().toUpperCase().startsWith("EVX-")) {
-      setLicenseStatus("License verified! Mentor execution bot privileges unlocked.");
-    } else {
-      setLicenseStatus("Invalid format. Mentor keys must start with EVX-");
+    try {
+      const redeemed = await redeemMentorLicense(licenseInput);
+      setLicenseStatus(`Connected to ${redeemed.bot_name} by ${redeemed.mentor_name}.`);
+      setLicenseInput("");
+      await queryClient.invalidateQueries({ queryKey: ["assigned-mentor-bot", user?.id] });
+    } catch (error) {
+      setLicenseStatus(error instanceof Error ? error.message : "Could not verify this license key.");
     }
   };
 
@@ -111,7 +121,7 @@ function ClientOverview() {
       )}
 
       {/* FEATURED BOT CARD (Reference Screen) */}
-      <div className="relative overflow-hidden rounded-2xl border border-primary/40 bg-gradient-to-br from-surface via-surface/90 to-primary/10 p-5 shadow-2xl">
+      <div className="relative overflow-hidden rounded-2xl border border-primary/40 bg-gradient-to-br from-surface via-surface/90 to-primary/10 p-5 shadow-2xl" style={assignedMentorBot.data?.background_url ? { backgroundImage: `linear-gradient(90deg, rgba(8,8,10,.96), rgba(8,8,10,.78)), url(${assignedMentorBot.data.background_url})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}>
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -123,10 +133,10 @@ function ClientOverview() {
               </span>
             </div>
             <h2 className="font-display text-xl font-black uppercase tracking-wide text-foreground sm:text-2xl">
-              {userBot ? "EA VORTEX ENGINE" : "GOLD VORTEX PRO AI"}
+              {assignedMentorBot.data?.name || (userBot ? "EA VORTEX ENGINE" : "GOLD VORTEX PRO AI")}
             </h2>
             <p className="text-xs text-muted-foreground">
-              Institutional order block & ICT liquidity execution on XAUUSD.
+              {assignedMentorBot.data ? `By ${assignedMentorBot.data.mentor_name} · ${assignedMentorBot.data.description || assignedMentorBot.data.strategies}` : "Institutional order block & ICT liquidity execution on XAUUSD."}
             </p>
           </div>
 
@@ -140,6 +150,12 @@ function ClientOverview() {
           </div>
         </div>
 
+        {assignedMentorBot.data && (
+          <div className="mt-4 flex items-center gap-3 rounded-xl border border-primary/20 bg-black/30 p-3">
+            {assignedMentorBot.data.avatar_url ? <img src={assignedMentorBot.data.avatar_url} alt="Bot avatar" className="h-12 w-12 rounded-xl object-cover" /> : <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15"><Bot className="h-6 w-6 text-primary" /></div>}
+            <div className="min-w-0"><p className="text-xs font-bold uppercase text-foreground">{assignedMentorBot.data.name}</p><p className="text-[11px] text-muted-foreground">{assignedMentorBot.data.strategies}</p></div>
+          </div>
+        )}
         {/* Bot Performance Metrics */}
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 border-t border-border/60 pt-4">
           <div className="rounded-lg bg-black/40 p-2.5">
@@ -273,9 +289,8 @@ function ClientOverview() {
         </form>
 
         {licenseStatus && (
-          <p className="mt-2 text-xs font-medium text-emerald-400 flex items-center gap-1.5">
-            <Check className="h-3.5 w-3.5" />
-            {licenseStatus}
+          <p className={`mt-2 text-xs font-medium flex items-center gap-1.5 ${licenseStatus.startsWith("Connected") ? "text-emerald-400" : "text-rose-400"}`}>
+            <Check className="h-3.5 w-3.5" />{licenseStatus}
           </p>
         )}
       </NeonCard>

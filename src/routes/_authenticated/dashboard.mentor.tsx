@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
   Users, Key, Bot, ShieldCheck, Copy, Check, BarChart3, 
   Sparkles, Layers, Plus, X, Edit, Trash2, Upload, ShoppingBag, Eye
@@ -10,6 +10,7 @@ import { PageHeader, EmptyState } from "@/components/dash";
 import { useAuth } from "@/lib/auth";
 import { timeframeLabel } from "@/lib/instruments";
 import { STRATEGIES } from "@/lib/strategy";
+import { deleteMentorBot, issueMentorLicense, listMentorBots, listMentorLicenses, saveMentorBot } from "@/lib/mentorBots";
 
 export const Route = createFileRoute("/_authenticated/dashboard/mentor")({ component: MentorPortalPage });
 
@@ -32,7 +33,7 @@ interface LicenseKeyItem {
   clientName: string;
   clientEmail: string;
   botName: string;
-  status: "active" | "redeemed";
+  status: "active" | "redeemed" | "revoked";
 }
 
 export function MentorPortalPage() {
@@ -40,6 +41,10 @@ export function MentorPortalPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("bots");
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
 
   // Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -53,13 +58,24 @@ export function MentorPortalPage() {
   const [avatarPreview, setAvatarPreview] = useState<string>("/placeholder.svg");
   const [bgPreview, setBgPreview] = useState<string>("");
 
-  // Sample or Saved Bots
-    // Start with clean empty lists
-  const [mentorBots, setMentorBots] = useState<MentorBot[]>([]);
-  const [licenseKeys, setLicenseKeys] = useState<LicenseKeyItem[]>([]);
-
-  // Selected bot for generating new key
-  const [selectedBotForNewKey, setSelectedBotForNewKey] = useState(mentorBots[0]?.name || "");
+  const botsQuery = useQuery({
+    queryKey: ["mentor-bots", user?.id], enabled: !!user,
+    queryFn: () => listMentorBots(user!.id),
+  });
+  const licensesQuery = useQuery({
+    queryKey: ["mentor-bot-licenses", user?.id], enabled: !!user,
+    queryFn: () => listMentorLicenses(user!.id),
+  });
+  const mentorBots = (botsQuery.data ?? []).map((b) => ({
+    id: b.id, name: b.name, mentorName: b.mentor_name, description: b.description,
+    strategies: b.strategies, avatarUrl: b.avatar_url || "", backgroundUrl: b.background_url || "",
+    createdAt: b.created_at,
+  }));
+  const licenseKeys = (licensesQuery.data ?? []).map((k) => ({
+    id: k.id, key: k.license_key, clientName: k.client_name, clientEmail: k.client_email,
+    botName: k.bot?.name || "Trading Bot", status: k.status,
+  }));
+  const [selectedBotForNewKey, setSelectedBotForNewKey] = useState("");
   const [clientEmailInput, setClientEmailInput] = useState("");
   const [clientNameInput, setClientNameInput] = useState("");
 
@@ -91,67 +107,43 @@ export function MentorPortalPage() {
   };
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "avatar" | "bg") => {
-    const file = e.target.files?.[0];
+    const file = e.target.files?.[0] ?? null;
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      if (type === "avatar") setAvatarPreview(result);
-      if (type === "bg") setBgPreview(result);
-    };
-    reader.readAsDataURL(file);
+    if (type === "avatar") { setAvatarFile(file); setAvatarPreview(URL.createObjectURL(file)); }
+    else { setBannerFile(file); setBgPreview(URL.createObjectURL(file)); }
   };
 
-
-  const handleSaveBot = (e: React.FormEvent) => {
+  const handleSaveBot = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!botName.trim()) return;
-
-    const newBot: MentorBot = {
-      id: `bot-${Date.now()}`,
-      name: botName.trim(),
-      mentorName: mentorName.trim(),
-      description: description.trim(),
-      strategies: strategyInput.trim(),
-      avatarUrl: avatarPreview,
-      backgroundUrl: bgPreview || avatarPreview,
-      createdAt: new Date().toISOString().split("T")[0],
-    };
-
-    setMentorBots([newBot, ...mentorBots]);
-    setIsCreateModalOpen(false);
-    setBotName("");
-    setDescription("");
+    if (!user || !botName.trim() || saving) return;
+    setSaving(true);
+    try {
+      await saveMentorBot({ mentorId: user.id, name: botName, mentorName, description,
+        strategies: strategyInput, avatarFile, bannerFile });
+      await queryClient.invalidateQueries({ queryKey: ["mentor-bots", user.id] });
+      setIsCreateModalOpen(false); setBotName(""); setDescription("");
+      setAvatarFile(null); setBannerFile(null); setAvatarPreview("/placeholder.svg"); setBgPreview("");
+    } catch (error) { alert(error instanceof Error ? error.message : "Could not save bot."); }
+    finally { setSaving(false); }
   };
 
-  const handleDeleteBot = (id: string) => {
-    if (confirm("Are you sure you want to delete this bot?")) {
-      setMentorBots(mentorBots.filter((b) => b.id !== id));
-    }
+  const handleDeleteBot = async (id: string) => {
+    if (!confirm("Delete this bot? Any active license assigned to it will also be removed.")) return;
+    try { await deleteMentorBot(id); await queryClient.invalidateQueries({ queryKey: ["mentor-bots", user?.id] }); }
+    catch (error) { alert(error instanceof Error ? error.message : "Could not delete bot."); }
   };
 
-  const handleGenerateKey = (e: React.FormEvent) => {
+  const handleGenerateKey = async (e: React.FormEvent) => {
     e.preventDefault();
-    const p1 = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const p2 = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const p3 = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const generated = `EVX-${p1}-${p2}-${p3}`;
-
-    const newKey: LicenseKeyItem = {
-      id: `k-${Date.now()}`,
-      key: generated,
-      clientName: clientNameInput.trim() || "Client",
-      clientEmail: clientEmailInput.trim() || "pending@eavortex.com",
-      botName: selectedBotForNewKey || mentorBots[0]?.name || "Trading Bot",
-      status: "active",
-    };
-
-    setLicenseKeys([newKey, ...licenseKeys]);
-    setIsGenerateKeyModalOpen(false);
-    setClientNameInput("");
-    setClientEmailInput("");
-    navigator.clipboard.writeText(generated);
-    alert(`Generated & copied key: ${generated}`);
+    const botId = selectedBotForNewKey || mentorBots[0]?.id;
+    if (!botId || !clientEmailInput.trim() || !clientNameInput.trim()) return;
+    try {
+      const generated = await issueMentorLicense({ botId, clientName: clientNameInput, clientEmail: clientEmailInput });
+      await queryClient.invalidateQueries({ queryKey: ["mentor-bot-licenses", user?.id] });
+      setIsGenerateKeyModalOpen(false); setClientNameInput(""); setClientEmailInput("");
+      await navigator.clipboard.writeText(generated);
+      alert(`License key created and copied. Give this key to ${clientEmailInput}. It can only be redeemed by that email address.`);
+    } catch (error) { alert(error instanceof Error ? error.message : "Could not generate license key."); }
   };
 
   if (!loading && !hasRole("mentor") && !hasRole("admin")) {
@@ -256,11 +248,7 @@ export function MentorPortalPage() {
                   className="group overflow-hidden rounded-2xl border border-border/80 bg-surface/90 shadow-xl transition-all hover:border-primary/50"
                 >
                   <div className="relative aspect-[16/9] w-full overflow-hidden bg-black/60">
-                    <img
-                      src={bot.backgroundUrl || bot.avatarUrl}
-                      alt={bot.name}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
+                    {(bot.backgroundUrl || bot.avatarUrl) ? <img src={bot.backgroundUrl || bot.avatarUrl} alt={bot.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center bg-gradient-to-br from-red-950 via-neutral-950 to-black"><Bot className="h-12 w-12 text-primary/70" /></div>}
                     <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent" />
                   </div>
 
@@ -501,10 +489,10 @@ export function MentorPortalPage() {
 
               <div className="pt-2">
                 <button
-                  type="submit"
+                  type="submit" disabled={saving}
                   className="w-full rounded-lg bg-primary py-2.5 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground hover:bg-primary/90 transition-all"
                 >
-                  Save
+                  {saving ? "Saving..." : "Save Bot"}
                 </button>
               </div>
             </form>
@@ -531,12 +519,12 @@ export function MentorPortalPage() {
               <div>
                 <label className="block text-xs font-semibold uppercase text-muted-foreground">Assign Bot</label>
                 <select
-                  value={selectedBotForNewKey}
+                  value={selectedBotForNewKey || mentorBots[0]?.id || ""}
                   onChange={(e) => setSelectedBotForNewKey(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
                 >
                   {mentorBots.map((b) => (
-                    <option key={b.id} value={b.name}>{b.name}</option>
+                    <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
               </div>
@@ -567,7 +555,7 @@ export function MentorPortalPage() {
 
               <div className="pt-2">
                 <button
-                  type="submit"
+                  type="submit" disabled={saving}
                   className="w-full rounded-lg bg-primary py-2.5 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground hover:bg-primary/90 transition-all"
                 >
                   Generate & Copy Key
