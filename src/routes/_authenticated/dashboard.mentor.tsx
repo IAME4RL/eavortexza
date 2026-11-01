@@ -115,18 +115,45 @@ export function MentorPortalPage() {
   };
 
   const handleSaveBot = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !botName.trim() || saving) return;
-    setSaving(true);
-    try {
-      await saveMentorBot({ mentorId: user.id, name: botName, mentorName, description,
-        strategies: strategyInput, avatarFile, bannerFile });
-      await queryClient.invalidateQueries({ queryKey: ["mentor-bots", user.id] });
-      setIsCreateModalOpen(false); setBotName(""); setDescription("");
-      setAvatarFile(null); setBannerFile(null); setAvatarPreview("/placeholder.svg"); setBgPreview("");
-    } catch (error) { alert(error instanceof Error ? error.message : "Could not save bot."); }
-    finally { setSaving(false); }
-  };
+  e.preventDefault();
+  if (!user || !botName.trim() || saving) return;
+  setSaving(true);
+
+  try {
+    const input = {
+      mentorId: user.id,
+      name: botName,
+      mentorName,
+      description,
+      strategies: strategyInput,
+      avatarFile,
+      bannerFile,
+    };
+
+    if (editingBot) {
+      await updateMentorBot({ ...input, botId: editingBot.id });
+    } else {
+      await saveMentorBot(input);
+    }
+
+    await queryClient.invalidateQueries({
+      queryKey: ["mentor-bots", user.id],
+    });
+
+    setIsCreateModalOpen(false);
+    setEditingBot(null);
+    setBotName("");
+    setDescription("");
+    setAvatarFile(null);
+    setBannerFile(null);
+    setAvatarPreview("/placeholder.svg");
+    setBgPreview("");
+  } catch (error) {
+    alert(error instanceof Error ? error.message : "Could not save bot.");
+  } finally {
+    setSaving(false);
+  }
+};
 
   const handleDeleteBot = async (id: string) => {
     if (!confirm("Delete this bot? Any active license assigned to it will also be removed.")) return;
