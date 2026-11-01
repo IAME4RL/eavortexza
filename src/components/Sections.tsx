@@ -1,13 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import { Upload, Cpu, FolderLock, ScanLine, Bot, LayoutDashboard, Shield, Users, BarChart3, LineChart } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
-import { Button } from "./ui/button";
+
+/* Public-page sections, styled with the same pw-* system as the client dashboard. */
 
 export function SectionHead({ eyebrow, title, sub }: { eyebrow: string; title: React.ReactNode; sub?: string }) {
   return (
     <div className="mx-auto max-w-2xl text-center">
-      <p className="eyebrow">{eyebrow}</p>
-      <h2 className="mt-3 text-3xl font-bold uppercase sm:text-4xl">{title}</h2>
+      <p className="pw-label text-primary">{eyebrow}</p>
+      <h2 className="pw-title mt-3 text-3xl sm:text-4xl">{title}</h2>
       {sub && <p className="mt-4 text-muted-foreground">{sub}</p>}
     </div>
   );
@@ -22,13 +23,13 @@ const STEPS = [
 export function HowItWorks() {
   return (
     <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-      <SectionHead eyebrow="How it works" title={<>Three steps to <span className="text-primary">clarity</span></>} />
+      <SectionHead eyebrow="How it works" title="Three steps to clarity" />
       <div className="mt-12 grid gap-4 md:grid-cols-3">
         {STEPS.map(({ n, t, d, I }) => (
-          <div key={n} className="panel group relative overflow-hidden p-7 transition-colors hover:border-primary/60">
+          <div key={n} className="pw-card group relative overflow-hidden p-7">
             <span className="absolute right-5 top-4 font-display text-5xl font-bold text-foreground/5">{n}</span>
-            <div className="flex h-11 w-11 items-center justify-center rounded-md border border-primary/40 text-primary"><I className="h-5 w-5" /></div>
-            <p className="mt-6 font-mono text-xs text-primary">STEP {n}</p>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-primary/40 text-primary"><I className="h-5 w-5" /></div>
+            <p className="pw-label mt-6 text-primary">Step {n}</p>
             <h3 className="mt-1 text-xl font-bold uppercase">{t}</h3>
             <p className="mt-2 text-sm text-muted-foreground">{d}</p>
           </div>
@@ -49,10 +50,10 @@ const FEATURES = [
 
 export function FeatureGrid() {
   return (
-    <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {FEATURES.map(({ I, t, d }) => (
-        <div key={t} className="bg-card p-7 transition-colors hover:bg-surface">
-          <I className="h-6 w-6 text-primary" />
+        <div key={t} className="pw-card p-7">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-primary/40 text-primary"><I className="h-5 w-5" /></div>
           <h3 className="mt-5 text-lg font-bold uppercase">{t}</h3>
           <p className="mt-2 text-sm text-muted-foreground">{d}</p>
         </div>
@@ -72,9 +73,9 @@ export const FAQS = [
 
 export function FaqList() {
   return (
-    <Accordion type="single" collapsible className="mx-auto max-w-3xl">
+    <Accordion type="single" collapsible className="mx-auto max-w-3xl space-y-3">
       {FAQS.map((f, i) => (
-        <AccordionItem key={i} value={`f${i}`} className="border-border">
+        <AccordionItem key={i} value={`f${i}`} className="pw-card-quiet border px-5 data-[state=open]:border-primary/50">
           <AccordionTrigger className="text-left font-display text-base font-semibold hover:text-primary hover:no-underline">{f.q}</AccordionTrigger>
           <AccordionContent className="text-muted-foreground">{f.a}</AccordionContent>
         </AccordionItem>
@@ -86,13 +87,13 @@ export function FaqList() {
 export function CtaBand() {
   return (
     <section className="mx-auto max-w-7xl px-4 pb-24 sm:px-6">
-      <div className="panel relative overflow-hidden p-10 text-center sm:p-14">
+      <div className="pw-card relative overflow-hidden p-10 text-center sm:p-14">
         <div className="absolute inset-0 radial-red" aria-hidden />
         <div className="relative">
           <LineChart className="mx-auto h-8 w-8 text-primary" />
-          <h2 className="mt-4 text-3xl font-bold uppercase sm:text-4xl">Power your <span className="text-primary">trading</span></h2>
+          <h2 className="pw-title mt-4 text-3xl sm:text-4xl">Power your trading</h2>
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">Create a free account and run your first AI chart scan in under a minute.</p>
-          <Button variant="hero" size="xl" className="mt-8" asChild><Link to="/auth" search={{ mode: "signup" }}>Get Started Free</Link></Button>
+          <Link to="/auth" search={{ mode: "signup" }} className="pw-btn pw-btn-solid mt-8 px-8">Get Started Free</Link>
         </div>
       </div>
     </section>
