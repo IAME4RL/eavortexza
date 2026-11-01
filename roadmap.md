@@ -1,5 +1,8 @@
 # EA VORTEX — Resume & Complete
 
+## Current homepage update
+- [ ] Restyle the public homepage using the November 1 EA NEXUS references, retain EA VORTEX branding and existing destinations, and verify desktop/mobile navigation
+
 ## Separate mentor and client portals
 - [x] Inspect current authentication, routes, database, strategy registry, client controls, and MT5 Bridge
 - [ ] Add separately guarded mentor login/dashboard and mentor navigation
