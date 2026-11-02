@@ -100,8 +100,9 @@ function Page() {
                   <p className="font-mono text-lg font-semibold">{a.label || a.account_login}</p>
                   <p className="mt-0.5 text-sm text-muted-foreground">{a.platform} · {a.account_login} · {a.broker_server}</p>
                 </div>
-                <button aria-label="Remove account" onClick={() => remove.mutate(a.id)}
-                  className="text-muted-foreground opacity-0 transition-opacity hover:text-primary group-hover:opacity-100">
+                <button aria-label="Remove account"
+                  onClick={() => { if (window.confirm("Remove this account? If it is connected in the cloud, disconnect it on the Trades screen first.")) remove.mutate(a.id); }}
+                  className="-m-2 flex h-11 w-11 items-center justify-center text-muted-foreground transition-colors hover:text-primary">
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
