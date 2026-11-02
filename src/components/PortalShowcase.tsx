@@ -8,10 +8,10 @@ const PORTALS = {
     label: "Client Portal",
     to: "/dashboard",
     cta: "Open Client Portal",
-    blurb: "Your private trading workspace: scan markets for signals and run your bot from one place.",
+    blurb: "Your private trading workspace: scan charts, review signals and run your bot from one place.",
     points: [
-      "AI Chart Scanner that gives BUY / SELL signals",
-      "Rule-based setups, or an honest NO TRADE",
+      "AI Chart Scanner with a free daily allowance",
+      "Rule-based Market Signals, or an honest NO TRADE",
       "START / STOP for your bot through your own MT5 terminal",
       "Risk limits you set: max lot, open trades and daily loss",
     ],
@@ -35,14 +35,14 @@ type Key = keyof typeof PORTALS;
 
 function ClientMock() {
   return (
-    <div className="rounded-[1.5rem] bg-background/70 p-4">
+    <div className="rounded-[1.5rem] bg-black/70 p-4">
       <div className="flex items-center justify-between">
         <p className="pw-title text-base">EA VORTEX</p>
         <span className="pw-pill" data-tone="warn">Demo mode</span>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-2">
         {[{ t: "Scanner", I: ScanLine }, { t: "Signals", I: Activity }, { t: "Auto Trade", I: Zap }, { t: "EA Setup", I: Bot }].map(({ t, I }) => (
-          <div key={t} className="pw-card-quiet flex items-center gap-2 p-3"><I className="h-4 w-4 text-primary-soft" /><span className="pw-label">{t}</span></div>
+          <div key={t} className="pw-card-quiet flex items-center gap-2 p-3"><I className="h-4 w-4 text-primary" /><span className="pw-label">{t}</span></div>
         ))}
       </div>
       <div className="pw-card-quiet mt-3 p-3">
@@ -56,7 +56,7 @@ function ClientMock() {
 
 function MentorMock() {
   return (
-    <div className="rounded-[1.5rem] bg-background/70 p-4">
+    <div className="rounded-[1.5rem] bg-black/70 p-4">
       <div className="flex items-center justify-between">
         <p className="pw-title text-base">Mentor</p>
         <span className="pw-pill" data-tone="ok">Approved</span>
