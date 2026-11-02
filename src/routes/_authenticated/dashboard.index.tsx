@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { ScanLine, Clock, ChevronRight, Globe, Key, Check } from "lucide-react";
+import { ScanLine, Clock, ChevronRight, Globe, Key, Check, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getScanQuota } from "@/lib/scan.functions";
 import { startBot, stopBot } from "@/lib/bot.functions";
@@ -13,7 +13,7 @@ import { timeframeLabel } from "@/lib/instruments";
 import { HEARTBEAT_ONLINE_MS } from "@/lib/bridge";
 import { formatRemaining, marketSession } from "@/lib/sessions";
 import { getMyAssignedMentorBot, redeemMentorLicense } from "@/lib/mentorBots";
-import { FeaturedBotCard } from "@/components/FeaturedBotCard";
+import { BotControls, BotPills, FeaturedBotCard } from "@/components/FeaturedBotCard";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({ component: ClientOverview });
 
@@ -137,22 +137,6 @@ function ClientOverview() {
 
   return (
     <div className="space-y-5 pb-10">
-      {/* Top Welcome / Mentor alert */}
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <div>
-          <h1 className="font-display text-xl font-bold uppercase tracking-wider text-foreground sm:text-2xl">
-            Client Trading Portal
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            Welcome back{name ? `, ${name}` : ""}. Real-time algorithmic status & technical analysis.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {running ? <Pill tone="live">Bot active</Pill> : <Pill tone="idle">Bot standby</Pill>}
-          {online ? <Pill tone="ok">MT5 online</Pill> : <Pill tone="idle">MT5 bridge offline</Pill>}
-        </div>
-      </div>
-
       {counts.data?.profile?.mentor_requested && !hasRole("mentor") && (
         <div className="pw-card-quiet flex items-center gap-3 p-4 text-sm text-neutral">
           <Clock className="h-4 w-4 shrink-0 text-primary" />
@@ -160,7 +144,8 @@ function ClientOverview() {
         </div>
       )}
 
-      {/* FEATURED BOT CARD: the mentor's bot once a license is redeemed, otherwise the default EAVORTEX bot */}
+      {/* Status pills, then the bot card: the picture only, name and avatar are in the top bar */}
+      <BotPills running={!!running} />
       <div ref={featuredCardRef} className="scroll-mt-4">
         <FeaturedBotCard
           mentorBot={assignedMentorBot.data}
@@ -168,39 +153,34 @@ function ClientOverview() {
           userBot={userBot}
           running={running}
           online={!!online}
-          control={{
-            hasBot: !!userBot,
-            status: userBot?.status ?? "stopped",
-            busy: botAction.isPending,
-            blockers,
-            onStart: () => botAction.mutate("start"),
-            onStop: () => botAction.mutate("stop"),
-          }}
         />
       </div>
 
-      {/* TWO MAIN CALL TO ACTION BUTTONS (Reference Screen) */}
-      <div className="grid grid-cols-1 gap-4">
-        <Link
-          to="/dashboard/scanner"
-          className="group relative flex items-center justify-between overflow-hidden rounded-xl border border-primary/30 bg-surface/80 p-5 transition-all hover:border-primary hover:bg-surface hover:shadow-lg hover:shadow-primary/10"
-        >
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20 text-primary transition-transform group-hover:scale-105">
-              <ScanLine className="h-6 w-6" />
-            </div>
-            <div>
-              <h3 className="font-display text-lg font-bold uppercase text-foreground">
-                SCAN CHART
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Upload TradingView/MT5 chart for AI vision analysis
-              </p>
-            </div>
-          </div>
-          <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
-        </Link>
+      <BotControls
+        control={{
+          hasBot: !!userBot,
+          status: userBot?.status ?? "stopped",
+          busy: botAction.isPending,
+          blockers,
+          onStart: () => botAction.mutate("start"),
+          onStop: () => botAction.mutate("stop"),
+        }}
+      />
+      <div className="flex items-center justify-center gap-2">
+        {online ? <Pill tone="ok">MT5 online</Pill> : <Pill tone="idle">MT5 bridge offline</Pill>}
       </div>
+
+      {/* AI CHART VISION */}
+      <NeonCard className="p-5">
+        <PwLabel>AI Chart Vision</PwLabel>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Drop a TradingView or MT5 screenshot — the AI reads structure, liquidity and your trade result.
+        </p>
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <Link to="/dashboard/scanner" className="pw-btn"><ScanLine className="h-4 w-4" />Scan chart</Link>
+          <Link to="/dashboard/history" className="pw-btn border-transparent bg-transparent shadow-none"><Upload className="h-4 w-4" />Trade result</Link>
+        </div>
+      </NeonCard>
 
       {/* MARKET WATCHLIST & SESSION INTELLIGENCE */}
       <div className="grid gap-5 lg:grid-cols-2">
@@ -210,16 +190,9 @@ function ClientOverview() {
             <PwLabel>Market Watchlist</PwLabel>
             <span className="text-[11px] font-mono text-muted-foreground">TAP TO SCAN</span>
           </div>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {WATCHLIST.map((w) => (
-              <Link
-                key={w.label}
-                to="/dashboard/scanner"
-                className="flex flex-col items-center justify-center rounded-lg border border-border/80 bg-background/50 p-3 text-center transition-all hover:border-primary/50 hover:bg-primary/5"
-              >
-                <span className="font-display text-sm font-bold text-foreground">{w.label}</span>
-                <span className="font-mono text-[10px] text-muted-foreground">{w.instrument}</span>
-              </Link>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {WATCHLIST.map((w, i) => (
+              <Link key={w.label} to="/dashboard/scanner" className="pw-chip" data-active={i === 0}>{w.label}</Link>
             ))}
           </div>
         </NeonCard>
