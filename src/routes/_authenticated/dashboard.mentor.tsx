@@ -114,10 +114,15 @@ export function MentorPortalPage() {
     else { setBannerFile(file); setBgPreview(URL.createObjectURL(file)); }
   };
 
+  const profileQuery = useQuery({
+    queryKey: ["profile"], enabled: !!user,
+    queryFn: async () => (await supabase.from("profiles").select("*").eq("id", user!.id).single()).data,
+  });
+  const defaultMentorName = profileQuery.data?.display_name?.trim() || user?.email?.split("@")[0] || "Mentor";
   const resetBotForm = () => {
     setEditingBot(null);
     setBotName("");
-    setMentorName(user?.email?.split("@")[0] || "Mentor");
+    setMentorName(defaultMentorName);
     setDescription("");
     setStrategyInput("Scalping, SMC, Breakout");
     setAvatarFile(null);
