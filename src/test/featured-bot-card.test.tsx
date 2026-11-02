@@ -11,7 +11,7 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
-import { FeaturedBotCard } from "@/components/FeaturedBotCard";
+import { BotControls, BotPills, FeaturedBotCard } from "@/components/FeaturedBotCard";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -49,81 +49,34 @@ afterEach(() => {
 });
 
 describe("FeaturedBotCard", () => {
-  it("keeps the default EAVORTEX card when no mentor license is redeemed", () => {
+  it("shows the default picture card when no mentor license is redeemed", () => {
     const el = mount(<FeaturedBotCard mentorBot={null} {...base} />);
     expect(q(el, '[data-testid="featured-bot-default"]')).not.toBeNull();
-    expect(text(el)).toContain("GOLD VORTEX PRO AI");
     expect(q(el, '[data-testid="featured-bot-mentor"]')).toBeNull();
+    expect(text(el)).toBe("");
   });
 
   it("shows a loading shell instead of flashing the default card", () => {
     const el = mount(<FeaturedBotCard mentorBot={undefined} loading {...base} />);
     expect(q(el, '[data-testid="featured-bot-loading"]')).not.toBeNull();
-    expect(text(el)).not.toContain("GOLD VORTEX PRO AI");
-  });
-
-  it("shows the mentor bot fields (but not the description) once a license is redeemed", () => {
-    const el = mount(<FeaturedBotCard mentorBot={bot} {...base} running online />);
     expect(q(el, '[data-testid="featured-bot-default"]')).toBeNull();
-    const t = text(el);
-    expect(t).toContain("Gold Sniper Pro");
-    expect(t).toContain("Earl Mentor");
-    expect(t).not.toContain("Trades London open sweeps on XAUUSD.");
-    for (const s of ["Scalping", "SMC", "Breakout"])
-      expect(t.toUpperCase()).toContain(s.toUpperCase());
-    expect(q(el, `img[src="${bot.avatar_url}"]`)).not.toBeNull();
+  });
+
+  it("is only the picture: no text, buttons or description inside the mentor card", () => {
+    const el = mount(<FeaturedBotCard mentorBot={bot} {...base} running online />);
+    expect(text(el)).toBe("");
+    expect(el.querySelectorAll("button, a")).toHaveLength(0);
     expect(q(el, `img[src="${bot.background_url}"]`)).not.toBeNull();
-    expect(t).toContain("ACTIVE");
-    expect(t).toContain("Connected");
+    expect(q(el, '[data-testid="featured-bot-mentor"]')?.getAttribute("aria-label")).toBe(bot.name);
   });
 
-  it("does not show the default bot's hardcoded backtest figures for a mentor bot", () => {
-    const el = mount(<FeaturedBotCard mentorBot={bot} {...base} />);
-    expect(text(el)).not.toContain("78.4%");
-    expect(text(el)).not.toContain("GOLD / XAUUSD");
-    expect(text(el)).toContain("STANDBY");
-  });
-
-  it("falls back to the bot icon when images are missing", () => {
-    const el = mount(
-      <FeaturedBotCard mentorBot={{ ...bot, avatar_url: null, background_url: null }} {...base} />,
-    );
-    expect(el.querySelectorAll("img")).toHaveLength(0);
-    expect(text(el)).toContain("Gold Sniper Pro");
-  });
-
-  it("drops a broken image instead of showing a broken icon, then recovers on a new URL", () => {
-    const el = mount(<FeaturedBotCard mentorBot={bot} {...base} />);
-    const avatar = q(el, `img[alt="${bot.name} profile"]`)!;
-    act(() => {
-      avatar.dispatchEvent(new Event("error"));
-    });
-    expect(q(el, `img[src="${bot.avatar_url}"]`)).toBeNull();
-
-    mount(
-      <FeaturedBotCard
-        mentorBot={{ ...bot, avatar_url: "https://cdn.example/new.png" }}
-        {...base}
-      />,
-    );
-    expect(q(el, 'img[src="https://cdn.example/new.png"]')).not.toBeNull();
-  });
-
-  it("uses the bot picture as the wide hero when there is no banner", () => {
+  it("uses the bot picture as the card when there is no banner", () => {
     const el = mount(<FeaturedBotCard mentorBot={{ ...bot, background_url: null }} {...base} />);
-    const hero = q(el, '[data-testid="mentor-hero"]')!;
-    expect(q(hero as HTMLElement, `img[src="${bot.avatar_url}"]`)).not.toBeNull();
-  });
-
-  it("uses the banner for the hero and the picture for the small round avatar", () => {
-    const el = mount(<FeaturedBotCard mentorBot={bot} {...base} />);
     const hero = q(el, '[data-testid="mentor-hero"]') as HTMLElement;
-    expect(q(hero, `img[src="${bot.background_url}"]`)).not.toBeNull();
-    expect(q(hero, `img[src="${bot.avatar_url}"]`)).toBeNull();
-    expect(q(el, `img[alt="${bot.name} profile"]`)).not.toBeNull();
+    expect(q(hero, `img[src="${bot.avatar_url}"]`)).not.toBeNull();
   });
 
-  it("falls back from a broken banner to the bot picture in the hero", () => {
+  it("falls back from a broken banner to the bot picture", () => {
     const el = mount(<FeaturedBotCard mentorBot={bot} {...base} />);
     const banner = q(el, `img[src="${bot.background_url}"]`)!;
     act(() => {
@@ -133,11 +86,24 @@ describe("FeaturedBotCard", () => {
     expect(q(hero, `img[src="${bot.avatar_url}"]`)).not.toBeNull();
   });
 
-  it("omits empty description and strategies sections cleanly", () => {
-    const el = mount(
-      <FeaturedBotCard mentorBot={{ ...bot, description: "", strategies: "" }} {...base} />,
-    );
-    expect(text(el)).not.toContain("Trading Strategies");
-    expect(text(el)).toContain("Gold Sniper Pro");
+  it("falls back to the bot icon when images are missing", () => {
+    const el = mount(<FeaturedBotCard mentorBot={{ ...bot, avatar_url: null, background_url: null }} {...base} />);
+    expect(el.querySelectorAll("img")).toHaveLength(0);
+    expect(q(el, '[data-testid="featured-bot-mentor"]')).not.toBeNull();
+  });
+});
+
+describe("BotPills / BotControls", () => {
+  it("shows ACTIVE or STANDBY above the card", () => {
+    expect(text(mount(<BotPills running />))).toContain("Active");
+    expect(text(mount(<BotPills running={false} />))).toContain("Standby");
+  });
+
+  it("offers Start and Stop and lists start blockers", () => {
+    const control = { hasBot: true, status: "stopped", busy: false, blockers: ["MT5 bridge is not online"], onStart: () => {}, onStop: () => {} };
+    const el = mount(<BotControls control={control} />);
+    expect(text(el)).toContain("Start bot");
+    expect(text(el)).toContain("Stop bot");
+    expect(text(el)).toContain("MT5 bridge is not online");
   });
 });
