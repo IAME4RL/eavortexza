@@ -32,7 +32,7 @@ import { Route as AuthenticatedDashboardScannerRouteImport } from './routes/_aut
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
 import { Route as AuthenticatedDashboardScanIdRouteImport } from './routes/_authenticated/dashboard.scan.$id'
 import { Route as ApiPublicBridgeMt5RouteImport } from './routes/api/public/bridge.mt5'
-import { Route as ApiPublicCronCloudTradeRouteImport } from './routes/api/public/cron/cloud-trade'
+import { Route as ApiPublicCronCloudTradeRouteImport } from './routes/api/public/cron.cloud-trade'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
