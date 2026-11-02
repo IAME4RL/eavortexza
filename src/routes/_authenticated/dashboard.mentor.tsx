@@ -114,6 +114,34 @@ export function MentorPortalPage() {
     else { setBannerFile(file); setBgPreview(URL.createObjectURL(file)); }
   };
 
+  const resetBotForm = () => {
+    setEditingBot(null);
+    setBotName("");
+    setMentorName(user?.email?.split("@")[0] || "Mentor");
+    setDescription("");
+    setStrategyInput("Scalping, SMC, Breakout");
+    setAvatarFile(null);
+    setBannerFile(null);
+    setAvatarPreview("/placeholder.svg");
+    setBgPreview("");
+  };
+  const closeBotModal = () => { setIsCreateModalOpen(false); resetBotForm(); };
+  const openCreateBot = () => { resetBotForm(); setIsCreateModalOpen(true); };
+  const openEditBot = (id: string) => {
+    const bot = (botsQuery.data ?? []).find((b) => b.id === id);
+    if (!bot) return;
+    setEditingBot(bot);
+    setBotName(bot.name);
+    setMentorName(bot.mentor_name);
+    setDescription(bot.description ?? "");
+    setStrategyInput(bot.strategies ?? "");
+    setAvatarFile(null);
+    setBannerFile(null);
+    setAvatarPreview(bot.avatar_url || "/placeholder.svg");
+    setBgPreview(bot.background_url || "");
+    setIsCreateModalOpen(true);
+  };
+
   const handleSaveBot = async (e: React.FormEvent) => {
   e.preventDefault();
   if (!user || !botName.trim() || saving) return;
@@ -140,14 +168,7 @@ export function MentorPortalPage() {
       queryKey: ["mentor-bots", user.id],
     });
 
-    setIsCreateModalOpen(false);
-    setEditingBot(null);
-    setBotName("");
-    setDescription("");
-    setAvatarFile(null);
-    setBannerFile(null);
-    setAvatarPreview("/placeholder.svg");
-    setBgPreview("");
+    closeBotModal();
   } catch (error) {
     alert(error instanceof Error ? error.message : "Could not save bot.");
   } finally {
@@ -241,7 +262,7 @@ export function MentorPortalPage() {
               Your Bots
             </h2>
             <button
-              onClick={() => setIsCreateModalOpen(true)}
+              onClick={openCreateBot}
               className="pw-btn pw-btn-solid"
             >
               <Plus className="h-4 w-4" />
@@ -258,7 +279,7 @@ export function MentorPortalPage() {
                 You haven't created any trading bots yet. Click "+ Create Bot" above to build your first bot for your students.
               </p>
               <button
-                onClick={() => setIsCreateModalOpen(true)}
+                onClick={openCreateBot}
                 className="pw-btn pw-btn-solid mt-5"
               >
                 <Plus className="h-4 w-4" /> Create Your First Bot
@@ -289,7 +310,7 @@ export function MentorPortalPage() {
                   <div className="mt-auto px-4 pb-4 pt-16">
                     <div className="mt-4 flex items-center justify-between border-t border-primary/20 pt-3 text-xs">
                       <button
-                        onClick={() => alert(`Edit ${bot.name}`)}
+                        onClick={() => openEditBot(bot.id)}
                         className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
                       >
                         <Edit className="h-3.5 w-3.5" /> Edit
@@ -417,14 +438,14 @@ export function MentorPortalPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/80 p-4 backdrop-blur-sm">
           <div className="pw-card relative w-full max-w-lg bg-black p-6">
             <button
-              onClick={() => setIsCreateModalOpen(false)}
+              onClick={closeBotModal}
               className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
             >
               <X className="h-5 w-5" />
             </button>
 
             <h2 className="pw-title text-xl">
-              Create Bot
+              {editingBot ? "Edit Bot" : "Create Bot"}
             </h2>
 
             <form onSubmit={handleSaveBot} className="mt-5 space-y-4">
@@ -506,7 +527,7 @@ export function MentorPortalPage() {
                   className="mt-1.5 w-full text-xs text-muted-foreground file:mr-2 file:rounded-md file:border-0 file:bg-primary/20 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary hover:file:bg-primary/30"
                 />
                 <p className="mt-1 text-[10px] text-muted-foreground">
-                  Shown as the wide cover banner on your bot card.
+                  Shown as the picture on the client's bot card.{editingBot ? " Leave empty to keep the current one." : ""}
                 </p>
               </div>
 
@@ -516,7 +537,7 @@ export function MentorPortalPage() {
                   type="submit" disabled={saving}
                   className="pw-btn pw-btn-solid w-full"
                 >
-                  {saving ? "Saving..." : "Save Bot"}
+                  {saving ? "Saving..." : editingBot ? "Save Changes" : "Save Bot"}
                 </button>
               </div>
             </form>
