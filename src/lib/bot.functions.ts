@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { sha256Hex, startBlockers, type TradingMode } from "@/lib/bridge";
+import { cloudConfigOf, cloudStartBlockers } from "@/lib/cloudTrade";
 
 const BotId = z.object({ botId: z.string().uuid() });
 export const LIVE_CONFIRM_PHRASE = "ENABLE LIVE TRADING";
@@ -36,6 +37,21 @@ export const startBot = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const bot = await ownBot(context, data.botId);
     if (bot.status === "running") return { ok: true, already: true, blockers: [] as string[] };
+    const cloud = cloudConfigOf(bot.terminal_info);
+    if (cloud) {
+      // Cloud (API2Trade) bot: verify the live connection and every safety rule before running.
+      const api = await import("@/lib/api2trade");
+      let connected = false;
+      try { connected = await api.checkConnect(cloud.accountId); } catch (e) { return { ok: false, already: false, blockers: [e instanceof Error ? e.message : "Cloud trading is unavailable."] }; }
+      const blockers = cloudStartBlockers({
+        connected, accountType: cloud.accountType, mode: bot.trading_mode as TradingMode, liveConfirmed: !!bot.live_confirmed_at, demoOnly: bot.demo_only,
+        strategy: bot.strategy, defaultLot: Number(bot.default_lot), maxLot: Number(bot.max_lot), maxOpen: bot.max_open_trades,
+        riskPct: Number(bot.risk_per_trade_pct), maxDailyLoss: Number(bot.max_daily_loss), instrument: cloud.instrument, brokerSymbol: cloud.brokerSymbol,
+      });
+      if (blockers.length) return { ok: false, already: false, blockers };
+      await (await admin()).from("bots").update({ status: "running", stop_requested_at: null, stop_ack_at: null, last_error: null, last_heartbeat: new Date().toISOString() }).eq("id", bot.id).neq("status", "running");
+      return { ok: true, already: false, blockers };
+    }
     const { data: account } = await context.supabase.from("trading_accounts").select("account_login,broker_server").eq("id", bot.account_id).maybeSingle();
     if (!account) return { ok: false, already: false, blockers: ["Registered MT5 account not found."] };
     const blockers = startBlockers({
@@ -89,6 +105,18 @@ export const requestEmergencyClose = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (data.confirm.trim() !== CLOSE_CONFIRM_PHRASE) throw new Error(`Type "${CLOSE_CONFIRM_PHRASE}" to confirm`);
     const bot = await ownBot(context, data.botId);
+    const cloud = cloudConfigOf(bot.terminal_info);
+    if (cloud) {
+      // Cloud bot: close the positions right now through API2Trade (subject to broker rules).
+      const t = new Date().toISOString();
+      const db = await admin();
+      await db.from("bots").update({ status: "stopped", stop_requested_at: t, stop_ack_at: t }).eq("id", bot.id);
+      await db.from("trade_signals").update({ status: "cancelled" }).eq("bot_id", bot.id).eq("status", "queued");
+      const { cloudCloseAll } = await import("@/lib/cloudEngine");
+      const r = await cloudCloseAll(cloud).catch(() => ({ closed: 0, failed: -1 }));
+      await db.from("bots").update({ emergency_close_requested_at: t, emergency_close_ack_at: new Date().toISOString(), emergency_close_result: r.failed < 0 ? "Could not reach API2Trade — check MT5 and close manually." : `Closed ${r.closed}, failed ${r.failed}` }).eq("id", bot.id);
+      return { pending: false };
+    }
     if (bot.emergency_close_requested_at && !bot.emergency_close_ack_at) return { pending: true };
     const now = new Date().toISOString();
     const db = await admin();
