@@ -1,39 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { authenticateCronRequest } from "@/integrations/supabase/cron-auth";
+
+/**
+ * Scheduled engine for cloud (API2Trade) auto trading. Call it about once a minute with
+ * `Authorization: Bearer <LOVABLE_CRON_SECRET>`. Each call evaluates every running cloud bot once.
+ */
+async function handle(request: Request): Promise<Response> {
+  const { authenticateCronRequest } = await import("@/integrations/supabase/cron-auth");
+  const denied = await authenticateCronRequest(request);
+  if (denied) return denied;
+  const { runCloudCycle } = await import("@/lib/cloudEngine");
+  const summary = await runCloudCycle();
+  return new Response(JSON.stringify(summary), { status: 200, headers: { "content-type": "application/json", "cache-control": "no-store" } });
+}
 
 export const Route = createFileRoute("/api/public/cron/cloud-trade")({
-  server: {
-    handlers: {
-      POST: async ({ request }) => {
-        // 1. Authenticate that the call came from your Lovable scheduled cron job
-        const authFailure = await authenticateCronRequest(request);
-        if (authFailure) return authFailure;
-
-        // 2. Read the API2Trade API key from server environment
-        const apiKey = process.env.API2TRADE_API_KEY;
-        if (!apiKey) {
-          console.error("[cloud-trade] Missing API2TRADE_API_KEY secret");
-          return Response.json(
-            { error: "API2TRADE_API_KEY not configured" },
-            { status: 500 }
-          );
-        }
-
-        try {
-          // 3. Put your API2Trade trading execution logic here
-          // e.g. fetch('https://api.api2trade.com/...', { headers: { Authorization: `Bearer ${apiKey}` } })
-
-          return Response.json({
-            ok: true,
-            message: "Cloud trade check executed",
-            timestamp: new Date().toISOString(),
-          });
-        } catch (err: unknown) {
-          const message = err instanceof Error ? err.message : "Unknown error";
-          console.error("[cloud-trade] Execution failed:", message);
-          return Response.json({ error: message }, { status: 500 });
-        }
-      },
-    },
-  },
+  server: { handlers: { POST: ({ request }) => handle(request), GET: ({ request }) => handle(request) } },
 });
