@@ -286,6 +286,25 @@ export function decide(setting: StrategySetting, bars: Bar[], symbol: string, tf
   return { trade: pick.idea, explanation };
 }
 
+/** Directional bias for the optional entry right after START. Five votes on closed bars (trend, price vs EMA20,
+ *  EMA20 slope, RSI, 5-bar momentum). Needs at least 3 net votes for one side, otherwise null (no clear direction).
+ *  Stop 1.5×ATR14, target 3×ATR14 (1:2), the same shape as the Trend Pullback strategy. `tag` makes the key unique per START. */
+export function biasIdea(bars: Bar[], symbol: string, tf: string, digits: number, tag: string): { idea: TradeIdea; confidence: number; why: string } | null {
+  if (bars.length < MIN_BARS) return null;
+  const ctx = ctxOf(bars); if (!ctx) return null;
+  const { closes, last, n, a } = ctx;
+  const e20 = ema(closes, 20), e50 = ema(closes, 50), r = rsi(closes), mom = closes[n]! - closes[n - 5]!;
+  const dz = 0.1 * a; // dead band: differences smaller than 0.1×ATR are noise and cast no vote
+  const v = (x: number) => (x > dz ? 1 : x < -dz ? -1 : 0);
+  const votes = [v(e20[n]! - e50[n]!), v(last.c - e20[n]!), v(e20[n]! - e20[n - 3]!), r > 55 ? 1 : r < 45 ? -1 : 0, v(mom)];
+  const score = votes.reduce((s, v) => s + v, 0);
+  if (Math.abs(score) < 3) return null;
+  const side: Side = score > 0 ? "buy" : "sell", d = score > 0 ? 1 : -1;
+  const confidence = Math.round((Math.abs(score) / votes.length) * 100);
+  const why = `${side.toUpperCase()} bias ${confidence}% (${Math.abs(score)} of ${votes.length} price signals agree, RSI ${r.toFixed(1)})`;
+  return { idea: { strategy: "start_bias", side, entry: round(last.c, digits), sl: round(last.c - d * 1.5 * a, digits), tp: round(last.c + d * 3 * a, digits), key: `start:${symbol}:${tf}:${tag}`, reason: why }, confidence, why };
+}
+
 /** Parses "t,o,h,l,c;..." (oldest first). Returns null on any malformed value. */
 export function parseBars(raw: string): Bar[] | null {
   if (!raw) return [];

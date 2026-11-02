@@ -2,7 +2,7 @@ import * as api from "./api2trade";
 import { deliverySlots, volumeAllowed } from "./bridge";
 import { cloudConfigOf, planCloudCycle, utcDayStart, type CloudConfig } from "./cloudTrade";
 import { fetchBars, type FetchResult } from "./marketdata";
-import { decide, type Decision, type StrategySetting } from "./strategy";
+import { biasIdea, decide, type Decision, type StrategySetting } from "./strategy";
 import type { Database } from "@/integrations/supabase/types";
 
 type BotRow = Database["public"]["Tables"]["bots"]["Row"];
@@ -38,7 +38,7 @@ async function syncClosed(db: Db, bot: BotRow, openTickets: Set<string>, history
   }
 }
 
-async function runBot(db: Db, bot: BotRow, now: number, barsCache: Map<string, FetchResult>): Promise<string> {
+async function runBot(db: Db, bot: BotRow, now: number, barsCache: Map<string, FetchResult>, opts: { entryOnStart?: boolean } = {}): Promise<string> {
   const cfg = cloudConfigOf(bot.terminal_info);
   if (!cfg) return "not a cloud bot";
   const patch: Partial<BotRow> = { last_heartbeat: iso(now) };
@@ -77,23 +77,32 @@ async function runBot(db: Db, bot: BotRow, now: number, barsCache: Map<string, F
   let decision: Decision | null = null;
   let feedLast: number | null = null;
   let digits = 5;
+  let startBars: FetchResult | null = null;
   if (bot.strategy === "manual") decision = { trade: null, reason: "Manual mode: strategy engine is off." };
   else {
     const k = `${cfg.instrument}|${cfg.timeframe}`;
     if (!barsCache.has(k)) barsCache.set(k, await fetchBars(cfg.instrument, cfg.timeframe, now));
     const f = barsCache.get(k)!;
+    startBars = f;
     if (f.ok && f.bars.length) {
       digits = f.digits;
       feedLast = f.bars[f.bars.length - 1]!.c;
       decision = decide(bot.strategy as StrategySetting, f.bars, cfg.brokerSymbol, cfg.timeframe, f.digits);
     } else decision = { trade: null, reason: `NO TRADE: market data unavailable${f.ok ? "" : ` (${f.error})`}` };
   }
+  // Entry on START: when no strategy qualifies, take the direction the price signals favor. Every risk gate in planCloudCycle still applies.
+  if (opts.entryOnStart && decision && !decision.trade && startBars?.ok && startBars.bars.length) {
+    const b = biasIdea(startBars.bars, cfg.brokerSymbol, cfg.timeframe, digits, String(now));
+    decision = b
+      ? { trade: b.idea, explanation: `Entry on START: ${b.why}` }
+      : { trade: null, reason: `${decision.reason} · Entry on START skipped: price signals do not agree on a direction` };
+  }
   const quote = decision?.trade ? await api.getQuote(cfg.accountId, cfg.brokerSymbol).catch(() => null) : null;
 
   const plan = planCloudCycle({
     status: bot.status, connected, accountType: cfg.accountType, mode: bot.trading_mode as "demo" | "live", liveConfirmed: !!bot.live_confirmed_at, demoOnly: bot.demo_only,
-    defaultLot: Number(bot.default_lot), maxLot: Number(bot.max_lot), maxOpen: bot.max_open_trades, maxDailyLoss: Number(bot.max_daily_loss),
-    openCount: pos.length, floatingPL: floating, closedTodayPL: closedToday, decision, quote, feedLast, digits, brokerSymbol: cfg.brokerSymbol,
+    defaultLot: Number(bot.default_lot), maxLot: Number(bot.max_lot), maxOpen: Number(bot.max_open_trades ?? 1), maxDailyLoss: Number(bot.max_daily_loss),
+    openCount: pos.length, floatingPL: floating, closedTodayPL: closedToday, decision, quote, feedLast: feedLast ?? 0, digits, brokerSymbol: cfg.brokerSymbol,
   });
 
   if (plan.kind === "stop") {
@@ -134,6 +143,14 @@ async function runBot(db: Db, bot: BotRow, now: number, barsCache: Map<string, F
 
   await save({ last_decision: result });
   return result;
+}
+
+/** Runs the engine once for one running bot right now. Used when the client presses START so the first trade does not wait for the schedule. */
+export async function runCloudBotOnce(botId: string, opts: { entryOnStart?: boolean } = {}): Promise<string> {
+  const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
+  const { data: bot } = await db.from("bots").select("*").eq("id", botId).eq("status", "running").maybeSingle();
+  if (!bot) return "Bot is not running";
+  return runBot(db, bot, Date.now(), new Map(), opts);
 }
 
 /** One engine pass over every running cloud bot. Called by the scheduled job. */

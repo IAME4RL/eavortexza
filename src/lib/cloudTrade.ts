@@ -7,6 +7,7 @@ export interface CloudConfig {
   instrument: string;
   brokerSymbol: string;
   timeframe: string;
+  connectedAt?: string;
 }
 
 export interface Quote {
@@ -15,7 +16,7 @@ export interface Quote {
 }
 
 export interface CycleInput {
-  status: "stopped" | "running";
+  status: string;
   connected: boolean;
   accountType: "demo" | "live";
   mode: "demo" | "live";
@@ -48,7 +49,9 @@ export type CyclePlan =
         tp: number;
         key: string;
         strategy: string;
+        comment: string;
       };
+      reason: string;
     };
 
 export function utcDayStart(timestampMs: number): Date {
@@ -74,6 +77,7 @@ export function cloudConfigOf(terminalInfo: unknown): CloudConfig | null {
     instrument: c["instrument"],
     brokerSymbol: c["brokerSymbol"],
     timeframe: typeof c["timeframe"] === "string" ? c["timeframe"] : "H1",
+    ...(typeof c["connectedAt"] === "string" ? { connectedAt: c["connectedAt"] } : {}),
   };
 }
 
@@ -107,7 +111,7 @@ export function toBrokerLevels(
   if (slDist < spread * 3) {
     return { ok: false, reason: "Stop loss is tighter than 3 spreads" };
   }
-  if (slDist > brokerMid * 0.1 || tpDist > brokerMid * 0.15) {
+  if (slDist > brokerMid * 0.05 || tpDist > brokerMid * 0.1) {
     return { ok: false, reason: "Stop or target distance is excessively wide" };
   }
 
@@ -143,7 +147,7 @@ export function planCloudCycle(input: CycleInput): CyclePlan {
   }
 
   if (!input.decision || !input.decision.trade || !input.quote) {
-    return { kind: "hold", reason: input.decision?.reason ?? "No active trade setup" };
+    return { kind: "hold", reason: input.decision && "reason" in input.decision ? input.decision.reason : "No active trade setup" };
   }
 
   const tradeIdea = input.decision.trade;
@@ -164,7 +168,9 @@ export function planCloudCycle(input: CycleInput): CyclePlan {
       tp: levels.tp,
       key: tradeIdea.key,
       strategy: tradeIdea.strategy,
+      comment: `EA VORTEX ${tradeIdea.strategy}`.slice(0, 31),
     },
+    reason: "explanation" in input.decision ? input.decision.explanation : `${tradeIdea.side.toUpperCase()} ${tradeIdea.strategy}`,
   };
 }
 

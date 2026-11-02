@@ -50,7 +50,10 @@ export const startBot = createServerFn({ method: "POST" })
       });
       if (blockers.length) return { ok: false, already: false, blockers };
       await (await admin()).from("bots").update({ status: "running", stop_requested_at: null, stop_ack_at: null, last_error: null, last_heartbeat: new Date().toISOString() }).eq("id", bot.id).neq("status", "running");
-      return { ok: true, already: false, blockers };
+      // Do not wait for the next scheduled check: evaluate now and open the first trade right away.
+      let entry = "Bot started. The first check runs within a minute.";
+      try { entry = await (await import("@/lib/cloudEngine")).runCloudBotOnce(bot.id, { entryOnStart: true }); } catch { /* the scheduled check will pick it up */ }
+      return { ok: true, already: false, blockers, entry };
     }
     const { data: account } = await context.supabase.from("trading_accounts").select("account_login,broker_server").eq("id", bot.account_id).maybeSingle();
     if (!account) return { ok: false, already: false, blockers: ["Registered MT5 account not found."] };
