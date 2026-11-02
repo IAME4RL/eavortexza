@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { LogoMark } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { getMyAssignedMentorBot } from "@/lib/mentorBots";
 import { cn } from "@/lib/utils";
 
 /* ---------- small primitives shared by the client portal screens ---------- */
@@ -85,16 +86,23 @@ export function PortalHeader({ onMenu }: { onMenu: () => void }) {
     queryFn: async () => (await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user!.id).eq("read", false)).count ?? 0,
   });
   const n = unread.data ?? 0;
+  // Same query key as the home screen, so this is shared/cached: the header shows the assigned bot.
+  const assigned = useQuery({
+    queryKey: ["assigned-mentor-bot", user?.id], enabled: !!user,
+    queryFn: () => getMyAssignedMentorBot(user!.id),
+    refetchInterval: 60_000, retry: 1,
+  });
+  const bot = assigned.data ?? null;
   const iconBtn = "relative flex h-11 w-11 items-center justify-center rounded-xl border border-primary/30 text-primary";
   return (
     <header className="sticky top-0 z-30 border-b border-primary/20 bg-background/85 px-3 pb-3 pt-3 backdrop-blur lg:hidden">
       <div className="grid grid-cols-[2.75rem_1fr_auto] items-center gap-3">
-        <Link to="/dashboard" aria-label="EA VORTEX home" className="flex h-11 w-11 items-center justify-center rounded-full border border-primary/50 bg-background shadow-[0_0_18px_-6px_var(--primary)]">
-          <LogoMark className="h-7 w-7" />
+        <Link to="/dashboard" aria-label={bot ? `${bot.name} home` : "EA VORTEX home"} className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-primary/60 bg-background shadow-[0_0_18px_-6px_var(--primary)]">
+          {bot?.avatar_url ? <img src={bot.avatar_url} alt="" className="h-full w-full object-cover" /> : <LogoMark className="h-7 w-7" />}
         </Link>
         <div className="min-w-0 text-center">
-          <p className="pw-title truncate text-base leading-tight">EA VORTEX</p>
-          <p className="pw-label mt-0.5 text-[0.56rem] text-muted-foreground">Power your trading</p>
+          <p className="pw-title truncate text-base leading-tight">{bot ? bot.name : "EA VORTEX"}</p>
+          <p className="pw-label mt-0.5 truncate text-[0.56rem] text-muted-foreground">{bot ? `Mentor ${bot.mentor_name}` : "Power your trading"}</p>
         </div>
         <div className="flex items-center gap-2">
           <Link to="/dashboard/notifications" aria-label={n ? `Notifications, ${n} unread` : "Notifications"} className={iconBtn}>
