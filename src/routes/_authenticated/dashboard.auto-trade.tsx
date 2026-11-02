@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { createBridgeToken, startBot, stopBot, enableLiveMode, disableLiveMode, requestEmergencyClose, LIVE_CONFIRM_PHRASE, CLOSE_CONFIRM_PHRASE } from "@/lib/bot.functions";
 import { STRATEGIES } from "@/lib/strategy";
 import { CloudConnect } from "@/components/CloudConnect";
+import { ChangeAccount } from "@/components/ChangeAccount";
 import { cloudConfigOf } from "@/lib/cloudTrade";
 import { HEARTBEAT_ONLINE_MS } from "@/lib/bridge";
 import type { Database } from "@/integrations/supabase/types";
@@ -198,6 +199,7 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
             {bot.status !== "stopped" && <button type="button" className="pw-btn" onClick={doStop}><Square className="h-4 w-4" />Stop</button>}
           </div>
         </div>
+        <ChangeAccount botId={bot.id} login={account.account_login} server={account.broker_server} label={account.label} isCloud={isCloud} />
         {blockers.length > 0 && (
           <div role="alert" className="mt-4 rounded-xl border border-destructive/50 p-3 text-sm">
             <p className="font-semibold">Start blocked:</p>
