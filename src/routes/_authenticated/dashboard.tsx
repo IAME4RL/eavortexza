@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 const NAV = [
   { to: "/dashboard", label: "Overview", I: LayoutDashboard, exact: true },
   { to: "/dashboard/scanner", label: "AI Chart Scanner", I: ScanLine },
-  { to: "/dashboard/history", label: "Signal History", I: History },
+  { to: "/dashboard/history", label: "Scan History", I: History },
   { to: "/dashboard/auto-trade", label: "Auto Trade", I: Zap },
   { to: "/dashboard/ea", label: "EA Management", I: Bot },
   { to: "/dashboard/analytics", label: "Trading Analytics", I: BarChart3 },
@@ -28,7 +28,7 @@ const NAV = [
   { to: "/dashboard/settings", label: "Settings", I: Settings },
 ] as const;
 
-const linkCls = "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground data-[status=active]:bg-sidebar-accent data-[status=active]:text-primary-soft data-[status=active]:shadow-[inset_2px_0_0_var(--primary)]";
+const linkCls = "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground data-[status=active]:bg-sidebar-accent data-[status=active]:text-primary data-[status=active]:shadow-[inset_2px_0_0_var(--primary)]";
 
 function useSignOut() {
   const qc = useQueryClient();
@@ -124,7 +124,7 @@ function ClientShell() {
       <PortalHeader onMenu={() => setOpen(true)} />
       {open && (
         <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
-          <div className="absolute inset-0 bg-background/80" onClick={() => setOpen(false)} />
+          <div className="absolute inset-0 bg-black/80" onClick={() => setOpen(false)} />
           <aside className="absolute inset-y-0 right-0 w-72 max-w-[85vw] border-l border-primary/30 bg-sidebar">
             <button aria-label="Close menu" className="absolute right-3 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground" onClick={() => setOpen(false)}><X /></button>
             <SidebarContent onNavigate={() => setOpen(false)} showNav={false} />
