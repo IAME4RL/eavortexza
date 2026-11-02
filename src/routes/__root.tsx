@@ -56,7 +56,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { name: "theme-color", content: "#080808" },
+      { name: "theme-color", content: "#2F0003" },
       { title: "EA VORTEX — Power Your Trading" },
       { name: "description", content: "AI chart analysis and Expert Advisor management in one trading platform." },
       { property: "og:type", content: "website" },

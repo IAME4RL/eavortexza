@@ -7,7 +7,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./
 export function SectionHead({ eyebrow, title, sub }: { eyebrow: string; title: React.ReactNode; sub?: string }) {
   return (
     <div className="mx-auto max-w-2xl text-center">
-      <p className="pw-label text-primary">{eyebrow}</p>
+      <p className="pw-label text-primary-soft">{eyebrow}</p>
       <h2 className="pw-title mt-3 text-3xl sm:text-4xl">{title}</h2>
       {sub && <p className="mt-4 text-muted-foreground">{sub}</p>}
     </div>
@@ -29,7 +29,7 @@ export function HowItWorks() {
           <div key={n} className="pw-card group relative overflow-hidden p-7">
             <span className="absolute right-5 top-4 font-display text-5xl font-bold text-foreground/5">{n}</span>
             <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-primary/40 text-primary"><I className="h-5 w-5" /></div>
-            <p className="pw-label mt-6 text-primary">Step {n}</p>
+            <p className="pw-label mt-6 text-primary-soft">Step {n}</p>
             <h3 className="mt-1 text-xl font-bold uppercase">{t}</h3>
             <p className="mt-2 text-sm text-muted-foreground">{d}</p>
           </div>

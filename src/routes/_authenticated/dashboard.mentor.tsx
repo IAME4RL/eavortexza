@@ -227,7 +227,7 @@ export function MentorPortalPage() {
               <span>{tab.label}</span>
               {"badge" in tab && (
                 <span className={`rounded-full px-2 py-0.5 text-xs font-mono ${
-                  isActive ? "bg-black/30 text-white" : "bg-border text-muted-foreground"
+                  isActive ? "bg-background/40 text-foreground" : "bg-border text-muted-foreground"
                 }`}>
                   {tab.badge}
                 </span>
@@ -275,7 +275,7 @@ export function MentorPortalPage() {
                   key={bot.id}
                   className="group overflow-hidden rounded-2xl border border-border/80 bg-surface/90 shadow-xl transition-all hover:border-primary/50"
                 >
-                  <div className="relative aspect-[16/9] w-full overflow-hidden bg-black/60">
+                  <div className="relative aspect-[16/9] w-full overflow-hidden bg-background/60">
                     {(bot.backgroundUrl || bot.avatarUrl) ? <img src={bot.backgroundUrl || bot.avatarUrl} alt={bot.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center bg-gradient-to-br from-red-950 via-neutral-950 to-black"><Bot className="h-12 w-12 text-primary/70" /></div>}
                     <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent" />
                   </div>
@@ -331,7 +331,7 @@ export function MentorPortalPage() {
 
           {/* Keys Table */}
           <div className="overflow-hidden rounded-xl border border-border/80 bg-surface/80">
-            <div className="grid grid-cols-12 border-b border-border/60 bg-black/40 px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            <div className="grid grid-cols-12 border-b border-border/60 bg-background/40 px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
               <span className="col-span-5 sm:col-span-4">Key</span>
               <span className="col-span-4 sm:col-span-4">Client</span>
               <span className="col-span-3 sm:col-span-4 text-right">Bot</span>
@@ -418,7 +418,7 @@ export function MentorPortalPage() {
 
       {/* MODAL: CREATE BOT (Matches Screenshot 3) */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
           <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-border/80 bg-surface p-6 shadow-2xl">
             <button
               onClick={() => setIsCreateModalOpen(false)}
@@ -530,7 +530,7 @@ export function MentorPortalPage() {
 
       {/* MODAL: GENERATE LICENSE KEY */}
       {isGenerateKeyModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
           <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-border/80 bg-surface p-6 shadow-2xl">
             <button
               onClick={() => setIsGenerateKeyModalOpen(false)}

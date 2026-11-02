@@ -62,7 +62,7 @@ function Tile({
   valueClass?: string;
 }) {
   return (
-    <div className="min-w-0 rounded-lg bg-black/40 p-2.5">
+    <div className="min-w-0 rounded-lg bg-background/50 p-2.5">
       <p className="text-[10px] font-semibold uppercase text-muted-foreground">{label}</p>
       <p className={`mt-0.5 truncate font-mono text-sm font-bold ${valueClass}`}>{value}</p>
     </div>
@@ -72,7 +72,7 @@ function Tile({
 function BotControls({ control }: { control: BotControl }) {
   if (!control.hasBot) {
     return (
-      <div className="mt-4 rounded-xl border border-border/60 bg-black/30 p-3" data-testid="bot-controls">
+      <div className="mt-4 rounded-xl border border-border/60 bg-background/40 p-3" data-testid="bot-controls">
         <p className="text-xs text-muted-foreground">
           Register your MT5 account and set up your bot to start trading.
         </p>
@@ -103,7 +103,7 @@ function BotControls({ control }: { control: BotControl }) {
           type="button"
           onClick={control.onStop}
           disabled={control.busy || control.status === "stopped"}
-          className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-primary/50 bg-black/40 px-4 font-display text-sm font-bold uppercase tracking-wider text-foreground transition-all hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-primary/50 bg-background/50 px-4 font-display text-sm font-bold uppercase tracking-wider text-foreground transition-all hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Square className="h-4 w-4" />
           Stop bot
@@ -202,7 +202,7 @@ function LoadingCard() {
         <div className="h-3 w-1/2 rounded bg-foreground/10" />
         <div className="grid grid-cols-2 gap-3 pt-4 sm:grid-cols-4">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-12 rounded-lg bg-black/40" />
+            <div key={i} className="h-12 rounded-lg bg-background/50" />
           ))}
         </div>
       </div>
@@ -282,7 +282,7 @@ function MentorCard({
             <Bot className="h-14 w-14 text-primary/60" />
           </div>
         )}
-        <div className="absolute left-5 top-2 flex items-center gap-1.5 rounded-full border border-primary/40 bg-black/60 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-primary backdrop-blur">
+        <div className="absolute left-5 top-2 flex items-center gap-1.5 rounded-full border border-primary/40 bg-background/70 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-primary backdrop-blur">
           <ShieldCheck className="h-3 w-3" />
           Mentor Bot
         </div>

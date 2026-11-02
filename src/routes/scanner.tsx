@@ -24,7 +24,7 @@ function ScannerLanding() {
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 radial-red" aria-hidden />
         <div className="relative mx-auto max-w-4xl px-4 py-20 text-center sm:px-6">
-          <p className="pw-label text-primary">Free for registered users</p>
+          <p className="pw-label text-primary-soft">Free for registered users</p>
           <h1 className="pw-title mt-4 text-4xl sm:text-6xl">AI Chart Scanner</h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-muted-foreground">
             Pick an instrument and timeframe. The scanner reads real closed price bars, confirms on the higher timeframe,
