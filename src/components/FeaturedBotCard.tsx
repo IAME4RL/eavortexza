@@ -29,16 +29,11 @@ type Props = {
   online: boolean;
 };
 
-const SHELL =
-  "relative overflow-hidden rounded-2xl border border-primary/40 bg-gradient-to-br from-surface via-surface/90 to-primary/10 shadow-2xl";
+const SHELL = "pw-card relative overflow-hidden";
 
 /** Jigsaw EA plays its laugh when the card appears on screen. */
 const JIGSAW_LAUGH = "/sounds/jigsaw-laugh.mp3";
 const isJigsaw = (name: string | null | undefined) => /jigsaw/i.test(name ?? "");
-
-/** Soft vignette mask: the picture dissolves into the card instead of ending in a frame. */
-const FEATHER =
-  "[mask-image:radial-gradient(ellipse_80%_74%_at_50%_46%,#000_58%,transparent_100%)] [-webkit-mask-image:radial-gradient(ellipse_80%_74%_at_50%_46%,#000_58%,transparent_100%)]";
 
 function StatusBadge({ running }: { running: boolean }) {
   return (
@@ -232,7 +227,7 @@ function MentorCard({
     setFailed((prev) => (prev.includes(url) ? prev : [...prev, url]));
 
   const avatarUrl = usable(bot.avatar_url) ? bot.avatar_url : null;
-  // The wide hero shows the banner when there is one, otherwise the bot's picture.
+  // The bot background fills the WHOLE card; without one the bot's picture is used.
   const heroUrl = usable(bot.background_url) ? bot.background_url : avatarUrl;
   const strategies = parseStrategies(bot.strategies);
   const live = userBot?.trading_mode === "live";
@@ -243,12 +238,32 @@ function MentorCard({
   return (
     <div
       ref={cardRef}
-      className={`${SHELL} shadow-[var(--glow-red-soft)]`}
+      className="pw-card relative isolate flex min-h-[26rem] flex-col overflow-hidden sm:min-h-[24rem]"
       data-testid="featured-bot-mentor"
     >
-      {/* Header: small round avatar, bot name, mentor, status */}
-      <div className="flex items-center gap-3 px-5 pt-5">
-        <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full border-2 border-primary/70 bg-surface shadow-[0_0_16px_-4px_var(--primary)]">
+      {/* Background: the bot's picture is the card — full size, no feathering or crop band */}
+      <div className="absolute inset-0 -z-10 bg-black" data-testid="mentor-hero">
+        {heroUrl ? (
+          <img
+            src={heroUrl}
+            alt={`${bot.name} cover`}
+            loading="lazy"
+            decoding="async"
+            onError={() => markFailed(heroUrl)}
+            className="h-full w-full object-cover object-center"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-red-950 via-neutral-950 to-black">
+            <Bot className="h-16 w-16 text-primary/60" />
+          </div>
+        )}
+        {/* Readability: dark at the top (name/avatar) and bottom (details), picture clear in the middle */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-transparent via-35% to-black/95" />
+      </div>
+
+      {/* TOP: avatar + BOT NAME + status */}
+      <div className="flex items-center gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
+        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 border-primary/80 bg-black shadow-[0_0_18px_-4px_var(--primary)]">
           {avatarUrl ? (
             <img
               src={avatarUrl}
@@ -259,16 +274,14 @@ function MentorCard({
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-primary/15">
-              <Bot className="h-5 w-5 text-primary" />
+              <Bot className="h-6 w-6 text-primary" />
             </div>
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <h2 className="break-words font-display text-lg font-black uppercase leading-tight tracking-wide text-foreground sm:text-2xl">
-            {bot.name}
-          </h2>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            Mentor <span className="font-semibold text-primary">{bot.mentor_name}</span>
+          <h2 className="pw-title break-words text-lg leading-tight sm:text-2xl">{bot.name}</h2>
+          <p className="pw-label mt-0.5 truncate text-[0.6rem] text-muted-foreground">
+            Mentor <span className="text-primary">{bot.mentor_name}</span>
           </p>
         </div>
         <div className="shrink-0">
@@ -276,47 +289,21 @@ function MentorCard({
         </div>
       </div>
 
-      {/* Hero: borderless picture whose edges feather into the card */}
-      <div className="relative mt-3 aspect-[4/3] sm:aspect-[21/9]" data-testid="mentor-hero">
-        {heroUrl ? (
-          <img
-            src={heroUrl}
-            alt={`${bot.name} cover`}
-            loading="lazy"
-            decoding="async"
-            onError={() => markFailed(heroUrl)}
-            className={`absolute inset-0 h-full w-full object-cover object-[center_25%] ${FEATHER}`}
-          />
-        ) : (
-          <div
-            className={`absolute inset-0 flex items-center justify-center bg-gradient-to-br from-red-950 via-neutral-950 to-black ${FEATHER}`}
-          >
-            <Bot className="h-14 w-14 text-primary/60" />
-          </div>
-        )}
-        <div className="absolute left-5 top-2 flex items-center gap-1.5 rounded-full border border-primary/40 bg-black/60 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-primary backdrop-blur">
+      {/* BOTTOM: details over the picture */}
+      <div className="mt-auto px-4 pb-4 pt-20 sm:px-5 sm:pb-5">
+        <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-black/60 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-primary backdrop-blur">
           <ShieldCheck className="h-3 w-3" />
           Mentor Bot
         </div>
-      </div>
-
-      <div className="px-5 pb-5">
-        {bot.description && (
-          <p className="mt-4 whitespace-pre-line break-words text-sm leading-relaxed text-muted-foreground">
-            {bot.description}
-          </p>
-        )}
 
         {strategies.length > 0 && (
           <div className="mt-4">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Trading Strategies
-            </p>
+            <p className="pw-label text-[0.6rem] text-muted-foreground">Trading Strategies</p>
             <ul className="mt-2 flex flex-wrap gap-2">
               {strategies.map((st) => (
                 <li
                   key={st}
-                  className="rounded-full border border-primary/35 bg-primary/10 px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider text-primary shadow-[0_0_14px_-6px_var(--primary)]"
+                  className="rounded-full border border-primary/45 bg-black/50 px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider text-primary shadow-[0_0_14px_-6px_var(--primary)]"
                 >
                   {st}
                 </li>
@@ -326,7 +313,7 @@ function MentorCard({
         )}
 
         {/* Only facts we actually know for this bot; the backtest figures on the default card belong to the default bot. */}
-        <div className="mt-5 grid grid-cols-2 gap-3 border-t border-border/60 pt-4 sm:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-3 border-t border-primary/20 pt-4 sm:grid-cols-4">
           <Tile label="Mentor" value={bot.mentor_name} />
           <Tile
             label="Execution"
