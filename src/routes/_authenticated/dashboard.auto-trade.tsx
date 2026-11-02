@@ -15,6 +15,8 @@ import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { createBridgeToken, startBot, stopBot, enableLiveMode, disableLiveMode, requestEmergencyClose, LIVE_CONFIRM_PHRASE, CLOSE_CONFIRM_PHRASE } from "@/lib/bot.functions";
 import { STRATEGIES } from "@/lib/strategy";
+import { CloudConnect } from "@/components/CloudConnect";
+import { cloudConfigOf } from "@/lib/cloudTrade";
 import { HEARTBEAT_ONLINE_MS } from "@/lib/bridge";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -66,7 +68,7 @@ function Page() {
   return (
     <>
       <PortalTitle title="Trades"
-        sub="Control your EA VORTEX bot. Orders are executed by the EA VORTEX Bridge running inside your own MT5 terminal, so trading continues while this website is closed, as long as MT5 stays open." />
+        sub="Control your EA VORTEX bot. Connect your MT5 account in the cloud (no PC needed), or use the Bridge on a Windows PC. Trading continues while this website is closed." />
       {!accounts.length ? (
         <NeonCard className="flex flex-col items-center px-6 py-12 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-primary/40 text-primary"><Bot className="h-5 w-5" /></div>
@@ -117,7 +119,9 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
   const [vol, setVol] = useState(String(bot.default_lot));
   const [sl, setSl] = useState("");
   const [tp, setTp] = useState("");
-  const [connectOpen, setConnectOpen] = useState(!bot.bridge_token_hash);
+  const isCloud = !!cloudConfigOf(bot.terminal_info);
+  const [cloudOpen, setCloudOpen] = useState(true);
+  const [connectOpen, setConnectOpen] = useState(!bot.bridge_token_hash && !isCloud);
   const [orderOpen, setOrderOpen] = useState(false);
   const [showAllSignals, setShowAllSignals] = useState(false);
   const orderRef = useRef<HTMLDetailsElement>(null);
@@ -279,7 +283,11 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
         <button type="button" className="pw-btn mt-4" onClick={() => update.mutate({ default_lot: Number(lot), max_lot: Number(maxLot), max_open_trades: Number(maxOpen), strategy, risk_per_trade_pct: Number(riskPct), max_daily_loss: Number(maxLoss) }, { onSuccess: () => toast.success("Settings saved") })}>Save settings</button>
       </Section>
 
-      <Section title="Connect MT5" open={connectOpen} onToggle={setConnectOpen}>
+      <Section title="Trade without a PC (API2Trade)" open={cloudOpen} onToggle={setCloudOpen}>
+        <CloudConnect botId={bot.id} accountLogin={account.account_login} accountServer={account.broker_server} terminalInfo={bot.terminal_info} />
+      </Section>
+
+      <Section title="Connect MT5 with the Bridge (needs a Windows PC)" open={connectOpen} onToggle={setConnectOpen}>
         <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
           <li>Download the EA VORTEX Bridge and copy it to MT5 → File → Open Data Folder → MQL5/Experts. Open it in MetaEditor and press Compile (F7).</li>
           <li>In MT5: Tools → Options → Expert Advisors → allow WebRequest for the URL below.</li>
@@ -331,7 +339,7 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
               onClick={() => run(() => liveOn({ data: { botId: bot.id, confirm: liveText, acknowledged: true } }), "Live mode enabled — press Start to verify and run")}>Enable live mode</button></>
           )}
         </NeonCard>
-        <section className="rounded-[1.15rem] border border-destructive/45 bg-card p-4 sm:p-5">
+        <section className="rounded-[1.15rem] border border-destructive/45 bg-[#080303] p-4 sm:p-5">
           <PwLabel className="text-destructive">Emergency close</PwLabel>
           <p className="mt-2 text-xs text-muted-foreground">Stops the bot and asks MT5 to close this bot's open positions (subject to broker rules). Type <span className="font-mono">{CLOSE_CONFIRM_PHRASE}</span>.</p>
           {bot.emergency_close_requested_at && <p className="mt-1 text-xs">{bot.emergency_close_ack_at ? `Terminal result: ${bot.emergency_close_result ?? "done"}` : "Waiting for terminal…"}</p>}
