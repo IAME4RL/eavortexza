@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { INSTRUMENTS, TIMEFRAMES, STYLES, timeframeLabel, styleLabel, isGold } from "./instruments";
+import { validateChartSignal } from "./chartSignal";
 
 const MODEL = "openai/gpt-6-astra";
 
@@ -21,6 +22,12 @@ Rules:
 - Any trade setup is a HYPOTHETICAL scenario, never a recommendation. Never guarantee outcomes.
 - If the image is not a trading chart or is unreadable, set image_quality to "unreadable", explain in limitations, and keep other fields brief.
 - Report the instrument symbol visibly printed on the chart in symbol_detected (exact text), or null if none is visible.
+SIGNAL RULES (the "signal" and "price_axis" objects):
+- Your job is to turn what is visible on THIS chart into a BUY, SELL or NO_TRADE signal. Use NO_TRADE whenever the structure is unclear, price is mid-range with no edge, or the chart is blurry, cropped or has no readable price scale. NO_TRADE is a good answer; never force a trade.
+- price_axis: set legible=true only if you can read price labels on the axis. Report min_visible and max_visible (the lowest and highest price on the visible axis) and last_price (the close of the most recent visible candle), all copied or interpolated from the axis labels. If you cannot read them, set legible=false and every number to null.
+- Entry, stop_loss and take_profit are numbers read off the price axis. Entry is at or very near last_price. stop_loss sits just beyond a visible swing high/low on the invalidation side. take_profit sits at a visible support/resistance or swing level. Reward-to-risk must be at least 1:1.
+- evidence: 2 to 4 concrete things you can point to on the chart that justify the signal (for example "higher highs and higher lows from 2310 to 2342", "rejection wick at the 2342 resistance"). No evidence means NO_TRADE.
+- Never use any price knowledge from outside the image, and never guess a level you cannot see. Any signal level the server cannot trace to your price_axis range is discarded.
 Respond with ONLY a JSON object (no markdown) with exactly these keys:
 {
  "symbol_detected": string|null,
@@ -38,6 +45,8 @@ Respond with ONLY a JSON object (no markdown) with exactly these keys:
  "indicators_visible": string[],
  "bullish_scenario": string,
  "bearish_scenario": string,
+ "price_axis": { "legible": boolean, "min_visible": number|null, "max_visible": number|null, "last_price": number|null },
+ "signal": { "action": "BUY"|"SELL"|"NO_TRADE", "entry": number|null, "stop_loss": number|null, "take_profit": number|null, "basis": string, "evidence": string[] },
  "trade_setup": { "available": boolean, "direction": "long"|"short"|"none", "entry_area": string, "invalidation": string, "targets": string[], "risk_reward": string },
  "risk_analysis": string,
  "uncertainties": string[],
@@ -85,7 +94,7 @@ export const runScan = createServerFn({ method: "POST" })
       ? "The user selected GOLD (XAUUSD). Treat GOLD, XAUUSD, XAU/USD, GOLDUSD and broker-suffixed variants (e.g. XAUUSD.m) as the same instrument. Consider gold's typically larger intraday ranges when discussing volatility, based only on visible candles."
       : "";
     const userText = `Instrument selected: ${data.instrument}. Timeframe: ${timeframeLabel(data.timeframe)}. Trading style: ${styleLabel(data.style)}. ${goldNote}
-Analyse this chart for: market structure, trend, support/resistance zones, candlestick patterns, chart patterns, breakouts and possible false breakouts, reversal areas, bullish and bearish scenarios, visible indicators only, potential entry areas (only if supported), invalidation levels, target zones, risk-to-reward considerations and important uncertainties. Tailor the perspective to the trading style.`;
+Analyse this chart for: market structure, trend, support/resistance zones, candlestick patterns, chart patterns, breakouts and possible false breakouts, reversal areas, bullish and bearish scenarios, visible indicators only, potential entry areas (only if supported), invalidation levels, target zones, risk-to-reward considerations and important uncertainties. Tailor the perspective to the trading style. Then give your BUY / SELL / NO_TRADE signal using only levels you can read on this chart's price axis.`;
 
     const { createOpenAI } = await import("@ai-sdk/openai");
     const { streamText } = await import("ai");
@@ -172,6 +181,15 @@ Analyse this chart for: market structure, trend, support/resistance zones, candl
       });
       return { ok: false as const, error: msg, retryable: e.statusCode === 429 || (e.statusCode ?? 500) >= 500 };
     }
+
+    // Grounding check: keep a signal only if every level traces back to the uploaded chart.
+    const raw = (analysis && typeof analysis === "object" ? analysis : {}) as Record<string, unknown>;
+    raw["signal"] = validateChartSignal({
+      signal: raw["signal"], axis: raw["price_axis"], imageQuality: raw["image_quality"],
+      symbolDetected: typeof raw["symbol_detected"] === "string" ? (raw["symbol_detected"] as string) : null,
+      selectedInstrument: data.instrument,
+    });
+    analysis = raw;
 
     const { data: row, error: insErr } = await supabase.from("scans").insert({
       user_id: userId, instrument: data.instrument, timeframe: data.timeframe, trading_style: data.style,
