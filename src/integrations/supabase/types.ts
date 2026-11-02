@@ -179,6 +179,95 @@ export type Database = {
         }
         Relationships: []
       }
+      mentor_bot_licenses: {
+        Row: {
+          bot_id: string
+          client_email: string
+          client_id: string | null
+          client_name: string
+          created_at: string
+          id: string
+          license_hash: string
+          license_key: string
+          mentor_id: string
+          redeemed_at: string | null
+          status: string
+        }
+        Insert: {
+          bot_id: string
+          client_email: string
+          client_id?: string | null
+          client_name: string
+          created_at?: string
+          id?: string
+          license_hash: string
+          license_key: string
+          mentor_id: string
+          redeemed_at?: string | null
+          status?: string
+        }
+        Update: {
+          bot_id?: string
+          client_email?: string
+          client_id?: string | null
+          client_name?: string
+          created_at?: string
+          id?: string
+          license_hash?: string
+          license_key?: string
+          mentor_id?: string
+          redeemed_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mentor_bot_licenses_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "mentor_bots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mentor_bots: {
+        Row: {
+          avatar_url: string | null
+          background_url: string | null
+          created_at: string
+          description: string
+          id: string
+          mentor_id: string
+          mentor_name: string
+          name: string
+          strategies: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          background_url?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          mentor_id: string
+          mentor_name?: string
+          name: string
+          strategies?: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          background_url?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          mentor_id?: string
+          mentor_name?: string
+          name?: string
+          strategies?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string | null
@@ -506,6 +595,23 @@ export type Database = {
       is_mentor_of: {
         Args: { _client: string; _mentor: string }
         Returns: boolean
+      }
+      issue_mentor_bot_license: {
+        Args: {
+          p_bot_id: string
+          p_client_email: string
+          p_client_name: string
+          p_license_key: string
+        }
+        Returns: undefined
+      }
+      redeem_mentor_bot_license: {
+        Args: { p_license_key: string }
+        Returns: {
+          bot_id: string
+          bot_name: string
+          mentor_name: string
+        }[]
       }
     }
     Enums: {
