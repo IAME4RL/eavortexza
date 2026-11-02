@@ -21,10 +21,10 @@ export const Route = createFileRoute("/")({
 
 const tools = [
   { icon: ScanLine, title: "AI Chart Scanner", label: "CHART ANALYSIS", text: "Upload a chart screenshot and review technical structure, entry zones, stop-loss and take-profit scenarios.", to: "/scanner" },
-  { icon: ChartNoAxesCombined, title: "Market Signals", label: "STRATEGY ENGINE", text: "Explore rule-based BUY, SELL or NO TRADE setups using available market candles and supported strategies.", to: "/dashboard/scanner" },
+  { icon: ChartNoAxesCombined, title: "Market Signals", label: "STRATEGY ENGINE", text: "Upload a chart and get a BUY or SELL signal with entry, stop-loss, take-profit and a clear confidence rating.", to: "/dashboard/scanner" },
   { icon: Bot, title: "MT5 Auto Trade", label: "BRIDGE REQUIRED", text: "Start and stop your execution bot with your connected MT5 terminal. Demo trading and explicitly authorized live mode.", to: "/dashboard/auto-trade" },
   { icon: Activity, title: "Trading Monitor", label: "CONNECTED ACCOUNTS", text: "Review account balance, equity and trading activity reported by your MT5 connection.", to: "/dashboard/analytics" },
-  { icon: Layers, title: "Strategy Engine", label: "TECHNICAL STRATEGIES", text: "Inspect supported strategies, setup reasoning and backtests. No qualifying setup means no trade.", to: "/dashboard/scanner" },
+  { icon: Layers, title: "Strategy Engine", label: "TECHNICAL STRATEGIES", text: "Inspect supported strategies, setup reasoning and backtests. Every signal shows how confident the scanner is.", to: "/dashboard/scanner" },
   { icon: ShieldCheck, title: "EA Management & Bridge", label: "MT5 MANAGEMENT", text: "Manage trading accounts, bridge connections and execution risk limits from your private dashboard.", to: "/dashboard/ea" },
 ] as const;
 
