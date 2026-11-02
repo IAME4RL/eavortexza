@@ -19,9 +19,13 @@ function Page() {
     queryFn: async () => (await supabase.from("profiles").select("*").eq("id", user!.id).single()).data,
   });
   const [name, setName] = useState("");
+  const [loaded, setLoaded] = useState(false);
+  // Fill the field once from the saved profile; later edits (including clearing it) are never overwritten.
   useEffect(() => {
-    if (profile.data && !name) setName(profile.data.display_name ?? "");
-  }, [profile.data, name]);
+    if (profile.data && !loaded) { setName(profile.data.display_name ?? ""); setLoaded(true); }
+  }, [profile.data, loaded]);
+  const saved = (profile.data?.display_name ?? "").trim();
+  const unchanged = name.trim() === saved;
 
   const save = useMutation({
     mutationFn: async () => {
@@ -29,8 +33,9 @@ function Page() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Profile saved");
+      toast.success("Display name saved");
       qc.invalidateQueries({ queryKey: ["profile"] });
+      qc.invalidateQueries({ queryKey: ["overview-counts"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Could not save"),
   });
@@ -58,7 +63,7 @@ function Page() {
       <div className="grid gap-5 lg:grid-cols-2">
         <NeonCard className="p-5 sm:p-6">
           <PwLabel red className="flex items-center gap-2"><UserRound className="h-4 w-4" />Profile</PwLabel>
-          <div className="mt-5 space-y-4">
+          <form className="mt-5 space-y-4" onSubmit={(e) => { e.preventDefault(); if (!unchanged && !save.isPending) save.mutate(); }}>
             <div className="space-y-2">
               <Label htmlFor="email" className="pw-label text-[0.62rem] text-muted-foreground">Email</Label>
               <Input id="email" className="pw-field" value={user?.email ?? ""} disabled />
@@ -67,10 +72,10 @@ function Page() {
               <Label htmlFor="display_name" className="pw-label text-[0.62rem] text-muted-foreground">Display name</Label>
               <Input id="display_name" className="pw-field" value={name} onChange={(e) => setName(e.target.value)} placeholder="How should we address you?" maxLength={60} />
             </div>
-            <button type="button" className="pw-btn pw-btn-solid" onClick={() => save.mutate()} disabled={save.isPending}>
-              <Save className="h-4 w-4" />{save.isPending ? "Saving…" : "Save profile"}
+            <button type="submit" className="pw-btn pw-btn-solid" disabled={save.isPending || unchanged || !loaded}>
+              <Save className="h-4 w-4" />{save.isPending ? "Saving…" : "Save display name"}
             </button>
-          </div>
+          </form>
         </NeonCard>
 
         <NeonCard className="p-5 sm:p-6">
