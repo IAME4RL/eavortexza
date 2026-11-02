@@ -71,12 +71,12 @@ function SidebarContent({ onNavigate, showNav = true }: { onNavigate: () => void
 
 function DashLayout() {
   const { pathname } = useLocation();
-  // The mentor and admin portals keep their current layout until they are redesigned.
-  const legacy = pathname.startsWith("/dashboard/mentor") || pathname.startsWith("/dashboard/admin");
+  // The mentor portal shares the client look; only the admin portal keeps the legacy layout.
+  const legacy = pathname.startsWith("/dashboard/admin");
   return legacy ? <LegacyShell /> : <ClientShell />;
 }
 
-/** Existing layout, unchanged in look and behaviour: used by the mentor and admin pages. */
+/** Existing layout, unchanged in look and behaviour: used by the admin page. */
 function LegacyShell() {
   const [open, setOpen] = useState(false);
   const sidebar = <SidebarContent onNavigate={() => setOpen(false)} />;
