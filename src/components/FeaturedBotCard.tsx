@@ -28,8 +28,11 @@ type Props = {
   online: boolean;
 };
 
-const SHELL =
-  "relative overflow-hidden rounded-2xl border border-primary/40 bg-gradient-to-br from-surface via-surface/90 to-primary/10 shadow-2xl";
+/**
+ * Obsidian panel with a dark crimson frame and a soft ambient wash — the compact look
+ * the bot card has in the phone app, sized down so it doesn't dominate the screen.
+ */
+const SHELL = "relative overflow-hidden rounded-xl border border-bot-border bg-bot-card shadow-[var(--bot-glow)]";
 
 /** Soft vignette mask: the picture dissolves into the card instead of ending in a frame. */
 const FEATHER =
@@ -38,14 +41,14 @@ const FEATHER =
 function StatusBadge({ running }: { running: boolean }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-xs font-bold ${
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-mono text-[11px] font-bold ${
         running
           ? "border border-emerald-500/30 bg-emerald-500/20 text-emerald-400"
-          : "border border-primary/30 bg-primary/20 text-primary"
+          : "border border-primary/30 bg-primary/20 text-primary-soft"
       }`}
     >
       <span
-        className={`h-2 w-2 rounded-full ${running ? "animate-pulse bg-emerald-400" : "bg-primary"}`}
+        className={`h-1.5 w-1.5 rounded-full ${running ? "animate-pulse bg-emerald-400" : "bg-primary"}`}
       />
       {running ? "ACTIVE" : "STANDBY"}
     </span>
@@ -62,9 +65,9 @@ function Tile({
   valueClass?: string;
 }) {
   return (
-    <div className="min-w-0 rounded-lg bg-background/50 p-2.5">
-      <p className="text-[10px] font-semibold uppercase text-muted-foreground">{label}</p>
-      <p className={`mt-0.5 truncate font-mono text-sm font-bold ${valueClass}`}>{value}</p>
+    <div className="min-w-0 rounded-md bg-background/60 p-2">
+      <p className="truncate text-[9px] font-semibold uppercase text-muted-foreground">{label}</p>
+      <p className={`mt-0.5 truncate font-mono text-xs font-bold ${valueClass}`}>{value}</p>
     </div>
   );
 }
@@ -72,13 +75,13 @@ function Tile({
 function BotControls({ control }: { control: BotControl }) {
   if (!control.hasBot) {
     return (
-      <div className="mt-4 rounded-xl border border-border/60 bg-background/40 p-3" data-testid="bot-controls">
+      <div className="mt-3 rounded-lg border border-border/60 bg-background/40 p-2.5" data-testid="bot-controls">
         <p className="text-xs text-muted-foreground">
           Register your MT5 account and set up your bot to start trading.
         </p>
         <Link
           to="/dashboard/auto-trade"
-          className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground hover:bg-primary/90"
+          className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground hover:bg-primary/90"
         >
           <Zap className="h-3.5 w-3.5" />
           Set up bot
@@ -88,29 +91,29 @@ function BotControls({ control }: { control: BotControl }) {
   }
   const running = control.status === "running";
   return (
-    <div className="mt-4" data-testid="bot-controls">
-      <div className="grid grid-cols-2 gap-3">
+    <div className="mt-3" data-testid="bot-controls">
+      <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
           onClick={control.onStart}
           disabled={control.busy || running}
-          className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-4 font-display text-sm font-bold uppercase tracking-wider text-primary-foreground transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          <Play className="h-4 w-4" />
+          <Play className="h-3.5 w-3.5" />
           {control.status === "paused" ? "Resume" : "Start bot"}
         </button>
         <button
           type="button"
           onClick={control.onStop}
           disabled={control.busy || control.status === "stopped"}
-          className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-primary/50 bg-background/50 px-4 font-display text-sm font-bold uppercase tracking-wider text-foreground transition-all hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-primary/50 bg-background/50 px-3 font-display text-xs font-bold uppercase tracking-wider text-foreground transition-all hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
         >
-          <Square className="h-4 w-4" />
+          <Square className="h-3.5 w-3.5" />
           Stop bot
         </button>
       </div>
       {control.blockers.length > 0 && (
-        <div role="alert" className="mt-3 rounded-xl border border-destructive/50 p-3 text-xs">
+        <div role="alert" className="mt-2 rounded-lg border border-destructive/50 p-2.5 text-xs">
           <p className="font-semibold">Start blocked:</p>
           <ul className="mt-1 list-disc pl-5 text-muted-foreground">
             {control.blockers.map((b) => (
@@ -127,13 +130,13 @@ function CardFooter({ control }: { control?: BotControl | undefined }) {
   return (
     <>
       {control && <BotControls control={control} />}
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-2">
-        <p className="text-xs text-muted-foreground">
-          Configure risk, lot size, and Windows MetaTrader 5 bridge in Auto Trade.
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 pt-1">
+        <p className="text-[11px] text-muted-foreground">
+          Risk, lot size and the Windows MetaTrader 5 bridge live in Auto Trade.
         </p>
         <Link
           to="/dashboard/auto-trade"
-          className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground transition-all hover:bg-primary/90"
+          className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground transition-all hover:bg-primary/90"
         >
           <Zap className="h-3.5 w-3.5" />
           Manage Bot Controls
@@ -147,41 +150,44 @@ function CardFooter({ control }: { control?: BotControl | undefined }) {
 
 function DefaultCard({ userBot, running, online, control }: Pick<Props, "userBot" | "running" | "online" | "control">) {
   return (
-    <div className={`${SHELL} p-5`} data-testid="featured-bot-default">
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="rounded bg-primary/20 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-primary">
+    <div className={`${SHELL} p-4`} data-testid="featured-bot-default">
+      <div className="bot-wash pointer-events-none absolute inset-0" aria-hidden />
+      <div className="relative flex items-start justify-between gap-3">
+        <div className="min-w-0 space-y-0.5">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="rounded bg-primary/20 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-primary-soft">
               {userBot ? userBot.strategy.replace(/_/g, " ") : "QUANTUM VORTEX AI"}
             </span>
-            <span className="font-mono text-xs text-muted-foreground">
+            <span className="font-mono text-[11px] text-muted-foreground">
               {userBot?.trading_mode === "live" ? "LIVE EXECUTION" : "DEMO / TEST"}
             </span>
           </div>
-          <h2 className="font-display text-xl font-black uppercase tracking-wide text-foreground sm:text-2xl">
+          <h2 className="font-display text-base font-black uppercase tracking-wide text-foreground sm:text-lg">
             {userBot ? "EA VORTEX ENGINE" : "GOLD VORTEX PRO AI"}
           </h2>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-[11px] text-muted-foreground">
             Institutional order block &amp; ICT liquidity execution on XAUUSD.
           </p>
         </div>
-        <div className="text-right">
+        <div className="shrink-0 text-right">
           <StatusBadge running={running} />
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3 border-t border-border/60 pt-4 sm:grid-cols-4">
+      <div className="relative mt-3 grid grid-cols-2 gap-2 border-t border-bot-border pt-3 sm:grid-cols-4">
         <Tile label="Target Symbol" value="GOLD / XAUUSD" />
         <Tile label="Win Rate (Backtest)" value="78.4%" valueClass="text-emerald-400" />
         <Tile label="Max Drawdown" value="4.2%" />
         <Tile
           label="MT5 Bridge"
           value={online ? "Connected" : "Disconnected"}
-          valueClass="text-primary"
+          valueClass="text-primary-soft"
         />
       </div>
 
-      <CardFooter control={control} />
+      <div className="relative">
+        <CardFooter control={control} />
+      </div>
     </div>
   );
 }
@@ -191,18 +197,18 @@ function DefaultCard({ userBot, running, online, control }: Pick<Props, "userBot
 function LoadingCard() {
   return (
     <div
-      className={`${SHELL} p-5`}
+      className={`${SHELL} p-4`}
       aria-busy="true"
       aria-label="Loading featured bot"
       data-testid="featured-bot-loading"
     >
-      <div className="animate-pulse space-y-3">
-        <div className="h-4 w-32 rounded bg-primary/15" />
-        <div className="h-7 w-2/3 rounded bg-foreground/10" />
-        <div className="h-3 w-1/2 rounded bg-foreground/10" />
-        <div className="grid grid-cols-2 gap-3 pt-4 sm:grid-cols-4">
+      <div className="animate-pulse space-y-2">
+        <div className="h-3 w-28 rounded bg-primary/15" />
+        <div className="h-5 w-2/3 rounded bg-foreground/10" />
+        <div className="h-2.5 w-1/2 rounded bg-foreground/10" />
+        <div className="grid grid-cols-2 gap-2 pt-3 sm:grid-cols-4">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-12 rounded-lg bg-background/50" />
+            <div key={i} className="h-9 rounded-md bg-background/60" />
           ))}
         </div>
       </div>
@@ -233,10 +239,11 @@ function MentorCard({
   const live = userBot?.trading_mode === "live";
 
   return (
-    <div className={`${SHELL} shadow-[var(--glow-red-soft)]`} data-testid="featured-bot-mentor">
+    <div className={`${SHELL}`} data-testid="featured-bot-mentor">
+      <div className="bot-wash pointer-events-none absolute inset-0" aria-hidden />
       {/* Header: small round avatar, bot name, mentor, status */}
-      <div className="flex items-center gap-3 px-5 pt-5">
-        <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full border-2 border-primary/70 bg-surface shadow-[0_0_16px_-4px_var(--primary)]">
+      <div className="relative flex items-center gap-2.5 px-4 pt-4">
+        <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-primary/70 bg-bot-card shadow-[0_0_14px_-6px_var(--primary)]">
           {avatarUrl ? (
             <img
               src={avatarUrl}
@@ -247,16 +254,16 @@ function MentorCard({
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-primary/15">
-              <Bot className="h-5 w-5 text-primary" />
+              <Bot className="h-4 w-4 text-primary" />
             </div>
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <h2 className="break-words font-display text-lg font-black uppercase leading-tight tracking-wide text-foreground sm:text-2xl">
+          <h2 className="break-words font-display text-base font-black uppercase leading-tight tracking-wide text-foreground sm:text-lg">
             {bot.name}
           </h2>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            Mentor <span className="font-semibold text-primary">{bot.mentor_name}</span>
+          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+            Mentor <span className="font-semibold text-primary-soft">{bot.mentor_name}</span>
           </p>
         </div>
         <div className="shrink-0">
@@ -264,8 +271,8 @@ function MentorCard({
         </div>
       </div>
 
-      {/* Hero: borderless picture whose edges feather into the card */}
-      <div className="relative mt-3 aspect-[4/3] sm:aspect-[21/9]" data-testid="mentor-hero">
+      {/* Hero: borderless picture whose edges feather into the card, kept short on phones. */}
+      <div className="relative mt-2 aspect-[16/9] max-h-40 sm:aspect-[21/9] sm:max-h-none" data-testid="mentor-hero">
         {heroUrl ? (
           <img
             src={heroUrl}
@@ -277,34 +284,34 @@ function MentorCard({
           />
         ) : (
           <div
-            className={`absolute inset-0 flex items-center justify-center bg-gradient-to-br from-red-950 via-neutral-950 to-black ${FEATHER}`}
+            className={`absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary-deep/40 via-bot-card to-bot-card ${FEATHER}`}
           >
-            <Bot className="h-14 w-14 text-primary/60" />
+            <Bot className="h-10 w-10 text-primary/60" />
           </div>
         )}
-        <div className="absolute left-5 top-2 flex items-center gap-1.5 rounded-full border border-primary/40 bg-background/70 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-primary backdrop-blur">
-          <ShieldCheck className="h-3 w-3" />
+        <div className="absolute left-4 top-2 flex items-center gap-1.5 rounded-full border border-primary/40 bg-background/70 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-primary-soft backdrop-blur">
+          <ShieldCheck className="h-2.5 w-2.5" />
           Mentor Bot
         </div>
       </div>
 
-      <div className="px-5 pb-5">
+      <div className="relative px-4 pb-4">
         {bot.description && (
-          <p className="mt-4 whitespace-pre-line break-words text-sm leading-relaxed text-muted-foreground">
+          <p className="mt-3 line-clamp-3 whitespace-pre-line break-words text-xs leading-relaxed text-muted-foreground">
             {bot.description}
           </p>
         )}
 
         {strategies.length > 0 && (
-          <div className="mt-4">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="mt-3">
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
               Trading Strategies
             </p>
-            <ul className="mt-2 flex flex-wrap gap-2">
+            <ul className="mt-1.5 flex flex-wrap gap-1.5">
               {strategies.map((st) => (
                 <li
                   key={st}
-                  className="rounded-full border border-primary/35 bg-primary/10 px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider text-primary shadow-[0_0_14px_-6px_var(--primary)]"
+                  className="rounded-full border border-primary/35 bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-primary-soft"
                 >
                   {st}
                 </li>
@@ -314,7 +321,7 @@ function MentorCard({
         )}
 
         {/* Only facts we actually know for this bot; the backtest figures on the default card belong to the default bot. */}
-        <div className="mt-5 grid grid-cols-2 gap-3 border-t border-border/60 pt-4 sm:grid-cols-4">
+        <div className="mt-3 grid grid-cols-2 gap-2 border-t border-bot-border pt-3 sm:grid-cols-4">
           <Tile label="Mentor" value={bot.mentor_name} />
           <Tile
             label="Execution"
@@ -324,12 +331,12 @@ function MentorCard({
           <Tile
             label="Bot Status"
             value={running ? "Active" : "Standby"}
-            valueClass={running ? "text-emerald-400" : "text-primary"}
+            valueClass={running ? "text-emerald-400" : "text-primary-soft"}
           />
           <Tile
             label="MT5 Bridge"
             value={online ? "Connected" : "Disconnected"}
-            valueClass="text-primary"
+            valueClass="text-primary-soft"
           />
         </div>
 

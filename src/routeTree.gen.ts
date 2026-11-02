@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as BotcardPreviewRouteImport } from './routes/botcard-preview'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as GetAppRouteImport } from './routes/get-app'
@@ -46,6 +47,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BotcardPreviewRoute = BotcardPreviewRouteImport.update({
+  id: '/botcard-preview',
+  path: '/botcard-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FaqRoute = FaqRouteImport.update({
@@ -170,6 +176,7 @@ const ApiPublicBridgeMt5Route = ApiPublicBridgeMt5RouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/botcard-preview': typeof BotcardPreviewRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/get-app': typeof GetAppRoute
@@ -195,6 +202,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/botcard-preview': typeof BotcardPreviewRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/get-app': typeof GetAppRoute
@@ -221,6 +229,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/botcard-preview': typeof BotcardPreviewRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/get-app': typeof GetAppRoute
@@ -248,6 +257,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/botcard-preview'
     | '/faq'
     | '/features'
     | '/get-app'
@@ -273,6 +283,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/botcard-preview'
     | '/faq'
     | '/features'
     | '/get-app'
@@ -298,6 +309,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/botcard-preview'
     | '/faq'
     | '/features'
     | '/get-app'
@@ -325,6 +337,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  BotcardPreviewRoute: typeof BotcardPreviewRoute
   FaqRoute: typeof FaqRoute
   FeaturesRoute: typeof FeaturesRoute
   GetAppRoute: typeof GetAppRoute
@@ -355,6 +368,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/botcard-preview': {
+      id: '/botcard-preview'
+      path: '/botcard-preview'
+      fullPath: '/botcard-preview'
+      preLoaderRoute: typeof BotcardPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/faq': {
@@ -561,6 +581,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  BotcardPreviewRoute: BotcardPreviewRoute,
   FaqRoute: FaqRoute,
   FeaturesRoute: FeaturesRoute,
   GetAppRoute: GetAppRoute,
