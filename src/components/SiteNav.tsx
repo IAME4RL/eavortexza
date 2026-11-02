@@ -27,7 +27,7 @@ export function SiteNav() {
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
   return (
-    <header className="sticky top-0 z-50 border-b border-primary/20 bg-black/85 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-primary/20 bg-background/85 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <Logo />
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Main navigation">
@@ -103,7 +103,7 @@ export function SiteNav() {
 
 export function SiteFooter() {
   return (
-    <footer className="relative z-10 border-t border-primary/20 bg-black/80">
+    <footer className="relative z-10 border-t border-primary/20 bg-background/80">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-3">
         <div>
           <Logo />

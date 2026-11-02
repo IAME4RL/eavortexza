@@ -35,7 +35,7 @@ type Key = keyof typeof PORTALS;
 
 function ClientMock() {
   return (
-    <div className="rounded-[1.5rem] bg-black/70 p-4">
+    <div className="rounded-[1.5rem] bg-background/70 p-4">
       <div className="flex items-center justify-between">
         <p className="pw-title text-base">EA VORTEX</p>
         <span className="pw-pill" data-tone="warn">Demo mode</span>
@@ -56,7 +56,7 @@ function ClientMock() {
 
 function MentorMock() {
   return (
-    <div className="rounded-[1.5rem] bg-black/70 p-4">
+    <div className="rounded-[1.5rem] bg-background/70 p-4">
       <div className="flex items-center justify-between">
         <p className="pw-title text-base">Mentor</p>
         <span className="pw-pill" data-tone="ok">Approved</span>

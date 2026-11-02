@@ -10,7 +10,7 @@ export function VortexHero({ className }: { className?: string }) {
     [258, 200, 50, 12], [286, 214, 34, 14], [314, 204, 46, 10], [342, 222, 28, 16], [370, 210, 40, 12],
   ] as const;
   return (
-    <div className={cn("relative overflow-hidden rounded-[1.15rem] bg-black", className)}>
+    <div className={cn("relative overflow-hidden rounded-[1.15rem] bg-background", className)}>
       <svg viewBox="0 0 400 270" className="block h-full w-full" role="img" aria-label="EA VORTEX">
         <defs>
           <radialGradient id="vh-glow" cx="50%" cy="46%" r="55%">
@@ -27,7 +27,7 @@ export function VortexHero({ className }: { className?: string }) {
             <stop offset="1" stopColor="var(--primary-deep)" />
           </linearGradient>
         </defs>
-        <rect width="400" height="270" fill="#030303" />
+        <rect width="400" height="270" className="fill-background" />
         <rect width="400" height="270" fill="url(#vh-glow)" />
         {candles.map(([x, y, h, w], i) => (
           <g key={x} opacity={0.28 + (i % 3) * 0.08}>
@@ -45,7 +45,7 @@ export function VortexHero({ className }: { className?: string }) {
             <circle r="72" fill="none" stroke="var(--primary-deep)" strokeOpacity="0.8" strokeWidth="1" />
           </g>
           <g transform="scale(2.2) translate(-20 -20)">
-            <path d="M20 2 L37 11 V29 L20 38 L3 29 V11 Z" fill="#050000" stroke="url(#vh-stroke)" strokeWidth="1.8" />
+            <path d="M20 2 L37 11 V29 L20 38 L3 29 V11 Z" className="fill-background" stroke="url(#vh-stroke)" strokeWidth="1.8" />
             <path d="M10 12 L20 30 L30 12" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinejoin="round" />
             <path d="M14 12 L20 22 L26 12" fill="none" stroke="var(--primary)" strokeWidth="1.8" strokeLinejoin="round" />
           </g>

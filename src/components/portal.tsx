@@ -87,9 +87,9 @@ export function PortalHeader({ onMenu }: { onMenu: () => void }) {
   const n = unread.data ?? 0;
   const iconBtn = "relative flex h-11 w-11 items-center justify-center rounded-xl border border-primary/30 text-primary";
   return (
-    <header className="sticky top-0 z-30 border-b border-primary/20 bg-black/85 px-3 pb-3 pt-3 backdrop-blur lg:hidden">
+    <header className="sticky top-0 z-30 border-b border-primary/20 bg-background/85 px-3 pb-3 pt-3 backdrop-blur lg:hidden">
       <div className="grid grid-cols-[2.75rem_1fr_auto] items-center gap-3">
-        <Link to="/dashboard" aria-label="EA VORTEX home" className="flex h-11 w-11 items-center justify-center rounded-full border border-primary/50 bg-black shadow-[0_0_18px_-6px_var(--primary)]">
+        <Link to="/dashboard" aria-label="EA VORTEX home" className="flex h-11 w-11 items-center justify-center rounded-full border border-primary/50 bg-background shadow-[0_0_18px_-6px_var(--primary)]">
           <LogoMark className="h-7 w-7" />
         </Link>
         <div className="min-w-0 text-center">

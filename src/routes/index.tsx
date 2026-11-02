@@ -44,7 +44,7 @@ function Home() {
     <div className="relative min-h-dvh">
       <VortexBackground />
       <div className="pw-vignette" aria-hidden />
-      <header className="sticky top-0 z-50 border-b border-primary/20 bg-black/85 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-primary/20 bg-background/85 backdrop-blur-xl">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
           <Logo />
           <nav className="hidden items-center gap-6 lg:flex" aria-label="Main navigation">
@@ -70,9 +70,9 @@ function Home() {
       <main className="relative z-10">
         <section className="relative isolate overflow-hidden border-b border-primary/20">
           <img src={circuitImage} alt="" width={1920} height={1024} fetchPriority="high" className="absolute inset-0 -z-20 h-full w-full object-cover opacity-30 grayscale" />
-          <div className="absolute inset-0 -z-10 bg-gradient-to-b from-black/30 to-black" />
+          <div className="absolute inset-0 -z-10 bg-gradient-to-b from-background/30 to-background" />
           <div className="mx-auto max-w-5xl px-5 pb-12 pt-12 text-center sm:px-8 sm:pb-16 sm:pt-16">
-            <div className="pw-pill inline-flex rounded-full border border-primary/30 bg-black/60 px-4 py-2 text-primary" data-tone="live"><BrainCircuit className="h-4 w-4" />AI chart analysis · MT5 execution</div>
+            <div className="pw-pill inline-flex rounded-full border border-primary/30 bg-background/60 px-4 py-2 text-primary" data-tone="live"><BrainCircuit className="h-4 w-4" />AI chart analysis · MT5 execution</div>
             <h1 className="pw-title mt-7 text-[48px] leading-[1.08] sm:text-7xl lg:text-8xl">EA VORTEX</h1>
             <p className="mt-3 font-display text-[30px] font-bold uppercase leading-[1.15] tracking-wide sm:text-5xl lg:text-6xl">Power Your Trading.</p>
             <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-xl">Read the chart. Find the setup. Take control.<br className="hidden sm:block" /> AI-powered analysis and strategy-based trading, connected to your MetaTrader 5 terminal.</p>
@@ -108,7 +108,7 @@ function Home() {
           </div>
         </section>
 
-        <section className="border-y border-primary/20 bg-black/40 px-5 py-14 sm:px-6 sm:py-20">
+        <section className="border-y border-primary/20 bg-background/40 px-5 py-14 sm:px-6 sm:py-20">
           <div className="mx-auto max-w-4xl text-center"><Smartphone className="mx-auto h-9 w-9 text-primary" /><p className="pw-label mt-5 text-primary">Mobile command center</p><h2 className="pw-title mt-4 text-4xl sm:text-5xl">One platform.<br />Your trading. Your control.</h2><p className="mx-auto mt-5 max-w-xl leading-relaxed text-muted-foreground">Access your charts, market signals and account dashboard on Android, iOS or desktop. MT5 execution requires your connected terminal to stay online.</p><div className="mt-7 flex flex-wrap justify-center gap-3"><Link to="/get-app" className="pw-btn pw-btn-solid !min-h-12 px-7">ACTIVATE BOT <ArrowRight className="h-4 w-4" /></Link><Link to="/dashboard" className="pw-btn !min-h-12 px-7">Open Client Portal</Link></div></div>
         </section>
 

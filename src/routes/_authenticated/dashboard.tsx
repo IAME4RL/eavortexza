@@ -124,7 +124,7 @@ function ClientShell() {
       <PortalHeader onMenu={() => setOpen(true)} />
       {open && (
         <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
-          <div className="absolute inset-0 bg-black/80" onClick={() => setOpen(false)} />
+          <div className="absolute inset-0 bg-background/80" onClick={() => setOpen(false)} />
           <aside className="absolute inset-y-0 right-0 w-72 max-w-[85vw] border-l border-primary/30 bg-sidebar">
             <button aria-label="Close menu" className="absolute right-3 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground" onClick={() => setOpen(false)}><X /></button>
             <SidebarContent onNavigate={() => setOpen(false)} showNav={false} />

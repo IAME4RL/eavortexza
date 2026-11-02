@@ -331,7 +331,7 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
               onClick={() => run(() => liveOn({ data: { botId: bot.id, confirm: liveText, acknowledged: true } }), "Live mode enabled — press Start to verify and run")}>Enable live mode</button></>
           )}
         </NeonCard>
-        <section className="rounded-[1.15rem] border border-destructive/45 bg-[#080303] p-4 sm:p-5">
+        <section className="rounded-[1.15rem] border border-destructive/45 bg-card p-4 sm:p-5">
           <PwLabel className="text-destructive">Emergency close</PwLabel>
           <p className="mt-2 text-xs text-muted-foreground">Stops the bot and asks MT5 to close this bot's open positions (subject to broker rules). Type <span className="font-mono">{CLOSE_CONFIRM_PHRASE}</span>.</p>
           {bot.emergency_close_requested_at && <p className="mt-1 text-xs">{bot.emergency_close_ack_at ? `Terminal result: ${bot.emergency_close_result ?? "done"}` : "Waiting for terminal…"}</p>}
