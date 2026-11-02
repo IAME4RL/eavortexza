@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { Bot, Play, ShieldCheck, Square, Zap } from "lucide-react";
-import { parseStrategies, type AssignedMentorBot } from "@/lib/mentorBotDisplay";
+import { Bot, Play, Square, Zap } from "lucide-react";
+import { type AssignedMentorBot } from "@/lib/mentorBotDisplay";
 import { useAppearSound } from "@/hooks/useAppearSound";
+import circuit from "@/assets/home-circuit.jpg";
 
 type UserBot = { strategy: string; trading_mode: string } | null | undefined;
 
@@ -18,104 +19,64 @@ export type BotControl = {
 };
 
 type Props = {
+  /** Kept for call-site compatibility: controls are rendered by <BotControls/> beside the card. */
   control?: BotControl | undefined;
   /** Bot assigned through a redeemed mentor license; null/undefined keeps the default card. */
   mentorBot: AssignedMentorBot | null | undefined;
   /** True while the assignment is still being fetched, so the default card doesn't flash first. */
   loading?: boolean;
-  /** The client's own bridge bot row, used for mode and running state. */
-  userBot: UserBot;
-  running: boolean;
-  online: boolean;
+  userBot?: UserBot;
+  running?: boolean;
+  online?: boolean;
 };
-
-const SHELL = "pw-card relative overflow-hidden";
 
 /** Jigsaw EA plays its laugh when the card appears on screen. */
 const JIGSAW_LAUGH = "/sounds/jigsaw-laugh.mp3";
 const isJigsaw = (name: string | null | undefined) => /jigsaw/i.test(name ?? "");
 
-function StatusBadge({ running }: { running: boolean }) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-xs font-bold ${
-        running
-          ? "border border-emerald-500/30 bg-emerald-500/20 text-emerald-400"
-          : "border border-primary/30 bg-primary/20 text-primary"
-      }`}
-    >
-      <span
-        className={`h-2 w-2 rounded-full ${running ? "animate-pulse bg-emerald-400" : "bg-primary"}`}
-      />
-      {running ? "ACTIVE" : "STANDBY"}
-    </span>
-  );
-}
+/** Every card variant has exactly this size, measured from the reference app: the picture is about
+ *  418 x 305 px on a phone screen (11:8), full content width, with no text or border chrome inside. */
+const FRAME = "relative mx-auto aspect-[11/8] w-full max-w-md overflow-hidden rounded-xl bg-black shadow-[0_0_30px_-14px_var(--primary)]";
 
-function Tile({
-  label,
-  value,
-  valueClass = "text-foreground",
-}: {
-  label: string;
-  value: string;
-  valueClass?: string;
-}) {
+/** Status pills shown above the card (ACTIVE / STANDBY and the AI badge). */
+export function BotPills({ running }: { running: boolean }) {
   return (
-    <div className="min-w-0 rounded-lg bg-black/40 p-2.5">
-      <p className="text-[10px] font-semibold uppercase text-muted-foreground">{label}</p>
-      <p className={`mt-0.5 truncate font-mono text-sm font-bold ${valueClass}`}>{value}</p>
+    <div className="flex items-center justify-center gap-6 py-1" data-testid="bot-pills">
+      <span className="pw-pill" data-tone={running ? "live" : "idle"}>{running ? "Active" : "Standby"}</span>
+      <span className="pw-pill" data-tone="live"><Zap className="h-3 w-3" aria-hidden />AI powered</span>
     </div>
   );
 }
 
-function BotControls({ control }: { control: BotControl }) {
+/** Start / Stop (and the checks that blocked a start). Lives outside the card. */
+export function BotControls({ control }: { control: BotControl }) {
   if (!control.hasBot) {
     return (
-      <div className="mt-4 rounded-xl border border-border/60 bg-black/30 p-3" data-testid="bot-controls">
-        <p className="text-xs text-muted-foreground">
-          Register your MT5 account and set up your bot to start trading.
-        </p>
-        <Link
-          to="/dashboard/auto-trade"
-          className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground hover:bg-primary/90"
-        >
-          <Zap className="h-3.5 w-3.5" />
-          Set up bot
+      <div className="pw-card-quiet p-3" data-testid="bot-controls">
+        <p className="text-xs text-muted-foreground">Register your MT5 account and set up your bot to start trading.</p>
+        <Link to="/dashboard/auto-trade" className="pw-btn pw-btn-solid mt-2">
+          <Zap className="h-3.5 w-3.5" />Set up bot
         </Link>
       </div>
     );
   }
   const running = control.status === "running";
   return (
-    <div className="mt-4" data-testid="bot-controls">
+    <div data-testid="bot-controls">
       <div className="grid grid-cols-2 gap-3">
-        <button
-          type="button"
-          onClick={control.onStart}
-          disabled={control.busy || running}
-          className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-4 font-display text-sm font-bold uppercase tracking-wider text-primary-foreground transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
-        >
+        <button type="button" onClick={control.onStart} disabled={control.busy || running} className="pw-btn pw-btn-solid">
           <Play className="h-4 w-4" />
           {control.status === "paused" ? "Resume" : "Start bot"}
         </button>
-        <button
-          type="button"
-          onClick={control.onStop}
-          disabled={control.busy || control.status === "stopped"}
-          className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-primary/50 bg-black/40 px-4 font-display text-sm font-bold uppercase tracking-wider text-foreground transition-all hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <Square className="h-4 w-4" />
-          Stop bot
+        <button type="button" onClick={control.onStop} disabled={control.busy || control.status === "stopped"} className="pw-btn">
+          <Square className="h-4 w-4" />Stop bot
         </button>
       </div>
       {control.blockers.length > 0 && (
         <div role="alert" className="mt-3 rounded-xl border border-destructive/50 p-3 text-xs">
           <p className="font-semibold">Start blocked:</p>
           <ul className="mt-1 list-disc pl-5 text-muted-foreground">
-            {control.blockers.map((b) => (
-              <li key={b}>{b}</li>
-            ))}
+            {control.blockers.map((b) => (<li key={b}>{b}</li>))}
           </ul>
         </div>
       )}
@@ -123,130 +84,42 @@ function BotControls({ control }: { control: BotControl }) {
   );
 }
 
-function CardFooter({ control }: { control?: BotControl | undefined }) {
-  return (
-    <>
-      {control && <BotControls control={control} />}
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-2">
-        <p className="text-xs text-muted-foreground">
-          Configure risk, lot size, and Windows MetaTrader 5 bridge in Auto Trade.
-        </p>
-        <Link
-          to="/dashboard/auto-trade"
-          className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground transition-all hover:bg-primary/90"
-        >
-          <Zap className="h-3.5 w-3.5" />
-          Manage Bot Controls
-        </Link>
-      </div>
-    </>
-  );
-}
-
-/* ------------------------------ default card ------------------------------ */
-
-function DefaultCard({ userBot, running, online, control }: Pick<Props, "userBot" | "running" | "online" | "control">) {
-  return (
-    <div className={`${SHELL} p-5`} data-testid="featured-bot-default">
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="rounded bg-primary/20 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-primary">
-              {userBot ? userBot.strategy.replace(/_/g, " ") : "QUANTUM VORTEX AI"}
-            </span>
-            <span className="font-mono text-xs text-muted-foreground">
-              {userBot?.trading_mode === "live" ? "LIVE EXECUTION" : "DEMO / TEST"}
-            </span>
-          </div>
-          <h2 className="font-display text-xl font-black uppercase tracking-wide text-foreground sm:text-2xl">
-            {userBot ? "EA VORTEX ENGINE" : "GOLD VORTEX PRO AI"}
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            Institutional order block &amp; ICT liquidity execution on XAUUSD.
-          </p>
-        </div>
-        <div className="text-right">
-          <StatusBadge running={running} />
-        </div>
-      </div>
-
-      <div className="mt-5 grid grid-cols-2 gap-3 border-t border-border/60 pt-4 sm:grid-cols-4">
-        <Tile label="Target Symbol" value="GOLD / XAUUSD" />
-        <Tile label="Win Rate (Backtest)" value="78.4%" valueClass="text-emerald-400" />
-        <Tile label="Max Drawdown" value="4.2%" />
-        <Tile
-          label="MT5 Bridge"
-          value={online ? "Connected" : "Disconnected"}
-          valueClass="text-primary"
-        />
-      </div>
-
-      <CardFooter control={control} />
-    </div>
-  );
-}
-
-/* ------------------------------ loading card ------------------------------ */
-
 function LoadingCard() {
   return (
-    <div
-      className={`${SHELL} p-5`}
-      aria-busy="true"
-      aria-label="Loading featured bot"
-      data-testid="featured-bot-loading"
-    >
-      <div className="animate-pulse space-y-3">
-        <div className="h-4 w-32 rounded bg-primary/15" />
-        <div className="h-7 w-2/3 rounded bg-foreground/10" />
-        <div className="h-3 w-1/2 rounded bg-foreground/10" />
-        <div className="grid grid-cols-2 gap-3 pt-4 sm:grid-cols-4">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-12 rounded-lg bg-black/40" />
-          ))}
-        </div>
-      </div>
+    <div className={FRAME} aria-busy="true" aria-label="Loading featured bot" data-testid="featured-bot-loading">
+      <div className="h-full w-full animate-pulse bg-primary/10" />
     </div>
   );
 }
 
-/* ------------------------------- mentor card ------------------------------ */
+function DefaultCard() {
+  return (
+    <div className={FRAME} data-testid="featured-bot-default" role="img" aria-label="EA VORTEX bot">
+      <img src={circuit} alt="" decoding="async" className="h-full w-full object-cover" />
+    </div>
+  );
+}
 
-function MentorCard({
-  bot,
-  userBot,
-  running,
-  online,
-  control,
-}: { bot: AssignedMentorBot } & Pick<Props, "userBot" | "running" | "online" | "control">) {
+function MentorCard({ bot }: { bot: AssignedMentorBot }) {
   // Remember URLs that failed to load: a broken upload falls back gracefully, and a
   // re-uploaded image (new URL) is tried again without a reload.
   const [failed, setFailed] = useState<string[]>([]);
   const usable = (url: string | null): url is string => !!url && !failed.includes(url);
-  const markFailed = (url: string) =>
-    setFailed((prev) => (prev.includes(url) ? prev : [...prev, url]));
+  const markFailed = (url: string) => setFailed((prev) => (prev.includes(url) ? prev : [...prev, url]));
 
-  const avatarUrl = usable(bot.avatar_url) ? bot.avatar_url : null;
-  // The bot background fills the WHOLE card; without one the bot's picture is used.
-  const heroUrl = usable(bot.background_url) ? bot.background_url : avatarUrl;
-  const strategies = parseStrategies(bot.strategies);
-  const live = userBot?.trading_mode === "live";
+  // The bot background is the card; without one the bot's picture is used.
+  const heroUrl = usable(bot.background_url) ? bot.background_url : usable(bot.avatar_url) ? bot.avatar_url : null;
 
   const cardRef = useRef<HTMLDivElement>(null);
   useAppearSound(cardRef, JIGSAW_LAUGH, isJigsaw(bot.name));
 
   return (
-    <div
-      ref={cardRef}
-      className="pw-card relative isolate flex min-h-[26rem] flex-col overflow-hidden sm:min-h-[24rem]"
-      data-testid="featured-bot-mentor"
-    >
-      {/* Background: the bot's picture is the card — full size, no feathering or crop band */}
-      <div className="absolute inset-0 -z-10 bg-black" data-testid="mentor-hero">
+    <div ref={cardRef} className={FRAME} data-testid="featured-bot-mentor" role="img" aria-label={bot.name}>
+      <div className="absolute inset-0 bg-black" data-testid="mentor-hero">
         {heroUrl ? (
           <img
             src={heroUrl}
-            alt={`${bot.name} cover`}
+            alt=""
             loading="lazy"
             decoding="async"
             onError={() => markFailed(heroUrl)}
@@ -257,92 +130,13 @@ function MentorCard({
             <Bot className="h-16 w-16 text-primary/60" />
           </div>
         )}
-        {/* Readability: dark at the top (name/avatar) and bottom (details), picture clear in the middle */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-transparent via-35% to-black/95" />
-      </div>
-
-      {/* TOP: avatar + BOT NAME + status */}
-      <div className="flex items-center gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
-        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 border-primary/80 bg-black shadow-[0_0_18px_-4px_var(--primary)]">
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt={`${bot.name} profile`}
-              decoding="async"
-              onError={() => markFailed(avatarUrl)}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-primary/15">
-              <Bot className="h-6 w-6 text-primary" />
-            </div>
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <h2 className="pw-title break-words text-lg leading-tight sm:text-2xl">{bot.name}</h2>
-          <p className="pw-label mt-0.5 truncate text-[0.6rem] text-muted-foreground">
-            Mentor <span className="text-primary">{bot.mentor_name}</span>
-          </p>
-        </div>
-        <div className="shrink-0">
-          <StatusBadge running={running} />
-        </div>
-      </div>
-
-      {/* BOTTOM: details over the picture */}
-      <div className="mt-auto px-4 pb-4 pt-20 sm:px-5 sm:pb-5">
-        <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-black/60 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-primary backdrop-blur">
-          <ShieldCheck className="h-3 w-3" />
-          Mentor Bot
-        </div>
-
-        {strategies.length > 0 && (
-          <div className="mt-4">
-            <p className="pw-label text-[0.6rem] text-muted-foreground">Trading Strategies</p>
-            <ul className="mt-2 flex flex-wrap gap-2">
-              {strategies.map((st) => (
-                <li
-                  key={st}
-                  className="rounded-full border border-primary/45 bg-black/50 px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider text-primary shadow-[0_0_14px_-6px_var(--primary)]"
-                >
-                  {st}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Only facts we actually know for this bot; the backtest figures on the default card belong to the default bot. */}
-        <div className="mt-4 grid grid-cols-2 gap-3 border-t border-primary/20 pt-4 sm:grid-cols-4">
-          <Tile label="Mentor" value={bot.mentor_name} />
-          <Tile
-            label="Execution"
-            value={live ? "Live" : "Demo / Test"}
-            valueClass={live ? "text-emerald-400" : "text-foreground"}
-          />
-          <Tile
-            label="Bot Status"
-            value={running ? "Active" : "Standby"}
-            valueClass={running ? "text-emerald-400" : "text-primary"}
-          />
-          <Tile
-            label="MT5 Bridge"
-            value={online ? "Connected" : "Disconnected"}
-            valueClass="text-primary"
-          />
-        </div>
-
-        <CardFooter control={control} />
       </div>
     </div>
   );
 }
 
-/* --------------------------------- public --------------------------------- */
-
-export function FeaturedBotCard({ mentorBot, loading, userBot, running, online, control }: Props) {
+export function FeaturedBotCard({ mentorBot, loading }: Props) {
   if (loading) return <LoadingCard />;
-  if (mentorBot)
-    return <MentorCard bot={mentorBot} userBot={userBot} running={running} online={online} control={control} />;
-  return <DefaultCard userBot={userBot} running={running} online={online} control={control} />;
+  if (mentorBot) return <MentorCard bot={mentorBot} />;
+  return <DefaultCard />;
 }
