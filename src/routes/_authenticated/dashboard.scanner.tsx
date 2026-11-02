@@ -84,7 +84,7 @@ function Scanner() {
 
   return (
     <>
-      <PortalTitle title="Scan market" sub="Upload your chart screenshot. The scanner reads only what is visible on it and gives a BUY / SELL signal with entry, stop-loss and take-profit — or No Trade. Educational and never guaranteed." />
+      <PortalTitle title="Scan market" sub="Upload your chart screenshot. The scanner reads only what is visible on it and gives you a BUY or SELL signal with entry, stop-loss, take-profit and a confidence rating. Educational and never guaranteed." />
 
       {q && !q.aiConfigured && <Notice>The AI service is not configured on the server, so scans are unavailable.</Notice>}
       {q && !q.enabled && <Notice>The administrator has temporarily disabled the scanner.</Notice>}

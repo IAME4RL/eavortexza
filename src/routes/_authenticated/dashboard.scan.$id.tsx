@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
+import { AlertTriangle, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { ChartSignal } from "@/lib/chartSignal";
 import { PageHeader } from "@/components/dash";
@@ -33,48 +33,78 @@ function ScanResult() {
       <div className="mb-4 grid gap-4 lg:grid-cols-5">
         {sig && (
           <div className="panel overflow-hidden lg:col-span-3">
-            {sig.action === "NO_TRADE" ? (
-              <div className="flex items-start gap-3 p-5">
-                <Minus className="mt-0.5 h-5 w-5 shrink-0 text-neutral" />
-                <div>
-                  <p className="font-display text-2xl font-bold uppercase">No Trade</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{sig.reason ?? sig.basis}</p>
-                  <p className="mt-3 text-xs text-muted-foreground">No signal is better than a guessed one. Try a clearer chart with the price scale visible.</p>
-                </div>
+            <div className={cn("flex items-center justify-between border-b border-border px-5 py-4", sig.action === "BUY" ? "bg-bull/10" : "bg-primary/10")}>
+              <div className="flex items-center gap-3">
+                {sig.action === "BUY" ? <ArrowUpRight className="h-6 w-6 text-bull" /> : <ArrowDownRight className="h-6 w-6 text-primary" />}
+                <p className={cn("font-display text-2xl font-bold uppercase", sig.action === "BUY" ? "text-bull" : "text-primary")}>{sig.action}</p>
+              </div>
+              {sig.rr != null && <span className="rounded border border-border bg-card px-3 py-1.5 font-mono text-xs">R:R 1:{sig.rr}</span>}
+            </div>
+
+            <div className="border-b border-border px-5 py-4">
+              <div className="flex items-baseline justify-between">
+                <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Confidence</p>
+                <p className={cn("font-display text-lg font-bold", sig.confidence.level === "High" ? "text-bull" : sig.confidence.level === "Low" ? "text-primary" : "text-foreground")}>
+                  {sig.confidence.score}% · {sig.confidence.level}
+                </p>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded bg-muted">
+                <div className={cn("h-full rounded", sig.confidence.level === "High" ? "bg-bull" : "bg-gradient-red")} style={{ width: `${sig.confidence.score}%` }} />
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">{sig.confidence.summary}</p>
+              {sig.confidence.limits.length > 0 && (
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
+                  {sig.confidence.limits.map((l) => <li key={l}>{l}</li>)}
+                </ul>
+              )}
+              <p className="mt-2 text-[11px] text-muted-foreground">Confidence shows how clear and well-supported the chart reading is. It is not a probability of profit.</p>
+            </div>
+
+            {sig.levels === "exact" ? (
+              <div className="grid grid-cols-3 divide-x divide-border border-b border-border">
+                <Level label="Entry" value={sig.entry} />
+                <Level label="Stop loss" value={sig.stop_loss} />
+                <Level label="Take profit" value={sig.take_profit} />
               </div>
             ) : (
-              <>
-                <div className={cn("flex items-center justify-between border-b border-border px-5 py-4", sig.action === "BUY" ? "bg-bull/10" : "bg-primary/10")}>
-                  <div className="flex items-center gap-3">
-                    {sig.action === "BUY" ? <ArrowUpRight className="h-6 w-6 text-bull" /> : <ArrowDownRight className="h-6 w-6 text-primary" />}
-                    <p className={cn("font-display text-2xl font-bold uppercase", sig.action === "BUY" ? "text-bull" : "text-primary")}>{sig.action}</p>
-                  </div>
-                  <span className="rounded border border-border bg-card px-3 py-1.5 font-mono text-xs">R:R 1:{sig.rr}</span>
-                </div>
-                <div className="grid grid-cols-3 divide-x divide-border border-b border-border">
-                  <Level label="Entry" value={sig.entry} />
-                  <Level label="Stop loss" value={sig.stop_loss} />
-                  <Level label="Take profit" value={sig.take_profit} />
-                </div>
-                <div className="space-y-3 p-5 text-sm">
-                  <p className="text-muted-foreground">{sig.basis}</p>
-                  <div>
-                    <p className="font-mono text-[11px] uppercase tracking-widest text-primary">Read from your chart</p>
-                    <ul className="mt-1 list-disc space-y-1 pl-5 text-muted-foreground">{sig.evidence.map((e) => <li key={e}>{e}</li>)}</ul>
-                  </div>
-                  {axis?.min_visible != null && axis?.max_visible != null && (
-                    <p className="font-mono text-[11px] text-muted-foreground">
-                      Verified against the visible price range {axis.min_visible} – {axis.max_visible}
-                      {axis.last_price != null ? ` · last price ${axis.last_price}` : ""}
-                    </p>
-                  )}
-                  <p className="flex items-start gap-2 rounded border border-border bg-card p-3 text-xs text-muted-foreground">
-                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                    These levels come from your screenshot, not a live feed. Price may have moved since it was taken — check the live price before acting. Not financial advice; no outcome is guaranteed.
-                  </p>
-                </div>
-              </>
+              <div className="space-y-2 border-b border-border px-5 py-4 text-sm">
+                <p className="font-mono text-[11px] uppercase tracking-widest text-primary">Approximate zones — no exact prices could be verified</p>
+                <Zone label="Entry" text={sig.zones.entry} />
+                <Zone label="Stop loss" text={sig.zones.stop_loss} />
+                <Zone label="Take profit" text={sig.zones.take_profit} />
+              </div>
             )}
+
+            <div className="space-y-3 p-5 text-sm">
+              {sig.basis && <p className="text-muted-foreground">{sig.basis}</p>}
+              {sig.evidence.length > 0 && (
+                <div>
+                  <p className="font-mono text-[11px] uppercase tracking-widest text-primary">Read from your chart</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-5 text-muted-foreground">{sig.evidence.map((e) => <li key={e}>{e}</li>)}</ul>
+                </div>
+              )}
+              {sig.confidence.risks.length > 0 && (
+                <div>
+                  <p className="font-mono text-[11px] uppercase tracking-widest text-primary">What could go wrong</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-5 text-muted-foreground">{sig.confidence.risks.map((e) => <li key={e}>{e}</li>)}</ul>
+                </div>
+              )}
+              {sig.levels === "exact" && axis?.min_visible != null && axis?.max_visible != null && (
+                <p className="font-mono text-[11px] text-muted-foreground">
+                  Verified against the visible price range {axis.min_visible} – {axis.max_visible}
+                  {axis.last_price != null ? ` · last price ${axis.last_price}` : ""}
+                </p>
+              )}
+              {sig.warnings.map((w) => (
+                <p key={w} className="flex items-start gap-2 rounded border border-primary/40 bg-card p-3 text-xs text-muted-foreground">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />{w}
+                </p>
+              ))}
+              <p className="flex items-start gap-2 rounded border border-border bg-card p-3 text-xs text-muted-foreground">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                This signal comes from your screenshot, not a live feed. Price may have moved since it was taken — check the live price before acting. Not financial advice; no outcome is guaranteed.
+              </p>
+            </div>
           </div>
         )}
         {chart.data && (
@@ -94,6 +124,12 @@ function ScanResult() {
         ))}
       </div>
     </>
+  );
+}
+
+function Zone({ label, text }: { label: string; text: string }) {
+  return (
+    <p className="flex gap-3"><span className="w-20 shrink-0 font-mono text-[11px] uppercase text-muted-foreground">{label}</span><span>{text || "—"}</span></p>
   );
 }
 
