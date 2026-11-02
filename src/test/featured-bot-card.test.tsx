@@ -62,13 +62,13 @@ describe("FeaturedBotCard", () => {
     expect(text(el)).not.toContain("GOLD VORTEX PRO AI");
   });
 
-  it("shows every mentor bot field once a license is redeemed", () => {
+  it("shows the mentor bot fields (but not the description) once a license is redeemed", () => {
     const el = mount(<FeaturedBotCard mentorBot={bot} {...base} running online />);
     expect(q(el, '[data-testid="featured-bot-default"]')).toBeNull();
     const t = text(el);
     expect(t).toContain("Gold Sniper Pro");
     expect(t).toContain("Earl Mentor");
-    expect(t).toContain("Trades London open sweeps on XAUUSD.");
+    expect(t).not.toContain("Trades London open sweeps on XAUUSD.");
     for (const s of ["Scalping", "SMC", "Breakout"])
       expect(t.toUpperCase()).toContain(s.toUpperCase());
     expect(q(el, `img[src="${bot.avatar_url}"]`)).not.toBeNull();
