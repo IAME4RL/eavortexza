@@ -1,21 +1,40 @@
 import { symbolConflicts } from "./instruments";
 
 /**
- * Turns the AI's reading of an uploaded chart into a signal — but only if every number can be
- * traced to the chart itself. The model reports the price range it can read off the axis; any
- * level outside that range, on the wrong side of entry, or not backed by evidence is thrown away
- * and the result becomes NO TRADE. Nothing here can create a level the chart did not show.
+ * Builds the signal for an uploaded chart. Every scan returns a BUY or SELL with a confidence
+ * rating — never "no trade". What stays strict is where the numbers come from:
+ *  - Exact entry / stop-loss / take-profit are shown only if they trace to the price range the AI
+ *    read off the chart's own axis. Otherwise the signal shows approximate zones in words instead,
+ *    and confidence is capped low. Nothing here can create a price the chart did not show.
+ *  - Confidence starts from the AI's own estimate but is capped by objective checks (legible
+ *    price scale, level validity, evidence, image quality, symbol match, reward-to-risk).
  */
+export type ConfidenceLevel = "Low" | "Medium" | "High";
+
+export interface Confidence {
+  /** 0–100. How clear and well-supported the chart reading is — NOT a probability of profit. */
+  score: number;
+  level: ConfidenceLevel;
+  summary: string;
+  /** Objective reasons the score was held down. */
+  limits: string[];
+  /** Things that could make the signal fail. */
+  risks: string[];
+}
+
 export interface ChartSignal {
-  action: "BUY" | "SELL" | "NO_TRADE";
+  action: "BUY" | "SELL";
+  /** "exact" = numbers verified against the chart axis; "approximate" = zones described in words. */
+  levels: "exact" | "approximate";
   entry: number | null;
   stop_loss: number | null;
   take_profit: number | null;
   rr: number | null;
+  zones: { entry: string; stop_loss: string; take_profit: string };
   basis: string;
   evidence: string[];
-  /** Why the result is NO TRADE (null for BUY/SELL). */
-  reason: string | null;
+  warnings: string[];
+  confidence: Confidence;
 }
 
 export interface ChartSignalInput {
@@ -24,15 +43,19 @@ export interface ChartSignalInput {
   imageQuality: unknown;
   symbolDetected: string | null | undefined;
   selectedInstrument: string;
+  bias?: unknown;
+  trendDirection?: unknown;
 }
 
-/** Levels may sit at most this far (fraction of the visible price range) outside the visible axis. */
+/** Levels may sit at most this far (fraction of the visible range) outside the visible axis. */
 export const AXIS_PAD = 0.1;
 /** Entry must be within this fraction of the visible range from the last visible price. */
 export const ENTRY_NEAR_LAST = 0.1;
-/** Stop must be at least this fraction of the visible range away from entry (no absurd stops). */
+/** Stop must be at least this fraction of the visible range away from entry. */
 export const MIN_RISK_FRACTION = 0.01;
-export const MIN_RR = 1;
+
+export const CONFIDENCE_LOW_BELOW = 40;
+export const CONFIDENCE_HIGH_FROM = 70;
 
 const rec = (v: unknown): Record<string, unknown> => (v && typeof v === "object" ? (v as Record<string, unknown>) : {});
 const num = (v: unknown): number | null => {
@@ -40,57 +63,118 @@ const num = (v: unknown): number | null => {
   return typeof n === "number" && Number.isFinite(n) ? n : null;
 };
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
+const strs = (v: unknown, max: number): string[] => (Array.isArray(v) ? v : []).map(str).filter(Boolean).slice(0, max);
 
-function noTrade(reason: string, basis = ""): ChartSignal {
-  return { action: "NO_TRADE", entry: null, stop_loss: null, take_profit: null, rr: null, basis: basis || reason, evidence: [], reason };
+export function confidenceLevel(score: number): ConfidenceLevel {
+  return score < CONFIDENCE_LOW_BELOW ? "Low" : score < CONFIDENCE_HIGH_FROM ? "Medium" : "High";
 }
 
-export function validateChartSignal(i: ChartSignalInput): ChartSignal {
-  const s = rec(i.signal);
-  const basis = str(s["basis"]);
-  const action = str(s["action"]).toUpperCase().replace(/[\s-]/g, "_");
+/** True when the image is not a readable trading chart — the one case where no signal can exist. */
+export function isUnreadable(imageQuality: unknown): boolean {
+  return imageQuality === "unreadable";
+}
 
-  if (i.imageQuality === "unreadable") return noTrade("The image could not be read as a trading chart.", basis);
-  if (symbolConflicts(i.selectedInstrument, i.symbolDetected)) {
-    return noTrade(`The chart shows ${i.symbolDetected} but you selected ${i.selectedInstrument}. Upload the matching chart or change the symbol.`);
-  }
-  if (action !== "BUY" && action !== "SELL") {
-    return noTrade(basis || "The chart does not show a clear, supported setup.", basis);
-  }
-
-  const axis = rec(i.axis);
+function pickAction(i: ChartSignalInput, axis: Record<string, unknown>): { action: "BUY" | "SELL"; note: string | null; cap: number | null } | null {
+  const a = str(rec(i.signal)["action"]).toUpperCase();
+  if (a === "BUY" || a === "LONG") return { action: "BUY", note: null, cap: null };
+  if (a === "SELL" || a === "SHORT") return { action: "SELL", note: null, cap: null };
+  const bias = str(i.bias).toLowerCase();
+  if (bias === "bullish") return { action: "BUY", note: "Direction taken from the chart's overall bullish bias.", cap: 40 };
+  if (bias === "bearish") return { action: "SELL", note: "Direction taken from the chart's overall bearish bias.", cap: 40 };
+  const trend = str(i.trendDirection).toLowerCase();
+  if (trend === "uptrend") return { action: "BUY", note: "Direction taken from the visible uptrend.", cap: 40 };
+  if (trend === "downtrend") return { action: "SELL", note: "Direction taken from the visible downtrend.", cap: 40 };
   const lo = num(axis["min_visible"]);
   const hi = num(axis["max_visible"]);
   const last = num(axis["last_price"]);
-  if (axis["legible"] !== true || lo === null || hi === null || last === null || !(hi > lo)) {
-    return noTrade("The price scale on the chart is not legible, so exact levels cannot be read from it.");
+  if (axis["legible"] === true && lo !== null && hi !== null && last !== null && hi > lo) {
+    return last < (lo + hi) / 2
+      ? { action: "BUY", note: "No clear trend: leaning BUY because price sits in the lower half of the visible range.", cap: 25 }
+      : { action: "SELL", note: "No clear trend: leaning SELL because price sits in the upper half of the visible range.", cap: 25 };
   }
-  const range = hi - lo;
-  const pad = range * AXIS_PAD;
+  return null;
+}
 
+export function buildChartSignal(i: ChartSignalInput): ChartSignal | null {
+  if (isUnreadable(i.imageQuality)) return null;
+  const s = rec(i.signal);
+  const axis = rec(i.axis);
+  const picked = pickAction(i, axis);
+  if (!picked) return null;
+  const { action } = picked;
+
+  const warnings: string[] = [];
+  const caps: { cap: number; reason: string }[] = [];
+  if (picked.note && picked.cap !== null) {
+    warnings.push(picked.note);
+    caps.push({ cap: picked.cap, reason: "The chart gave no explicit direction." });
+  }
+
+  if (i.imageQuality === "limited") caps.push({ cap: 60, reason: "Image quality is limited." });
+  if (symbolConflicts(i.selectedInstrument, i.symbolDetected)) {
+    warnings.push(`This chart shows ${i.symbolDetected} but you selected ${i.selectedInstrument}. The signal is for the chart you uploaded.`);
+    caps.push({ cap: 30, reason: "The chart's symbol does not match your selection." });
+  }
+
+  const evidence = strs(s["evidence"], 5);
+  if (evidence.length < 2) caps.push({ cap: 40, reason: "Very little visible evidence supports this signal." });
+  else if (evidence.length < 3) caps.push({ cap: 70, reason: "Only a couple of visible observations support this signal." });
+
+  // ---- levels: exact only if every number traces to the chart's own price axis
+  const lo = num(axis["min_visible"]);
+  const hi = num(axis["max_visible"]);
+  const last = num(axis["last_price"]);
   const entry = num(s["entry"]);
   const sl = num(s["stop_loss"]);
   const tp = num(s["take_profit"]);
-  if (entry === null || sl === null || tp === null || entry <= 0 || sl <= 0 || tp <= 0) {
-    return noTrade("The chart does not give a complete entry, stop-loss and take-profit.");
-  }
-  for (const [name, v] of [["Entry", entry], ["Stop loss", sl], ["Take profit", tp]] as const) {
-    if (v < lo - pad || v > hi + pad) return noTrade(`${name} (${v}) is outside the price range visible on your chart (${lo}–${hi}), so it was rejected.`);
-  }
-  if (Math.abs(entry - last) > range * ENTRY_NEAR_LAST) {
-    return noTrade(`Entry (${entry}) is not near the latest visible price (${last}).`);
-  }
-  const ordered = action === "BUY" ? sl < entry && entry < tp : tp < entry && entry < sl;
-  if (!ordered) return noTrade(`Stop loss and take profit are on the wrong sides of entry for a ${action}.`);
+  let levelProblem: string | null = null;
+  let rr: number | null = null;
 
-  const risk = Math.abs(entry - sl);
-  const reward = Math.abs(tp - entry);
-  if (risk < range * MIN_RISK_FRACTION) return noTrade("Stop loss is unrealistically close to entry.");
-  const rr = reward / risk;
-  if (rr < MIN_RR) return noTrade(`Reward-to-risk is only 1:${rr.toFixed(2)}, below the 1:${MIN_RR} minimum.`);
+  if (axis["legible"] !== true || lo === null || hi === null || last === null || !(hi > lo)) {
+    levelProblem = "The price scale on the chart is not legible, so exact prices cannot be read from it.";
+  } else if (entry === null || sl === null || tp === null || entry <= 0 || sl <= 0 || tp <= 0) {
+    levelProblem = "The chart did not give a complete entry, stop-loss and take-profit.";
+  } else {
+    const range = hi - lo;
+    const pad = range * AXIS_PAD;
+    const outside = ([["Entry", entry], ["Stop loss", sl], ["Take profit", tp]] as const).find(([, v]) => v < lo - pad || v > hi + pad);
+    if (outside) levelProblem = `${outside[0]} (${outside[1]}) was outside the price range visible on your chart (${lo}–${hi}).`;
+    else if (Math.abs(entry - last) > range * ENTRY_NEAR_LAST) levelProblem = `Entry (${entry}) was not near the latest visible price (${last}).`;
+    else if (!(action === "BUY" ? sl < entry && entry < tp : tp < entry && entry < sl)) levelProblem = `Stop loss and take profit were on the wrong sides of entry for a ${action}.`;
+    else if (Math.abs(entry - sl) < range * MIN_RISK_FRACTION) levelProblem = "Stop loss was unrealistically close to entry.";
+    else rr = Math.round((Math.abs(tp - entry) / Math.abs(entry - sl)) * 100) / 100;
+  }
 
-  const evidence = (Array.isArray(s["evidence"]) ? s["evidence"] : []).map(str).filter(Boolean).slice(0, 5);
-  if (evidence.length < 2) return noTrade("The setup is not backed by enough visible evidence on the chart.");
+  const exact = levelProblem === null && rr !== null;
+  if (!exact && levelProblem) {
+    warnings.push(`${levelProblem} Showing approximate zones instead of exact prices.`);
+    caps.push({ cap: 35, reason: "Exact levels could not be verified against the chart." });
+  }
+  if (exact && rr !== null) {
+    if (rr < 1) caps.push({ cap: 45, reason: `Reward-to-risk is only 1:${rr}.` });
+    else if (rr < 1.5) caps.push({ cap: 65, reason: `Reward-to-risk is modest (1:${rr}).` });
+  }
 
-  return { action, entry, stop_loss: sl, take_profit: tp, rr: Math.round(rr * 100) / 100, basis, evidence, reason: null };
+  // ---- confidence
+  const modelScore = num(s["confidence_score"]);
+  const base = Math.min(95, Math.max(5, Math.round(modelScore ?? 50)));
+  const capped = caps.length ? Math.min(base, ...caps.map((c) => c.cap)) : base;
+  const score = Math.max(5, capped);
+  const level = confidenceLevel(score);
+  const reasonText = str(s["confidence_reason"]);
+  const summary = reasonText || (level === "High" ? "The chart is clear and the evidence lines up." : level === "Medium" ? "A reasonable setup, but some things are unclear." : "Weak or unclear evidence — treat this as a lean, not a conviction.");
+
+  return {
+    action,
+    levels: exact ? "exact" : "approximate",
+    entry: exact ? entry : null,
+    stop_loss: exact ? sl : null,
+    take_profit: exact ? tp : null,
+    rr: exact ? rr : null,
+    zones: { entry: str(s["entry_zone"]), stop_loss: str(s["stop_zone"]), take_profit: str(s["target_zone"]) },
+    basis: str(s["basis"]),
+    evidence,
+    warnings,
+    confidence: { score, level, summary, limits: caps.map((c) => c.reason), risks: strs(s["risks"], 4) },
+  };
 }
