@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
   LayoutDashboard, ScanLine, History, Bot, BarChart3, LineChart, Bell, Settings, Users, ShieldCheck, LogOut, Menu, X, Zap,
@@ -44,6 +44,11 @@ function useSignOut() {
 function SidebarContent({ onNavigate, showNav = true }: { onNavigate: () => void; showNav?: boolean }) {
   const { user, hasRole } = useAuth();
   const signOut = useSignOut();
+  const profile = useQuery({
+    queryKey: ["profile"], enabled: !!user,
+    queryFn: async () => (await supabase.from("profiles").select("*").eq("id", user!.id).single()).data,
+  });
+  const displayName = profile.data?.display_name?.trim();
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center border-b border-sidebar-border px-5"><Logo /></div>
@@ -62,7 +67,9 @@ function SidebarContent({ onNavigate, showNav = true }: { onNavigate: () => void
         )}
       </nav>
       <div className="border-t border-sidebar-border p-3">
+        {displayName && <p className="truncate px-3 text-sm font-semibold text-foreground">{displayName}</p>}
         <p className="truncate px-3 pb-2 text-xs text-muted-foreground">{user?.email}</p>
+        <Link to="/dashboard/settings" className={cn(linkCls, "mb-1 w-full")} onClick={onNavigate}><Settings className="h-4 w-4" />Change display name</Link>
         <button onClick={signOut} className={cn(linkCls, "w-full")}><LogOut className="h-4 w-4" />Sign out</button>
       </div>
     </div>
