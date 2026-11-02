@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
-import { Route as BotcardPreviewRouteImport } from './routes/botcard-preview'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as GetAppRouteImport } from './routes/get-app'
@@ -31,9 +30,9 @@ import { Route as AuthenticatedDashboardMentorRouteImport } from './routes/_auth
 import { Route as AuthenticatedDashboardNotificationsRouteImport } from './routes/_authenticated/dashboard.notifications'
 import { Route as AuthenticatedDashboardScannerRouteImport } from './routes/_authenticated/dashboard.scanner'
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
-import { Route as AuthenticatedDashboardSignalsRouteImport } from './routes/_authenticated/dashboard.signals'
 import { Route as AuthenticatedDashboardScanIdRouteImport } from './routes/_authenticated/dashboard.scan.$id'
 import { Route as ApiPublicBridgeMt5RouteImport } from './routes/api/public/bridge.mt5'
+import { Route as ApiPublicCronCloudTradeRouteImport } from './routes/api/public/cron/cloud-trade'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -47,11 +46,6 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BotcardPreviewRoute = BotcardPreviewRouteImport.update({
-  id: '/botcard-preview',
-  path: '/botcard-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FaqRoute = FaqRouteImport.update({
@@ -155,12 +149,6 @@ const AuthenticatedDashboardSettingsRoute =
     path: '/settings',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
-const AuthenticatedDashboardSignalsRoute =
-  AuthenticatedDashboardSignalsRouteImport.update({
-    id: '/signals',
-    path: '/signals',
-    getParentRoute: () => AuthenticatedDashboardRoute,
-  } as any)
 const AuthenticatedDashboardScanIdRoute =
   AuthenticatedDashboardScanIdRouteImport.update({
     id: '/scan/$id',
@@ -172,11 +160,15 @@ const ApiPublicBridgeMt5Route = ApiPublicBridgeMt5RouteImport.update({
   path: '/api/public/bridge/mt5',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCronCloudTradeRoute = ApiPublicCronCloudTradeRouteImport.update({
+  id: '/api/public/cron/cloud-trade',
+  path: '/api/public/cron/cloud-trade',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/botcard-preview': typeof BotcardPreviewRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/get-app': typeof GetAppRoute
@@ -194,15 +186,14 @@ export interface FileRoutesByFullPath {
   '/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
   '/dashboard/scanner': typeof AuthenticatedDashboardScannerRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
-  '/dashboard/signals': typeof AuthenticatedDashboardSignalsRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/scan/$id': typeof AuthenticatedDashboardScanIdRoute
   '/api/public/bridge/mt5': typeof ApiPublicBridgeMt5Route
+  '/api/public/cron/cloud-trade': typeof ApiPublicCronCloudTradeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/botcard-preview': typeof BotcardPreviewRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/get-app': typeof GetAppRoute
@@ -219,17 +210,16 @@ export interface FileRoutesByTo {
   '/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
   '/dashboard/scanner': typeof AuthenticatedDashboardScannerRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
-  '/dashboard/signals': typeof AuthenticatedDashboardSignalsRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/scan/$id': typeof AuthenticatedDashboardScanIdRoute
   '/api/public/bridge/mt5': typeof ApiPublicBridgeMt5Route
+  '/api/public/cron/cloud-trade': typeof ApiPublicCronCloudTradeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
-  '/botcard-preview': typeof BotcardPreviewRoute
   '/faq': typeof FaqRoute
   '/features': typeof FeaturesRoute
   '/get-app': typeof GetAppRoute
@@ -247,17 +237,16 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
   '/_authenticated/dashboard/scanner': typeof AuthenticatedDashboardScannerRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
-  '/_authenticated/dashboard/signals': typeof AuthenticatedDashboardSignalsRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/dashboard/scan/$id': typeof AuthenticatedDashboardScanIdRoute
   '/api/public/bridge/mt5': typeof ApiPublicBridgeMt5Route
+  '/api/public/cron/cloud-trade': typeof ApiPublicCronCloudTradeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/auth'
-    | '/botcard-preview'
     | '/faq'
     | '/features'
     | '/get-app'
@@ -275,15 +264,14 @@ export interface FileRouteTypes {
     | '/dashboard/notifications'
     | '/dashboard/scanner'
     | '/dashboard/settings'
-    | '/dashboard/signals'
     | '/dashboard/'
     | '/dashboard/scan/$id'
     | '/api/public/bridge/mt5'
+    | '/api/public/cron/cloud-trade'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
-    | '/botcard-preview'
     | '/faq'
     | '/features'
     | '/get-app'
@@ -300,16 +288,15 @@ export interface FileRouteTypes {
     | '/dashboard/notifications'
     | '/dashboard/scanner'
     | '/dashboard/settings'
-    | '/dashboard/signals'
     | '/dashboard'
     | '/dashboard/scan/$id'
     | '/api/public/bridge/mt5'
+    | '/api/public/cron/cloud-trade'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
-    | '/botcard-preview'
     | '/faq'
     | '/features'
     | '/get-app'
@@ -327,17 +314,16 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/notifications'
     | '/_authenticated/dashboard/scanner'
     | '/_authenticated/dashboard/settings'
-    | '/_authenticated/dashboard/signals'
     | '/_authenticated/dashboard/'
     | '/_authenticated/dashboard/scan/$id'
     | '/api/public/bridge/mt5'
+    | '/api/public/cron/cloud-trade'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
-  BotcardPreviewRoute: typeof BotcardPreviewRoute
   FaqRoute: typeof FaqRoute
   FeaturesRoute: typeof FeaturesRoute
   GetAppRoute: typeof GetAppRoute
@@ -345,6 +331,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   ScannerRoute: typeof ScannerRoute
   ApiPublicBridgeMt5Route: typeof ApiPublicBridgeMt5Route
+  ApiPublicCronCloudTradeRoute: typeof ApiPublicCronCloudTradeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -368,13 +355,6 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/botcard-preview': {
-      id: '/botcard-preview'
-      path: '/botcard-preview'
-      fullPath: '/botcard-preview'
-      preLoaderRoute: typeof BotcardPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/faq': {
@@ -503,13 +483,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardSettingsRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
-    '/_authenticated/dashboard/signals': {
-      id: '/_authenticated/dashboard/signals'
-      path: '/signals'
-      fullPath: '/dashboard/signals'
-      preLoaderRoute: typeof AuthenticatedDashboardSignalsRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
-    }
     '/_authenticated/dashboard/scan/$id': {
       id: '/_authenticated/dashboard/scan/$id'
       path: '/scan/$id'
@@ -522,6 +495,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/bridge/mt5'
       fullPath: '/api/public/bridge/mt5'
       preLoaderRoute: typeof ApiPublicBridgeMt5RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cron/cloud-trade': {
+      id: '/api/public/cron/cloud-trade'
+      path: '/api/public/cron/cloud-trade'
+      fullPath: '/api/public/cron/cloud-trade'
+      preLoaderRoute: typeof ApiPublicCronCloudTradeRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -538,7 +518,6 @@ interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardNotificationsRoute: typeof AuthenticatedDashboardNotificationsRoute
   AuthenticatedDashboardScannerRoute: typeof AuthenticatedDashboardScannerRoute
   AuthenticatedDashboardSettingsRoute: typeof AuthenticatedDashboardSettingsRoute
-  AuthenticatedDashboardSignalsRoute: typeof AuthenticatedDashboardSignalsRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedDashboardScanIdRoute: typeof AuthenticatedDashboardScanIdRoute
 }
@@ -556,7 +535,6 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
       AuthenticatedDashboardNotificationsRoute,
     AuthenticatedDashboardScannerRoute: AuthenticatedDashboardScannerRoute,
     AuthenticatedDashboardSettingsRoute: AuthenticatedDashboardSettingsRoute,
-    AuthenticatedDashboardSignalsRoute: AuthenticatedDashboardSignalsRoute,
     AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
     AuthenticatedDashboardScanIdRoute: AuthenticatedDashboardScanIdRoute,
   }
@@ -581,7 +559,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
-  BotcardPreviewRoute: BotcardPreviewRoute,
   FaqRoute: FaqRoute,
   FeaturesRoute: FeaturesRoute,
   GetAppRoute: GetAppRoute,
@@ -589,6 +566,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   ScannerRoute: ScannerRoute,
   ApiPublicBridgeMt5Route: ApiPublicBridgeMt5Route,
+  ApiPublicCronCloudTradeRoute: ApiPublicCronCloudTradeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
