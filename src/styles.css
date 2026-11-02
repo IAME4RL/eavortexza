@@ -46,6 +46,8 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-bot-card: var(--bot-card);
+  --color-bot-border: var(--bot-border);
   --color-chart-1: var(--primary);
   --color-chart-2: var(--bull);
   --color-chart-3: var(--muted-foreground);
@@ -91,6 +93,11 @@
   --sidebar-border: oklch(0.37 0.1 20);
   --sidebar-ring: oklch(0.68 0.225 22);
   --panel-base: oklch(0.16 0.075 20);       /* #250002 */
+
+  /* Featured bot card: obsidian panel + dark crimson frame, like the phone app. */
+  --bot-card: oklch(0.15 0.02 20);
+  --bot-border: oklch(0.34 0.1 22);
+  --bot-glow: 0 0 44px -18px color-mix(in oklab, var(--primary) 80%, transparent);
 
   --glow-red: 0 0 78px -4px color-mix(in oklab, var(--primary) 88%, transparent);
   --glow-red-soft: 0 0 150px -14px color-mix(in oklab, var(--primary) 72%, transparent);
