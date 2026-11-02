@@ -11,7 +11,7 @@ const PORTALS = {
     blurb: "Your private trading workspace: scan charts, review signals and run your bot from one place.",
     points: [
       "AI Chart Scanner with a free daily allowance",
-      "Rule-based Market Signals, or an honest NO TRADE",
+      "A BUY or SELL signal with a clear confidence rating",
       "START / STOP for your bot through your own MT5 terminal",
       "Risk limits you set: max lot, open trades and daily loss",
     ],
