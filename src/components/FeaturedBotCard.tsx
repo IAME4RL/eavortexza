@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Bot, Play, ShieldCheck, Square, Zap } from "lucide-react";
 import { parseStrategies, type AssignedMentorBot } from "@/lib/mentorBotDisplay";
+import { useAppearSound } from "@/hooks/useAppearSound";
 
 type UserBot = { strategy: string; trading_mode: string } | null | undefined;
 
@@ -30,6 +31,10 @@ type Props = {
 
 const SHELL =
   "relative overflow-hidden rounded-2xl border border-primary/40 bg-gradient-to-br from-surface via-surface/90 to-primary/10 shadow-2xl";
+
+/** Jigsaw EA plays its laugh when the card appears on screen. */
+const JIGSAW_LAUGH = "/sounds/jigsaw-laugh.mp3";
+const isJigsaw = (name: string | null | undefined) => /jigsaw/i.test(name ?? "");
 
 /** Soft vignette mask: the picture dissolves into the card instead of ending in a frame. */
 const FEATHER =
@@ -232,8 +237,15 @@ function MentorCard({
   const strategies = parseStrategies(bot.strategies);
   const live = userBot?.trading_mode === "live";
 
+  const cardRef = useRef<HTMLDivElement>(null);
+  useAppearSound(cardRef, JIGSAW_LAUGH, isJigsaw(bot.name));
+
   return (
-    <div className={`${SHELL} shadow-[var(--glow-red-soft)]`} data-testid="featured-bot-mentor">
+    <div
+      ref={cardRef}
+      className={`${SHELL} shadow-[var(--glow-red-soft)]`}
+      data-testid="featured-bot-mentor"
+    >
       {/* Header: small round avatar, bot name, mentor, status */}
       <div className="flex items-center gap-3 px-5 pt-5">
         <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full border-2 border-primary/70 bg-surface shadow-[0_0_16px_-4px_var(--primary)]">
