@@ -28,7 +28,7 @@ const NAV = [
   { to: "/dashboard/settings", label: "Settings", I: Settings },
 ] as const;
 
-const linkCls = "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground data-[status=active]:bg-sidebar-accent data-[status=active]:text-primary data-[status=active]:shadow-[inset_2px_0_0_var(--primary)]";
+const linkCls = "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground data-[status=active]:bg-sidebar-accent data-[status=active]:text-primary-soft data-[status=active]:shadow-[inset_2px_0_0_var(--primary)]";
 
 function useSignOut() {
   const qc = useQueryClient();

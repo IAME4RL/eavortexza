@@ -14,7 +14,7 @@ export function NeonCard({ className, children, quiet }: { className?: string; c
 }
 
 export function PwLabel({ children, className, red }: { children: ReactNode; className?: string; red?: boolean }) {
-  return <p className={cn("pw-label", red ? "text-primary" : "text-foreground", className)}>{children}</p>;
+  return <p className={cn("pw-label", red ? "text-primary-soft" : "text-foreground", className)}>{children}</p>;
 }
 
 export function Pill({ tone, children }: { tone: "live" | "ok" | "idle" | "warn"; children: ReactNode }) {

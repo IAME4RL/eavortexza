@@ -23,7 +23,7 @@ function GetApp() {
       <main className="mx-auto max-w-5xl px-4 py-14 sm:px-6 sm:py-20">
         <header className="text-center">
           <LogoMark className="mx-auto h-16 w-16" />
-          <p className="pw-label mt-6 text-primary">EA VORTEX · Power Your Trading</p>
+          <p className="pw-label mt-6 text-primary-soft">EA VORTEX · Power Your Trading</p>
           <h1 className="pw-title mt-4 text-4xl sm:text-5xl">Get the app</h1>
           <p className="mt-4 text-muted-foreground">iOS & Android</p>
         </header>
@@ -53,7 +53,7 @@ function GetApp() {
             </ol>
             <a href="/downloads/EA-VORTEX.apk" download="EA-VORTEX.apk" className="pw-btn pw-btn-solid mt-8 w-full"><Download className="h-4 w-4" /> Download APK</a>
             <p className="mt-4 text-xs text-muted-foreground">Test build signed with a development certificate · Opens the live EA VORTEX site directly — sign in as a client or mentor · Internet connection required</p>
-            <Link to="/dashboard" className="pw-label mt-4 inline-flex items-center gap-2 text-primary hover:underline">Use EA VORTEX in your browser <ArrowRight className="h-4 w-4" /></Link>
+            <Link to="/dashboard" className="pw-label mt-4 inline-flex items-center gap-2 text-primary-soft hover:underline">Use EA VORTEX in your browser <ArrowRight className="h-4 w-4" /></Link>
           </section>
         </div>
       </main>

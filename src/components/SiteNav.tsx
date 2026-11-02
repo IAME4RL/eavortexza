@@ -36,7 +36,7 @@ export function SiteNav() {
               key={l.to}
               to={l.to}
               activeOptions={{ exact: true }}
-              className="pw-label flex items-center gap-1.5 rounded-md px-3 py-2 text-muted-foreground transition-colors hover:text-foreground data-[status=active]:text-primary"
+              className="pw-label flex items-center gap-1.5 rounded-md px-3 py-2 text-muted-foreground transition-colors hover:text-foreground data-[status=active]:text-primary-soft"
             >
               {"highlight" in l && <ScanLine className="h-4 w-4 text-primary" />}
               {l.label}
@@ -71,11 +71,11 @@ export function SiteNav() {
           <nav className="flex flex-col px-4 py-3" aria-label="Mobile navigation">
             {LINKS.map((l) => (
               <Link key={l.to} to={l.to} onClick={() => setOpen(false)}
-                className="pw-label rounded-md px-3 py-3 text-muted-foreground data-[status=active]:text-primary">
+                className="pw-label rounded-md px-3 py-3 text-muted-foreground data-[status=active]:text-primary-soft">
                 {l.label}
               </Link>
             ))}
-            <p className="pw-label mt-3 px-3 text-primary">Portal</p>
+            <p className="pw-label mt-3 px-3 text-primary-soft">Portal</p>
             <div className="mt-1 grid grid-cols-2 gap-2">
               {APP_LINKS.map((l) => (
                 <Link key={l.to} to={l.to} onClick={() => setOpen(false)}
@@ -110,7 +110,7 @@ export function SiteFooter() {
           <p className="pw-label mt-3 text-muted-foreground">Power your trading</p>
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-2">
-          {LINKS.map((l) => <Link key={l.to} to={l.to} className="pw-label text-muted-foreground hover:text-primary">{l.label}</Link>)}
+          {LINKS.map((l) => <Link key={l.to} to={l.to} className="pw-label text-muted-foreground hover:text-primary-soft">{l.label}</Link>)}
         </div>
         <p className="text-xs leading-relaxed text-muted-foreground">
           Risk warning: Trading forex, gold, indices and crypto involves substantial risk of loss.

@@ -42,7 +42,7 @@ function ClientMock() {
       </div>
       <div className="mt-4 grid grid-cols-2 gap-2">
         {[{ t: "Scanner", I: ScanLine }, { t: "Signals", I: Activity }, { t: "Auto Trade", I: Zap }, { t: "EA Setup", I: Bot }].map(({ t, I }) => (
-          <div key={t} className="pw-card-quiet flex items-center gap-2 p-3"><I className="h-4 w-4 text-primary" /><span className="pw-label">{t}</span></div>
+          <div key={t} className="pw-card-quiet flex items-center gap-2 p-3"><I className="h-4 w-4 text-primary-soft" /><span className="pw-label">{t}</span></div>
         ))}
       </div>
       <div className="pw-card-quiet mt-3 p-3">
