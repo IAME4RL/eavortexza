@@ -7,6 +7,7 @@ import {
 import { Logo } from "@/components/Logo";
 import { PortalHeader, TabBar } from "@/components/portal";
 import { VortexBackground } from "@/components/VortexBackground";
+import { BotRunningOverlay } from "@/components/BotRunningOverlay";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -139,6 +140,7 @@ function ClientShell() {
         </div>
       )}
       <main className="relative z-10 mx-auto max-w-6xl px-4 pb-32 pt-5 sm:px-6 lg:px-8 lg:pb-12 lg:pt-10"><Outlet /></main>
+      <BotRunningOverlay />
       <TabBar />
     </div>
   );
