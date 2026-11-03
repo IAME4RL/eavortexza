@@ -346,6 +346,34 @@ void EmergencyClose(string requested) {
    string response;
    if(Post("action=emergency&requested="+Encode(requested)+"&closed="+(string)emergencyClosed+"&failed="+(string)emergencyFailed,response)==200) emergencyDone=requested;
 }
+// ---- On-chart "bot running" badge: a small red square the client can drag anywhere on the chart.
+#define EVX_BOX "EVX_Badge"
+void BadgeText(string n,string t,int dx,int dy,int size,color c) {
+   if(ObjectFind(0,n)<0) { ObjectCreate(0,n,OBJ_LABEL,0,0,0); ObjectSetInteger(0,n,OBJPROP_SELECTABLE,false); ObjectSetString(0,n,OBJPROP_FONT,"Arial Bold"); }
+   int x=(int)ObjectGetInteger(0,EVX_BOX,OBJPROP_XDISTANCE), y=(int)ObjectGetInteger(0,EVX_BOX,OBJPROP_YDISTANCE);
+   ObjectSetInteger(0,n,OBJPROP_XDISTANCE,x+dx); ObjectSetInteger(0,n,OBJPROP_YDISTANCE,y+dy);
+   ObjectSetInteger(0,n,OBJPROP_FONTSIZE,size); ObjectSetInteger(0,n,OBJPROP_COLOR,c); ObjectSetString(0,n,OBJPROP_TEXT,t);
+}
+void DrawBadge() {
+   if(ObjectFind(0,EVX_BOX)<0) {
+      ObjectCreate(0,EVX_BOX,OBJ_RECTANGLE_LABEL,0,0,0);
+      ObjectSetInteger(0,EVX_BOX,OBJPROP_XDISTANCE,20); ObjectSetInteger(0,EVX_BOX,OBJPROP_YDISTANCE,40);
+      ObjectSetInteger(0,EVX_BOX,OBJPROP_XSIZE,78); ObjectSetInteger(0,EVX_BOX,OBJPROP_YSIZE,78);
+      ObjectSetInteger(0,EVX_BOX,OBJPROP_BGCOLOR,C'20,8,10'); ObjectSetInteger(0,EVX_BOX,OBJPROP_BORDER_TYPE,BORDER_FLAT);
+      ObjectSetInteger(0,EVX_BOX,OBJPROP_COLOR,C'220,30,50'); ObjectSetInteger(0,EVX_BOX,OBJPROP_WIDTH,2);
+      ObjectSetInteger(0,EVX_BOX,OBJPROP_SELECTABLE,true); ObjectSetInteger(0,EVX_BOX,OBJPROP_SELECTED,true);
+      ObjectSetString(0,EVX_BOX,OBJPROP_TOOLTIP,"EA VORTEX - drag to move");
+   }
+   bool run=cfg.valid && cfg.status=="running";
+   bool blink=(TimeLocal()%2)==0;
+   BadgeText("EVX_B1","EA",27,10,16,C'230,40,60');
+   BadgeText("EVX_B2","VORTEX",13,36,9,clrWhite);
+   BadgeText("EVX_B3",run ? (blink ? "* RUNNING" : "  RUNNING") : "STOPPED",run ? 9 : 13,56,7,run ? C'255,90,100' : clrGray);
+   ChartRedraw();
+}
+void OnChartEvent(const int id,const long &l,const double &d,const string &sp) {
+   if(id==CHARTEVENT_OBJECT_DRAG && sp==EVX_BOX) DrawBadge();
+}
 int OnInit() {
    if(StringFind(BridgeURL,"https://")!=0 || StringFind(BridgeURL,"/api/public/bridge/mt5")<8 || StringFind(BridgeURL,"?")>=0 || StringFind(BridgeURL,"#")>=0 ||
       StringFind(BridgeURL,"@")>=0 || StringLen(BridgeToken)!=52 || StringSubstr(BridgeToken,0,4)!="evx_" || ExpectedLogin<=0 || ExpectedServer=="" ||
@@ -367,15 +395,18 @@ int OnInit() {
    trade.SetExpertMagicNumber(MagicNumber); trade.SetDeviationInPoints(DeviationPoints); trade.SetAsyncMode(false);
    cfg.valid=false;
    if(!EventSetTimer(PollSeconds)) { FileClose(journal); FileClose(lockFile); journal=INVALID_HANDLE; lockFile=INVALID_HANDLE; return INIT_FAILED; }
+   DrawBadge();
    Print("EA VORTEX Bridge ready. Keep MT5 open and Algo Trading enabled.");
    return INIT_SUCCEEDED;
 }
 void OnDeinit(const int reason) {
    EventKillTimer();
+   ObjectsDeleteAll(0,"EVX_B"); ObjectDelete(0,EVX_BOX);
    if(journal!=INVALID_HANDLE) FileClose(journal);
    if(lockFile!=INVALID_HANDLE) FileClose(lockFile);
 }
 void OnTimer() {
+   DrawBadge();
    if(busy || !storageOK) return;
    if(!IdentityOK()) { cfg.valid=false; Print("Bridge: account changed in terminal; paused until ExpectedLogin/ExpectedServer match."); return; }
    busy=true;
