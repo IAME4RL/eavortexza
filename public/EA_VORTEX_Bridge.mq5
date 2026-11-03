@@ -9,7 +9,7 @@
 // Execution intent is journaled before submission; uncertain submissions are reconciled from history, never retried.
 // Never share your token. Trading carries risk; no profit is guaranteed.
 #property strict
-#property version "2.00"
+#property version "2.01"
 #property description "EA VORTEX Bridge — authenticated demo/live connector with strategy engine, risk limits and emergency close."
 #include <Trade/Trade.mqh>
 
@@ -29,7 +29,7 @@ input int RequestTimeoutMs = 10000;
 input int StrategyBars = 120;
 input ulong MagicNumber = 26052201;
 
-#define BRIDGE_VERSION "2.0.0"
+#define BRIDGE_VERSION "2.0.1"
 
 struct Record {
    string id, symbol, side, phase, error;
@@ -114,7 +114,12 @@ bool Save(int i) {
    uint wrote=FileWrite(journal,r.id,r.symbol,r.side,DoubleToString(r.volume,8),DoubleToString(r.sl,8),DoubleToString(r.tp,8),r.phase,
       (string)r.ticket,(string)r.position,DoubleToString(r.price,8),DoubleToString(r.profit,8),Clean(r.error),(string)(long)r.submitted,r.reported ? "1" : "0");
    FileFlush(journal);
-   if(wrote==0 || GetLastError()!=0) { storageOK=false; Print("Bridge journal error; new execution disabled. Check disk and restart after repair."); return false; }
+   int err=GetLastError();
+   if(wrote==0 || err!=0) {
+      storageOK=false;
+      PrintFormat("Bridge journal error %d (wrote=%d, file=%s); new execution disabled. Close any program that has the file open, check disk space, remove the EA, delete the EVX_*.lock and EVX_*.csv files in the Common\\Files folder if there are no open Bridge trades, then re-attach.",err,(int)wrote,journalName);
+      return false;
+   }
    return true;
 }
 bool LoadJournal() {
