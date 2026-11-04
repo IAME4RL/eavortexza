@@ -1,5 +1,5 @@
 import * as api from "./api2trade";
-import { deliverySlots, volumeAllowed } from "./bridge";
+import { closedProfitSince, deliverySlots, floatingProfitOf, volumeAllowed } from "./bridge";
 import { cloudConfigOf, planCloudCycle, utcDayStart, type CloudConfig } from "./cloudTrade";
 import { fetchBars, type FetchResult } from "./marketdata";
 import { biasIdea, decide, type Decision, type StrategySetting } from "./strategy";
@@ -38,6 +38,17 @@ async function syncClosed(db: Db, bot: BotRow, openTickets: Set<string>, history
   }
 }
 
+/** Profit banked toward the running goal: bot trades closed since the window opened, plus the bot's open trades. */
+async function goalProfit(db: Db, bot: BotRow, pos: api.Position[]): Promise<number> {
+  const sinceMs = bot.goal_started_at ? new Date(bot.goal_started_at).getTime() : Date.now();
+  const [{ data: closed }, { data: filled }] = await Promise.all([
+    db.from("trade_signals").select("profit,closed_at").eq("bot_id", bot.id).eq("status", "closed").gte("closed_at", new Date(sinceMs).toISOString()).limit(500),
+    db.from("trade_signals").select("ticket").eq("bot_id", bot.id).eq("status", "filled").not("ticket", "is", null).limit(200),
+  ]);
+  const tickets = new Set((filled ?? []).map((f) => String(f.ticket)));
+  return closedProfitSince(closed ?? [], sinceMs) + floatingProfitOf(pos.map((p) => ({ ticket: p.ticket, profit: p.profit })), tickets);
+}
+
 async function runBot(db: Db, bot: BotRow, now: number, barsCache: Map<string, FetchResult>, opts: { entryOnStart?: boolean } = {}): Promise<string> {
   const cfg = cloudConfigOf(bot.terminal_info);
   if (!cfg) return "not a cloud bot";
@@ -65,6 +76,8 @@ async function runBot(db: Db, bot: BotRow, now: number, barsCache: Map<string, F
   await syncClosed(db, bot, new Set(pos.map((p) => p.ticket)), hist);
   const closedToday = hist.reduce((a, h) => a + h.profit, 0);
   const floating = pos.reduce((a, p) => a + p.profit, 0);
+  const goalOn = Number(bot.profit_goal) > 0;
+  const profitSinceGoal = goalOn ? await goalProfit(db, bot, pos) : 0;
   patch.terminal_info = {
     ...(bot.terminal_info as object),
     ...(summary ? { balance: summary.balance, equity: summary.equity, currency: summary.currency } : {}),
