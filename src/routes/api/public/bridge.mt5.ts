@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import {
-  deliverySlots, formatConfigLine, formatSignalLine, holdReason, reportTransition, sha256Hex, volumeAllowed,
+  closedProfitSince, deliverySlots, floatingProfitOf, formatConfigLine, formatSignalLine, holdReason, reportTransition, sha256Hex, volumeAllowed,
   type BotStatus, type TradingMode,
 } from "@/lib/bridge";
 import type { Database } from "@/integrations/supabase/types";
@@ -54,19 +54,35 @@ export const Route = createFileRoute("/api/public/bridge/mt5")({
           if (!hb.success) return text("ERR|BAD_REQUEST", 400);
           const h = hb.data;
           const now = new Date().toISOString();
+          const hbPositions = parsePositions(h.positions);
+          // Profit banked toward the running goal: bot trades closed since the goal window opened, plus the bot's own open trades.
+          const goalOn = Number(bot.profit_goal) > 0;
+          let profitSinceGoal: number | null = null;
+          if (goalOn) {
+            const sinceMs = bot.goal_started_at ? new Date(bot.goal_started_at).getTime() : Date.now();
+            const [{ data: closedRows }, { data: filledRows }] = await Promise.all([
+              supabaseAdmin.from("trade_signals").select("profit,closed_at").eq("bot_id", bot.id).eq("status", "closed").gte("closed_at", new Date(sinceMs).toISOString()).limit(500),
+              supabaseAdmin.from("trade_signals").select("ticket").eq("bot_id", bot.id).eq("status", "filled").not("ticket", "is", null).limit(200),
+            ]);
+            const tickets = new Set((filledRows ?? []).map((f) => String(f.ticket)));
+            profitSinceGoal = closedProfitSince(closedRows ?? [], sinceMs) + floatingProfitOf(hbPositions, tickets);
+          }
           const reason = holdReason({
             status: bot.status as BotStatus, mode: bot.trading_mode as TradingMode, liveConfirmed: !!bot.live_confirmed_at,
             terminalType: h.type, terminalLogin: h.login, accountLogin: account.account_login,
             terminalServer: h.server, accountServer: account.broker_server,
             openTrades: h.open, maxOpenTrades: bot.max_open_trades, dayPL: h.daypl ?? null, maxDailyLoss: Number(bot.max_daily_loss),
+            profitGoal: goalOn ? Number(bot.profit_goal) : undefined, profitSinceGoal,
           });
           const identityOk = reason !== "LOGIN_MISMATCH" && reason !== "SERVER_MISMATCH";
           const patch: Database["public"]["Tables"]["bots"]["Update"] = {
             last_heartbeat: now, last_error: reason,
+            ...(goalOn ? { goal_profit: Math.round((profitSinceGoal ?? 0) * 100) / 100 } : {}),
             terminal_info: {
               login: h.login, server: h.server, type: h.type, demo: h.type === "demo", balance: h.balance ?? null, equity: h.equity ?? null,
-              currency: h.currency ?? null, open: h.open, daypl: h.daypl ?? null, positions: parsePositions(h.positions),
+              currency: h.currency ?? null, open: h.open, daypl: h.daypl ?? null, positions: hbPositions,
               version: h.version ?? null, symbol: h.symbol ?? null, tf: h.tf ?? null,
+              ...(goalOn ? { goalprofit: Math.round((profitSinceGoal ?? 0) * 100) / 100 } : {}),
             },
           };
           // The terminal received the stopped state on this cycle: acknowledge STOP.

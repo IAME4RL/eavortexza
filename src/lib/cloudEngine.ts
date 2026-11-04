@@ -1,5 +1,5 @@
 import * as api from "./api2trade";
-import { deliverySlots, volumeAllowed } from "./bridge";
+import { closedProfitSince, deliverySlots, floatingProfitOf, volumeAllowed } from "./bridge";
 import { cloudConfigOf, planCloudCycle, utcDayStart, type CloudConfig } from "./cloudTrade";
 import { fetchBars, type FetchResult } from "./marketdata";
 import { biasIdea, decide, type Decision, type StrategySetting } from "./strategy";
@@ -38,6 +38,17 @@ async function syncClosed(db: Db, bot: BotRow, openTickets: Set<string>, history
   }
 }
 
+/** Profit banked toward the running goal: bot trades closed since the window opened, plus the bot's open trades. */
+async function goalProfit(db: Db, bot: BotRow, pos: api.Position[]): Promise<number> {
+  const sinceMs = bot.goal_started_at ? new Date(bot.goal_started_at).getTime() : Date.now();
+  const [{ data: closed }, { data: filled }] = await Promise.all([
+    db.from("trade_signals").select("profit,closed_at").eq("bot_id", bot.id).eq("status", "closed").gte("closed_at", new Date(sinceMs).toISOString()).limit(500),
+    db.from("trade_signals").select("ticket").eq("bot_id", bot.id).eq("status", "filled").not("ticket", "is", null).limit(200),
+  ]);
+  const tickets = new Set((filled ?? []).map((f) => String(f.ticket)));
+  return closedProfitSince(closed ?? [], sinceMs) + floatingProfitOf(pos.map((p) => ({ ticket: p.ticket, profit: p.profit })), tickets);
+}
+
 async function runBot(db: Db, bot: BotRow, now: number, barsCache: Map<string, FetchResult>, opts: { entryOnStart?: boolean } = {}): Promise<string> {
   const cfg = cloudConfigOf(bot.terminal_info);
   if (!cfg) return "not a cloud bot";
@@ -65,10 +76,13 @@ async function runBot(db: Db, bot: BotRow, now: number, barsCache: Map<string, F
   await syncClosed(db, bot, new Set(pos.map((p) => p.ticket)), hist);
   const closedToday = hist.reduce((a, h) => a + h.profit, 0);
   const floating = pos.reduce((a, p) => a + p.profit, 0);
+  const goalOn = Number(bot.profit_goal) > 0;
+  const profitSinceGoal = goalOn ? await goalProfit(db, bot, pos) : 0;
   patch.terminal_info = {
     ...(bot.terminal_info as object),
     ...(summary ? { balance: summary.balance, equity: summary.equity, currency: summary.currency } : {}),
     open: pos.length, daypl: Math.round((closedToday + floating) * 100) / 100, demo: cfg.accountType === "demo",
+    goalprofit: goalOn ? Math.round(profitSinceGoal * 100) / 100 : 0,
     positions: pos.slice(0, 50).map((p) => ({ ticket: p.ticket, symbol: p.symbol, side: p.side ?? "", volume: p.volume, price: p.price ?? 0, profit: p.profit })),
   } as never;
   patch.last_error = null;
@@ -103,7 +117,21 @@ async function runBot(db: Db, bot: BotRow, now: number, barsCache: Map<string, F
     status: bot.status, connected, accountType: cfg.accountType, mode: bot.trading_mode as "demo" | "live", liveConfirmed: !!bot.live_confirmed_at, demoOnly: bot.demo_only,
     defaultLot: Number(bot.default_lot), maxLot: Number(bot.max_lot), maxOpen: Number(bot.max_open_trades ?? 1), maxDailyLoss: Number(bot.max_daily_loss),
     openCount: pos.length, floatingPL: floating, closedTodayPL: closedToday, decision, quote, feedLast: feedLast ?? 0, digits, brokerSymbol: cfg.brokerSymbol,
+    profitGoal: Number(bot.profit_goal), profitSinceGoal, goalMode: bot.profit_goal_mode === "again" ? "again" : "stop",
   });
+
+  // Profit goal hit: bank it by closing the bot's trades, then stop or roll straight into a fresh goal.
+  if (plan.kind === "goal") {
+    await db.from("trade_signals").update({ status: "cancelled" }).eq("bot_id", bot.id).eq("status", "queued");
+    const r = await cloudCloseAll(cfg);
+    const banked = `Profit goal reached (${profitSinceGoal.toFixed(2)} of ${Number(bot.profit_goal).toFixed(2)}) — closed ${r.closed}, failed ${r.failed}.`;
+    if (plan.mode === "stop") {
+      await save({ status: "stopped", stop_requested_at: iso(now), stop_ack_at: iso(now), goal_reached_at: iso(now), last_decision: `${banked} Bot stopped.`, last_error: null });
+      return "goal reached: stopped";
+    }
+    await save({ goal_reached_at: iso(now), goal_started_at: iso(now), last_decision: `${banked} Starting a new goal.`, last_error: null });
+    return "goal reached: new goal started";
+  }
 
   if (plan.kind === "stop") {
     await db.from("trade_signals").update({ status: "cancelled" }).eq("bot_id", bot.id).eq("status", "queued");
