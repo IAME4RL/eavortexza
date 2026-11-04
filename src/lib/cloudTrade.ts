@@ -34,11 +34,16 @@ export interface CycleInput {
   feedLast: number;
   digits: number;
   brokerSymbol: string;
+  /** Running profit target (0 = off), profit banked since the goal window opened, and what to do when it is hit. */
+  profitGoal: number;
+  profitSinceGoal: number;
+  goalMode: "stop" | "again";
 }
 
 export type CyclePlan =
   | { kind: "hold"; reason: string }
   | { kind: "stop"; reason: string }
+  | { kind: "goal"; mode: "stop" | "again"; reason: string }
   | {
       kind: "trade";
       trade: {
@@ -136,6 +141,15 @@ export function planCloudCycle(input: CycleInput): CyclePlan {
 
   if (dailyLossBreached(input.closedTodayPL, input.floatingPL, input.maxDailyLoss)) {
     return { kind: "stop", reason: "Daily loss limit reached" };
+  }
+
+  // The goal is a running total, not a daily quota: it keeps counting while the bot runs, all day.
+  if (input.profitGoal > 0 && input.profitSinceGoal >= input.profitGoal) {
+    return {
+      kind: "goal",
+      mode: input.goalMode,
+      reason: `Profit goal reached: ${input.profitSinceGoal.toFixed(2)} of ${input.profitGoal.toFixed(2)}`,
+    };
   }
 
   if (input.accountType === "live" && (!input.liveConfirmed || input.mode !== "live" || input.demoOnly)) {
