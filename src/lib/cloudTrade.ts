@@ -202,6 +202,8 @@ export function cloudStartBlockers(params: {
   maxDailyLoss: number;
   instrument: string;
   brokerSymbol: string;
+  profitGoal: number;
+  goalMode: string;
 }): string[] {
   const blockers: string[] = [];
 
@@ -213,6 +215,12 @@ export function cloudStartBlockers(params: {
   }
   if (params.maxDailyLoss <= 0) {
     blockers.push("Max daily loss must be greater than 0.");
+  }
+  if (!Number.isFinite(params.profitGoal) || params.profitGoal < 0) {
+    blockers.push("Profit goal must be 0 (off) or a positive amount.");
+  }
+  if (params.profitGoal > 0 && params.goalMode !== "stop" && params.goalMode !== "again") {
+    blockers.push("Choose what happens when the profit goal is reached: stop, or start a new goal.");
   }
   if (params.defaultLot <= 0 || params.defaultLot > params.maxLot) {
     blockers.push("Default lot must be positive and not exceed max lot.");
