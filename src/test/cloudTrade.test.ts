@@ -8,6 +8,7 @@ const base: CycleInput = {
   status: "running", connected: true, accountType: "demo", mode: "demo", liveConfirmed: false, demoOnly: true,
   defaultLot: 0.02, maxLot: 0.1, maxOpen: 2, maxDailyLoss: 50, openCount: 0, floatingPL: 0, closedTodayPL: 0,
   decision, quote, feedLast: 2329, digits: 2, brokerSymbol: "XAUUSDm",
+  profitGoal: 0, profitSinceGoal: 0, goalMode: "stop",
 };
 
 describe("toBrokerLevels", () => {
@@ -69,7 +70,7 @@ describe("planCloudCycle", () => {
 });
 
 describe("cloudStartBlockers", () => {
-  const ok = { connected: true, accountType: "demo" as const, mode: "demo" as const, liveConfirmed: false, demoOnly: true, strategy: "auto", defaultLot: 0.01, maxLot: 0.1, maxOpen: 1, riskPct: 1, maxDailyLoss: 20, instrument: "XAUUSD", brokerSymbol: "XAUUSD" };
+  const ok = { connected: true, accountType: "demo" as const, mode: "demo" as const, liveConfirmed: false, demoOnly: true, strategy: "auto", defaultLot: 0.01, maxLot: 0.1, maxOpen: 1, riskPct: 1, maxDailyLoss: 20, instrument: "XAUUSD", brokerSymbol: "XAUUSD", profitGoal: 0, goalMode: "stop" };
   it("passes for a valid demo setup", () => expect(cloudStartBlockers(ok)).toEqual([]));
   it("blocks when not connected, live without confirmation, or bad limits", () => {
     expect(cloudStartBlockers({ ...ok, connected: false }).length).toBe(1);
