@@ -47,6 +47,7 @@ export const startBot = createServerFn({ method: "POST" })
         connected, accountType: cloud.accountType, mode: bot.trading_mode as TradingMode, liveConfirmed: !!bot.live_confirmed_at, demoOnly: bot.demo_only,
         strategy: bot.strategy, defaultLot: Number(bot.default_lot), maxLot: Number(bot.max_lot), maxOpen: bot.max_open_trades,
         riskPct: Number(bot.risk_per_trade_pct), maxDailyLoss: Number(bot.max_daily_loss), instrument: cloud.instrument, brokerSymbol: cloud.brokerSymbol,
+        profitGoal: Number(bot.profit_goal), goalMode: bot.profit_goal_mode,
       });
       if (blockers.length) return { ok: false, already: false, blockers };
       await (await admin()).from("bots").update({ status: "running", stop_requested_at: null, stop_ack_at: null, last_error: null, last_heartbeat: new Date().toISOString() }).eq("id", bot.id).neq("status", "running");
