@@ -18,6 +18,9 @@ export interface DeliveryInput {
   maxOpenTrades: number;
   dayPL?: number | null | undefined;
   maxDailyLoss?: number | undefined;
+  /** Running profit target (0 = off) and the profit banked since the goal window opened. */
+  profitGoal?: number | undefined;
+  profitSinceGoal?: number | null | undefined;
 }
 
 const norm = (s: string | undefined) => (s ?? "").trim().toLowerCase();
@@ -35,6 +38,10 @@ export function holdReason(i: DeliveryInput): string | null {
     if (i.dayPL == null || !Number.isFinite(i.dayPL)) return "DAILY_PL_UNVERIFIED";
     if (i.dayPL <= -i.maxDailyLoss) return "DAILY_LOSS_LIMIT";
   }
+  if (i.profitGoal !== undefined && i.profitGoal > 0) {
+    if (i.profitSinceGoal == null || !Number.isFinite(i.profitSinceGoal)) return "PROFIT_GOAL_UNVERIFIED";
+    if (i.profitSinceGoal >= i.profitGoal) return "PROFIT_GOAL_REACHED";
+  }
   if (i.openTrades >= i.maxOpenTrades) return "MAX_OPEN";
   return null;
 }
@@ -50,8 +57,26 @@ export const HOLD_TEXT: Record<string, string> = {
   LIVE_NOT_CONFIRMED: "Live trading has not been confirmed.",
   DAILY_PL_UNVERIFIED: "The terminal did not report today's P/L, so the daily loss limit can't be checked.",
   DAILY_LOSS_LIMIT: "Daily loss limit reached — no new orders today.",
+  PROFIT_GOAL_UNVERIFIED: "Profit so far toward your goal could not be verified, so no new orders are sent.",
+  PROFIT_GOAL_REACHED: "Profit goal reached — closing your trades and holding new orders.",
   MAX_OPEN: "Maximum open positions reached.",
 };
+
+/** Sum of bot trade profits closed at or after the goal window opened. */
+export function closedProfitSince(
+  rows: { profit: number | null; closed_at: string | null }[],
+  sinceMs: number
+): number {
+  return rows.reduce((sum, r) => (r.closed_at && new Date(r.closed_at).getTime() >= sinceMs ? sum + Number(r.profit ?? 0) : sum), 0);
+}
+
+/** Floating P/L of the bot's own open positions (matched by ticket), so manual trades never count toward the goal. */
+export function floatingProfitOf(
+  positions: { ticket: string; profit: number }[],
+  botTickets: Set<string>
+): number {
+  return positions.reduce((sum, p) => (botTickets.has(p.ticket) ? sum + Number(p.profit ?? 0) : sum), 0);
+}
 
 export function terminalTypeOf(raw: unknown): TerminalType {
   return raw === "demo" || raw === "real" || raw === "contest" ? raw : "unknown";
