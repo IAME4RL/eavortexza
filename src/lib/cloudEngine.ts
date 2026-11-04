@@ -124,7 +124,7 @@ async function runBot(db: Db, bot: BotRow, now: number, barsCache: Map<string, F
   if (plan.kind === "goal") {
     await db.from("trade_signals").update({ status: "cancelled" }).eq("bot_id", bot.id).eq("status", "queued");
     const r = await cloudCloseAll(cfg);
-    const banked = `Profit goal reached (${plan.profit ?? profitSinceGoal.toFixed(2)} of ${Number(bot.profit_goal).toFixed(2)}) — closed ${r.closed}, failed ${r.failed}.`;
+    const banked = `Profit goal reached (${profitSinceGoal.toFixed(2)} of ${Number(bot.profit_goal).toFixed(2)}) — closed ${r.closed}, failed ${r.failed}.`;
     if (plan.mode === "stop") {
       await save({ status: "stopped", stop_requested_at: iso(now), stop_ack_at: iso(now), goal_reached_at: iso(now), last_decision: `${banked} Bot stopped.`, last_error: null });
       return "goal reached: stopped";
