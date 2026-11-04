@@ -15,6 +15,13 @@
       "when": 1792807279593,
       "tag": "0001_signals_table",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793792599526,
+      "tag": "0002_add_profit_goal",
+      "breakpoints": true
     }
   ]
 }

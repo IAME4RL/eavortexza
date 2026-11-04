@@ -84,6 +84,11 @@ export type Database = {
           emergency_close_ack_at: string | null
           emergency_close_requested_at: string | null
           emergency_close_result: string | null
+          goal_close_ack_at: string | null
+          goal_close_requested_at: string | null
+          goal_profit: number
+          goal_reached_at: string | null
+          goal_started_at: string | null
           id: string
           last_decision: string | null
           last_error: string | null
@@ -92,6 +97,8 @@ export type Database = {
           max_daily_loss: number
           max_lot: number
           max_open_trades: number
+          profit_goal: number
+          profit_goal_mode: string
           risk_per_trade_pct: number
           status: string
           stop_ack_at: string | null
@@ -111,6 +118,11 @@ export type Database = {
           emergency_close_ack_at?: string | null
           emergency_close_requested_at?: string | null
           emergency_close_result?: string | null
+          goal_close_ack_at?: string | null
+          goal_close_requested_at?: string | null
+          goal_profit?: number
+          goal_reached_at?: string | null
+          goal_started_at?: string | null
           id?: string
           last_decision?: string | null
           last_error?: string | null
@@ -119,6 +131,8 @@ export type Database = {
           max_daily_loss?: number
           max_lot?: number
           max_open_trades?: number
+          profit_goal?: number
+          profit_goal_mode?: string
           risk_per_trade_pct?: number
           status?: string
           stop_ack_at?: string | null
@@ -138,6 +152,11 @@ export type Database = {
           emergency_close_ack_at?: string | null
           emergency_close_requested_at?: string | null
           emergency_close_result?: string | null
+          goal_close_ack_at?: string | null
+          goal_close_requested_at?: string | null
+          goal_profit?: number
+          goal_reached_at?: string | null
+          goal_started_at?: string | null
           id?: string
           last_decision?: string | null
           last_error?: string | null
@@ -146,6 +165,8 @@ export type Database = {
           max_daily_loss?: number
           max_lot?: number
           max_open_trades?: number
+          profit_goal?: number
+          profit_goal_mode?: string
           risk_per_trade_pct?: number
           status?: string
           stop_ack_at?: string | null
