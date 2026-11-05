@@ -40,7 +40,7 @@ function Row({ n, full }: { n: NewsItem; full: boolean }) {
             </span>
             <span className="text-sm font-semibold truncate text-foreground">{n.title}</span>
             {isHighImpact && (
-              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.2 rounded bg-primary/20 text-primary">
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary/20 text-primary">
                 <Flame className="h-3 w-3" /> HIGH
               </span>
             )}
@@ -73,8 +73,8 @@ function Row({ n, full }: { n: NewsItem; full: boolean }) {
               <TrendingUp className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-xs font-bold text-emerald-400 tracking-wide">PREDICTED SIGNAL: BUY</p>
-              <p className="text-[10px] text-muted-foreground">Based on economic forecast comparison</p>
+              <p className="text-xs font-bold text-emerald-400 tracking-wide">FORECAST SIGNAL: BUY</p>
+              <p className="text-[10px] text-muted-foreground">Predicted from economic figures</p>
             </div>
           </div>
           <span className="pw-mono text-xs font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
@@ -88,8 +88,8 @@ function Row({ n, full }: { n: NewsItem; full: boolean }) {
               <TrendingDown className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-xs font-bold text-red-400 tracking-wide">PREDICTED SIGNAL: SELL</p>
-              <p className="text-[10px] text-muted-foreground">Based on economic forecast comparison</p>
+              <p className="text-xs font-bold text-red-400 tracking-wide">FORECAST SIGNAL: SELL</p>
+              <p className="text-[10px] text-muted-foreground">Predicted from economic figures</p>
             </div>
           </div>
           <span className="pw-mono text-xs font-bold px-2 py-0.5 rounded bg-red-500/20 text-red-300">
@@ -98,7 +98,7 @@ function Row({ n, full }: { n: NewsItem; full: boolean }) {
         </div>
       ) : (
         <div className="rounded-lg border border-border/50 bg-muted/20 p-2 text-xs text-muted-foreground">
-          <span className="font-semibold text-foreground">NEUTRAL / NO CLEAR BIAS</span> — Forecast equals previous data.
+          <span className="font-semibold text-foreground">NEUTRAL</span> — No directional change expected.
         </div>
       )}
 
@@ -139,7 +139,8 @@ export function NewsSignals({ instrument = "XAUUSD", limit, full = false }: { in
   const q = useQuery({
     queryKey: ["news-signals", instrument],
     queryFn: () => fn({ data: { instrument } }),
-    refetchInterval: 60_000,
+    // 5-minute interval prevents 429 rate limiting
+    refetchInterval: 5 * 60_000,
   });
   const items = q.data?.ok ? q.data.items.slice(0, limit ?? 99) : [];
 
