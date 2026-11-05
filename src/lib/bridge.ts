@@ -72,7 +72,7 @@ export function closedProfitSince(
 
 /** Floating P/L of the bot's own open positions (matched by ticket), so manual trades never count toward the goal. */
 export function floatingProfitOf(
-  positions: readonly { ticket?: string | null; profit: number }[],
+  positions: readonly { ticket?: string | null | undefined; profit: number }[],
   botTickets: Set<string>
 ): number {
   return positions.reduce((sum, p) => (p.ticket && botTickets.has(p.ticket) ? sum + Number(p.profit ?? 0) : sum), 0);
