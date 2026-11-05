@@ -110,6 +110,8 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
   const [strategy, setStrategy] = useState(bot.strategy);
   const [riskPct, setRiskPct] = useState(String(bot.risk_per_trade_pct));
   const [maxLoss, setMaxLoss] = useState(String(bot.max_daily_loss));
+  const [goal, setGoal] = useState(String(bot.profit_goal ?? 0));
+  const [goalMode, setGoalMode] = useState(bot.profit_goal_mode ?? "stop");
   const run = async (fn: () => Promise<unknown>, ok?: string) => { try { await fn(); if (ok) toast.success(ok); refresh(); } catch (e) { toast.error(e instanceof Error ? e.message : "Action failed"); } };
   const [token, setToken] = useState<string | null>(null);
   const [lot, setLot] = useState(String(bot.default_lot));
@@ -284,6 +286,32 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
         </label>
         <button type="button" className="pw-btn mt-4" onClick={() => update.mutate({ default_lot: Number(lot), max_lot: Number(maxLot), max_open_trades: Number(maxOpen), strategy, risk_per_trade_pct: Number(riskPct), max_daily_loss: Number(maxLoss) }, { onSuccess: () => toast.success("Settings saved") })}>Save settings</button>
       </Section>
+
+      <NeonCard className="p-4">
+        <PwLabel>Profit goal</PwLabel>
+        <p className="mt-1 text-xs text-muted-foreground">The bot trades all day until your total profit reaches this amount, then closes its trades. Set 0 to turn it off. Stop-losses and the daily loss limit still apply.</p>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <div className="space-y-1"><Label className={lbl}>Goal amount</Label><Input className={field} inputMode="decimal" value={goal} onChange={(e) => setGoal(e.target.value)} /></div>
+          <div className="space-y-1"><Label className={lbl}>When reached</Label>
+            <Select value={goalMode} onValueChange={setGoalMode}><SelectTrigger className={field}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="stop">Close trades & stop bot</SelectItem>
+                <SelectItem value="again">Close trades & start new goal</SelectItem>
+              </SelectContent></Select>
+          </div>
+        </div>
+        {Number(bot.profit_goal) > 0 && (
+          <div className="mt-3">
+            <div className="flex justify-between text-xs text-muted-foreground"><span>Progress</span><span className="font-mono">{Number(bot.goal_profit).toFixed(2)} / {Number(bot.profit_goal).toFixed(2)}</span></div>
+            <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary" style={{ width: `${Math.max(0, Math.min(100, (Number(bot.goal_profit) / Number(bot.profit_goal)) * 100))}%` }} /></div>
+          </div>
+        )}
+        <button type="button" className="pw-btn mt-4" onClick={() => {
+          const g = Number(goal);
+          if (!Number.isFinite(g) || g < 0) { toast.error("Enter 0 or a positive amount"); return; }
+          update.mutate({ profit_goal: g, profit_goal_mode: goalMode, ...(Number(bot.profit_goal) !== g ? { goal_started_at: new Date().toISOString(), goal_profit: 0 } : {}) }, { onSuccess: () => toast.success("Profit goal saved") });
+        }}>Save goal</button>
+      </NeonCard>
 
       <Section title="Trade without a PC (API2Trade)" open={cloudOpen} onToggle={setCloudOpen}>
         <CloudConnect botId={bot.id} accountLogin={account.account_login} accountServer={account.broker_server} terminalInfo={bot.terminal_info} />

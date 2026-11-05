@@ -94,7 +94,13 @@ export const Route = createFileRoute("/api/public/bridge/mt5")({
             maxLot: Number(bot.max_lot), maxOpen: bot.max_open_trades, riskPct: Number(bot.risk_per_trade_pct),
             maxDailyLoss: Number(bot.max_daily_loss), strategy: bot.strategy, hold: reason,
           })];
-          if (identityOk && bot.emergency_close_requested_at && !bot.emergency_close_ack_at) lines.push(`CLOSEALL|${bot.emergency_close_requested_at}`);
+          // Goal reached: ask the terminal to close every bot position once (reuses the CLOSEALL command the EA already runs).
+          let closeAt = bot.emergency_close_requested_at && !bot.emergency_close_ack_at ? bot.emergency_close_requested_at : null;
+          if (identityOk && reason === "PROFIT_GOAL_REACHED" && bot.status === "running" && !closeAt) {
+            closeAt = now;
+            Object.assign(patch, { goal_reached_at: now, goal_close_requested_at: now, goal_close_ack_at: null, emergency_close_requested_at: now, emergency_close_ack_at: null, emergency_close_result: null });
+          }
+          if (identityOk && closeAt) lines.push(`CLOSEALL|${closeAt}`);
 
           if (action === "poll" && !reason) {
             // Strategy engine: evaluate closed bars reported by this terminal; at most one idea, deduped by signal_key.
@@ -140,6 +146,16 @@ export const Route = createFileRoute("/api/public/bridge/mt5")({
           if (new Date(e.data.requested).getTime() !== new Date(bot.emergency_close_requested_at).getTime()) return text("ERR|STALE_REQUEST", 409);
           const result = `Closed ${e.data.closed}, failed ${e.data.failed}`;
           await supabaseAdmin.from("bots").update({ emergency_close_ack_at: new Date().toISOString(), emergency_close_result: result }).eq("id", bot.id);
+          const isGoal = !!bot.goal_close_requested_at && !bot.goal_close_ack_at && new Date(bot.goal_close_requested_at).getTime() === new Date(bot.emergency_close_requested_at).getTime();
+          if (isGoal) {
+            const ackAt = new Date().toISOString();
+            const again = bot.profit_goal_mode === "again";
+            await supabaseAdmin.from("bots").update(again
+              ? { goal_close_ack_at: ackAt, goal_started_at: ackAt, goal_profit: 0, last_error: null, last_decision: `Profit goal reached (${result}). Starting a new goal.` }
+              : { goal_close_ack_at: ackAt, status: "stopped", stop_requested_at: ackAt, last_decision: `Profit goal reached (${result}). Bot stopped.` }).eq("id", bot.id);
+            await supabaseAdmin.from("notifications").insert({ user_id: bot.user_id, title: "Profit goal reached", body: `${result}. ${again ? "A new goal has started." : "The bot has stopped."}` });
+            return text("OK");
+          }
           await supabaseAdmin.from("notifications").insert({ user_id: bot.user_id, title: "Emergency close processed by MT5", body: result });
           return text("OK");
         }
