@@ -27,6 +27,7 @@ import { Route as AuthenticatedDashboardEaRouteImport } from './routes/_authenti
 import { Route as AuthenticatedDashboardHistoryRouteImport } from './routes/_authenticated/dashboard.history'
 import { Route as AuthenticatedDashboardMarketRouteImport } from './routes/_authenticated/dashboard.market'
 import { Route as AuthenticatedDashboardMentorRouteImport } from './routes/_authenticated/dashboard.mentor'
+import { Route as AuthenticatedDashboardNewsRouteImport } from './routes/_authenticated/dashboard.news'
 import { Route as AuthenticatedDashboardNotificationsRouteImport } from './routes/_authenticated/dashboard.notifications'
 import { Route as AuthenticatedDashboardScannerRouteImport } from './routes/_authenticated/dashboard.scanner'
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
@@ -131,6 +132,12 @@ const AuthenticatedDashboardMentorRoute =
     path: '/mentor',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardNewsRoute =
+  AuthenticatedDashboardNewsRouteImport.update({
+    id: '/news',
+    path: '/news',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const AuthenticatedDashboardNotificationsRoute =
   AuthenticatedDashboardNotificationsRouteImport.update({
     id: '/notifications',
@@ -183,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/history': typeof AuthenticatedDashboardHistoryRoute
   '/dashboard/market': typeof AuthenticatedDashboardMarketRoute
   '/dashboard/mentor': typeof AuthenticatedDashboardMentorRoute
+  '/dashboard/news': typeof AuthenticatedDashboardNewsRoute
   '/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
   '/dashboard/scanner': typeof AuthenticatedDashboardScannerRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
@@ -207,6 +215,7 @@ export interface FileRoutesByTo {
   '/dashboard/history': typeof AuthenticatedDashboardHistoryRoute
   '/dashboard/market': typeof AuthenticatedDashboardMarketRoute
   '/dashboard/mentor': typeof AuthenticatedDashboardMentorRoute
+  '/dashboard/news': typeof AuthenticatedDashboardNewsRoute
   '/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
   '/dashboard/scanner': typeof AuthenticatedDashboardScannerRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
@@ -234,6 +243,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/history': typeof AuthenticatedDashboardHistoryRoute
   '/_authenticated/dashboard/market': typeof AuthenticatedDashboardMarketRoute
   '/_authenticated/dashboard/mentor': typeof AuthenticatedDashboardMentorRoute
+  '/_authenticated/dashboard/news': typeof AuthenticatedDashboardNewsRoute
   '/_authenticated/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
   '/_authenticated/dashboard/scanner': typeof AuthenticatedDashboardScannerRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
@@ -261,6 +271,7 @@ export interface FileRouteTypes {
     | '/dashboard/history'
     | '/dashboard/market'
     | '/dashboard/mentor'
+    | '/dashboard/news'
     | '/dashboard/notifications'
     | '/dashboard/scanner'
     | '/dashboard/settings'
@@ -285,6 +296,7 @@ export interface FileRouteTypes {
     | '/dashboard/history'
     | '/dashboard/market'
     | '/dashboard/mentor'
+    | '/dashboard/news'
     | '/dashboard/notifications'
     | '/dashboard/scanner'
     | '/dashboard/settings'
@@ -311,6 +323,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/history'
     | '/_authenticated/dashboard/market'
     | '/_authenticated/dashboard/mentor'
+    | '/_authenticated/dashboard/news'
     | '/_authenticated/dashboard/notifications'
     | '/_authenticated/dashboard/scanner'
     | '/_authenticated/dashboard/settings'
@@ -462,6 +475,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardMentorRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/news': {
+      id: '/_authenticated/dashboard/news'
+      path: '/news'
+      fullPath: '/dashboard/news'
+      preLoaderRoute: typeof AuthenticatedDashboardNewsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/notifications': {
       id: '/_authenticated/dashboard/notifications'
       path: '/notifications'
@@ -515,6 +535,7 @@ interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardHistoryRoute: typeof AuthenticatedDashboardHistoryRoute
   AuthenticatedDashboardMarketRoute: typeof AuthenticatedDashboardMarketRoute
   AuthenticatedDashboardMentorRoute: typeof AuthenticatedDashboardMentorRoute
+  AuthenticatedDashboardNewsRoute: typeof AuthenticatedDashboardNewsRoute
   AuthenticatedDashboardNotificationsRoute: typeof AuthenticatedDashboardNotificationsRoute
   AuthenticatedDashboardScannerRoute: typeof AuthenticatedDashboardScannerRoute
   AuthenticatedDashboardSettingsRoute: typeof AuthenticatedDashboardSettingsRoute
@@ -531,6 +552,7 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
     AuthenticatedDashboardHistoryRoute: AuthenticatedDashboardHistoryRoute,
     AuthenticatedDashboardMarketRoute: AuthenticatedDashboardMarketRoute,
     AuthenticatedDashboardMentorRoute: AuthenticatedDashboardMentorRoute,
+    AuthenticatedDashboardNewsRoute: AuthenticatedDashboardNewsRoute,
     AuthenticatedDashboardNotificationsRoute:
       AuthenticatedDashboardNotificationsRoute,
     AuthenticatedDashboardScannerRoute: AuthenticatedDashboardScannerRoute,
