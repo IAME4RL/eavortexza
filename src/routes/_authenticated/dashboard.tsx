@@ -20,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 const NAV = [
   { to: "/dashboard", label: "Overview", I: LayoutDashboard, exact: true },
+  { to: "/dashboard/ai", label: "AI Assistant", I: Sparkles },
   { to: "/dashboard/scanner", label: "AI Chart Scanner", I: ScanLine },
   { to: "/dashboard/history", label: "Scan History", I: History },
   { to: "/dashboard/auto-trade", label: "Auto Trade", I: Zap },
