@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
   LayoutDashboard, ScanLine, History, Bot, BarChart3, LineChart, Bell, Settings, Users, ShieldCheck, LogOut, Menu, X, Zap,
+  Newspaper,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { PortalHeader, TabBar } from "@/components/portal";
