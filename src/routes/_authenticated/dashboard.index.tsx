@@ -14,6 +14,7 @@ import { HEARTBEAT_ONLINE_MS } from "@/lib/bridge";
 import { formatRemaining, marketSession } from "@/lib/sessions";
 import { getMyAssignedMentorBot, redeemMentorLicense } from "@/lib/mentorBots";
 import { BotControls, BotPills, FeaturedBotCard } from "@/components/FeaturedBotCard";
+import { NewsSignals } from "@/components/NewsSignals";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({ component: ClientOverview });
 
@@ -199,6 +200,7 @@ function ClientOverview() {
 
         {/* Session Card */}
         <SessionCard />
+        <NewsSignals limit={3} />
       </div>
 
       {/* MENTOR KEY REDEMPTION CARD */}

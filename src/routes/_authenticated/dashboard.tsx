@@ -25,6 +25,7 @@ const NAV = [
   { to: "/dashboard/ea", label: "EA Management", I: Bot },
   { to: "/dashboard/analytics", label: "Trading Analytics", I: BarChart3 },
   { to: "/dashboard/market", label: "Market Analysis", I: LineChart },
+  { to: "/dashboard/news", label: "News Signals", I: Newspaper },
   { to: "/dashboard/notifications", label: "Notifications", I: Bell },
   { to: "/dashboard/settings", label: "Settings", I: Settings },
 ] as const;
