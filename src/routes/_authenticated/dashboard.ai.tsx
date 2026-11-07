@@ -4,8 +4,12 @@ import { useServerFn } from "@tanstack/react-start";
 import { Sparkles, Send, Bot, User, Trash2, ArrowRight } from "lucide-react";
 import { PortalTitle, NeonCard, PwLabel, Chip } from "@/components/portal";
 import { askAssistant } from "@/lib/assistant.functions";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/dashboard/ai")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    botId: typeof search.botId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(search.botId) ? search.botId : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "AI Assistant — EA VORTEX" },
@@ -32,6 +36,7 @@ const STARTER_PROMPTS = [
 ];
 
 function AssistantPage() {
+  const { botId } = Route.useSearch();
   const fn = useServerFn(askAssistant);
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
@@ -61,6 +66,7 @@ function AssistantPage() {
       const res = await fn({
         data: {
           messages: newMsgs.map((m) => ({ role: m.role, content: m.content })),
+          botId,
         },
       });
 
@@ -90,14 +96,14 @@ function AssistantPage() {
   }
 
   return (
-    <div className="space-y-4 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between">
+    <div className="w-full min-w-0 space-y-4 max-w-4xl mx-auto">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <PortalTitle
-          title="AI Assistant"
-          sub="Your 24/7 intelligent trading coach, lot-size calculator & market analyst."
+          title={botId ? "Bot AI Assistant" : "AI Assistant"}
+          sub={botId ? "Your bot’s status, strategy, and risk settings." : "Trading questions, risk calculations, and market analysis."}
         />
         {messages.length > 1 && (
-          <button
+          <Button variant="ghost" size="sm" disabled={loading}
             onClick={() =>
               setMessages([
                 {
@@ -111,14 +117,14 @@ function AssistantPage() {
           >
             <Trash2 className="h-3.5 w-3.5" />
             <span>Clear</span>
-          </button>
+          </Button>
         )}
       </div>
 
       {/* Suggested quick prompt chips */}
       {messages.length <= 2 && (
         <div className="flex flex-wrap gap-2">
-          {STARTER_PROMPTS.map((p) => (
+          {(botId ? ["Why is my bot not opening trades?", "Explain my bot’s strategy and last decision", "Review my bot’s risk settings and profit goal"] : STARTER_PROMPTS).map((p) => (
             <Chip key={p} active={false} onClick={() => handleSend(p)}>
               <span className="flex items-center gap-1.5">
                 {p} <ArrowRight className="h-3 w-3 opacity-60" />
@@ -147,7 +153,7 @@ function AssistantPage() {
               </div>
 
               <div
-                className={`max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
+                className={`min-w-0 max-w-[85%] break-words [overflow-wrap:anywhere] rounded-lg px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
                   m.role === "user"
                     ? "bg-primary/20 border border-primary/40 text-foreground"
                     : "bg-background/60 border border-border/70 text-foreground/95"
@@ -181,16 +187,17 @@ function AssistantPage() {
               onKeyDown={handleKeyDown}
               placeholder="Ask about GOLD, lot sizing, news signals, or SMC strategies…"
               rows={1}
-              className="w-full resize-none rounded-xl border border-border/80 bg-background/80 px-3.5 py-3 pr-12 text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/80 transition-colors"
+              aria-label="Message to AI assistant"
+              className="w-full min-w-0 resize-none rounded-lg border border-border/80 bg-background/80 px-3.5 py-3 pr-12 text-base sm:text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/80 transition-colors"
             />
-            <button
+            <Button size="icon"
               onClick={() => handleSend()}
               disabled={loading || !input.trim()}
               className="absolute right-2 h-8 w-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-40 hover:bg-primary/90 transition-opacity"
               aria-label="Send message"
             >
               <Send className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
           <p className="mt-1.5 text-[10px] text-center text-muted-foreground">
             VORTEX AI provides technical analysis & coaching. Always verify risk parameters before placing trades.

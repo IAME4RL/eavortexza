@@ -14,3 +14,5 @@
 - The terminal connector journals execution intent before broker submission and retries reports, never uncertain orders, to avoid duplicate trades after interruptions.
 - Mobile web installation uses manifest-only metadata, without an app-shell service worker; Android APK downloads require a genuine compiled, signed artifact, not a renamed web file.
 - The Android APK is a minimal native WebView wrapper (no Capacitor) built from `/root/eavortex-android` (Gradle + AGP 8.5.2, SDK 34, package `co.eavortex.app`); the shipped artifact lives at `public/downloads/EA-VORTEX.apk` and its target URL is a single constant in `MainActivity.java` — rebuild with the published URL after launch.
+- Bot AI reuses the assistant route with an optional bot ID; fetch owner-scoped bot data server-side through an explicit safe-field allowlist, and keep chat read-only so it cannot bypass trading safeguards.
+- Fix portal sizing with fluid widths and shrinkable children, not disabled viewport zoom, to preserve mobile accessibility.
