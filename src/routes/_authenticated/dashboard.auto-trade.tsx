@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useRef, useState } from "react";
 import { Bot, Play, Pause, Square, KeyRound, Copy, Download, Send, X, ChevronDown, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StatusBadge } from "@/components/dash";
@@ -18,7 +17,7 @@ import { createBridgeToken, startBot, stopBot, enableLiveMode, disableLiveMode, 
 import { STRATEGIES } from "@/lib/strategy";
 import { CloudConnect } from "@/components/CloudConnect";
 import { ChangeAccount } from "@/components/ChangeAccount";
-import { cloudConfigOf } from "@/lib/cloudTrade";
+import { cloudConfigOf, NO_DAILY_LIMIT, withPerTrade } from "@/lib/cloudTrade";
 import { HEARTBEAT_ONLINE_MS } from "@/lib/bridge";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -105,16 +104,14 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
   const liveOff = useServerFn(disableLiveMode);
   const closeFn = useServerFn(requestEmergencyClose);
   const [blockers, setBlockers] = useState<string[]>([]);
-  const [botFeedback, setBotFeedback] = useState<string | null>(null);
-  const [starting, setStarting] = useState(false);
   const [liveText, setLiveText] = useState("");
   const [liveAck, setLiveAck] = useState(false);
   const [closeText, setCloseText] = useState("");
   const [strategy, setStrategy] = useState(bot.strategy);
   const [riskPct, setRiskPct] = useState(String(bot.risk_per_trade_pct));
-  const [maxLoss, setMaxLoss] = useState(String(bot.max_daily_loss));
-  const [goal, setGoal] = useState(String(bot.profit_goal ?? 0));
-  const [goalMode, setGoalMode] = useState(bot.profit_goal_mode ?? "stop");
+  const [maxLoss, setMaxLoss] = useState(Number(bot.max_daily_loss) > 0 && Number(bot.max_daily_loss) < NO_DAILY_LIMIT ? String(bot.max_daily_loss) : "");
+  const [riskAmt, setRiskAmt] = useState(cloudConfigOf(bot.terminal_info)?.riskPerTrade != null ? String(cloudConfigOf(bot.terminal_info)?.riskPerTrade) : "");
+  const [targetAmt, setTargetAmt] = useState(cloudConfigOf(bot.terminal_info)?.targetPerTrade != null ? String(cloudConfigOf(bot.terminal_info)?.targetPerTrade) : "");
   const run = async (fn: () => Promise<unknown>, ok?: string) => { try { await fn(); if (ok) toast.success(ok); refresh(); } catch (e) { toast.error(e instanceof Error ? e.message : "Action failed"); } };
   const [token, setToken] = useState<string | null>(null);
   const [lot, setLot] = useState(String(bot.default_lot));
@@ -130,6 +127,7 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
   const [connectOpen, setConnectOpen] = useState(!bot.bridge_token_hash && !isCloud);
   const [orderOpen, setOrderOpen] = useState(false);
   const [showAllSignals, setShowAllSignals] = useState(false);
+  const [showOlderHistory, setShowOlderHistory] = useState(false);
   const orderRef = useRef<HTMLDetailsElement>(null);
 
   const online = !!bot.last_heartbeat && Date.now() - new Date(bot.last_heartbeat).getTime() < HEARTBEAT_ONLINE_MS;
@@ -151,20 +149,7 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Update failed"),
   });
 
-  const doStart = async () => {
-    if (starting) return;
-    setStarting(true);
-    setBotFeedback(null);
-    try {
-      const r = await startFn({ data: { botId: bot.id } });
-      setBlockers(r.blockers);
-      if (!r.ok) throw new Error("Start blocked — see checks below");
-      setBotFeedback("Bot started");
-      toast.success("Bot started");
-      refresh();
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Action failed"); }
-    finally { setStarting(false); }
-  };
+  const doStart = () => run(async () => { const r = await startFn({ data: { botId: bot.id } }); setBlockers(r.blockers); if (!r.ok) throw new Error("Start blocked — see checks below"); }, "Bot started");
   const doStop = () => run(async () => { const r = await stopFn({ data: { botId: bot.id } }); qc.invalidateQueries({ queryKey: ["signals", bot.id] }); return r; }, "Bot stopped — new orders blocked, queued orders cancelled");
   const queue = useMutation({
     mutationFn: async () => {
@@ -188,7 +173,12 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
 
   const rows = signals.data ?? [];
   const closed = rows.filter((r) => r.status === "closed" && r.profit != null);
-  const history = rows.filter((r) => r.status === "closed");
+  // Trade history shows the last 24 hours; older trades stay saved and can be revealed.
+  const historyAll = rows.filter((r) => r.status === "closed");
+  const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  const historyToday = historyAll.filter((r) => new Date(r.closed_at ?? r.created_at).getTime() >= dayAgo);
+  const history = showOlderHistory ? historyAll : historyToday;
+  const olderCount = historyAll.length - historyToday.length;
   const recent = rows.filter((r) => r.status !== "closed");
   const pnl = closed.reduce((s, r) => s + Number(r.profit), 0);
   const endpoint = typeof window !== "undefined" ? `${window.location.origin}/api/public/bridge/mt5` : "";
@@ -212,12 +202,11 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
             {bot.stop_requested_at && !bot.stop_ack_at && <p className="mt-2 text-xs text-muted-foreground">Stop awaiting terminal confirmation</p>}
           </div>
           <div className="flex flex-wrap gap-2">
-            {bot.status !== "running" && <Button variant="hero" disabled={starting} onClick={doStart}><Play className="h-4 w-4" />{starting ? "Starting…" : bot.status === "paused" ? "Resume" : "Start"}</Button>}
+            {bot.status !== "running" && <button type="button" className="pw-btn pw-btn-solid" onClick={doStart}><Play className="h-4 w-4" />{bot.status === "paused" ? "Resume" : "Start"}</button>}
             {bot.status === "running" && <button type="button" className="pw-btn" onClick={() => update.mutate({ status: "paused" })}><Pause className="h-4 w-4" />Pause</button>}
             {bot.status !== "stopped" && <button type="button" className="pw-btn" onClick={doStop}><Square className="h-4 w-4" />Stop</button>}
           </div>
         </div>
-        {botFeedback && <p role="status" className="mt-3 text-sm text-bull">{botFeedback}</p>}
         <ChangeAccount botId={bot.id} login={account.account_login} server={account.broker_server} label={account.label} isCloud={isCloud} />
         {blockers.length > 0 && (
           <div role="alert" className="mt-4 rounded-xl border border-destructive/50 p-3 text-sm">
@@ -260,12 +249,13 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
       </NeonCard>
 
       <NeonCard>
-        <div className="border-b border-primary/20 px-4 py-3.5 sm:px-5"><PwLabel>Trade history</PwLabel></div>
-        {!history.length ? <p className="px-5 py-6 text-sm text-muted-foreground">No closed bot trades yet.</p> : (
+        <div className="border-b border-primary/20 px-4 py-3.5 sm:px-5"><PwLabel>{showOlderHistory ? "Trade history" : "Trade history · last 24 hours"}</PwLabel></div>
+        {!history.length ? <p className="px-5 py-6 text-sm text-muted-foreground">{historyAll.length ? "No closed bot trades in the last 24 hours." : "No closed bot trades yet."}</p> : (
           <ul className="divide-y divide-primary/10">
             {history.map((r) => <OrderRow key={r.id} r={r} />)}
           </ul>
         )}
+        {olderCount > 0 && <button type="button" className="w-full border-t border-primary/15 py-3 text-xs text-primary" onClick={() => setShowOlderHistory((v) => !v)}>{showOlderHistory ? "Show last 24 hours only" : `Show older trades (${olderCount})`}</button>}
       </NeonCard>
 
       <NeonCard>
@@ -295,40 +285,30 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
           <div className="space-y-1"><Label className={lbl}>Max lot</Label><Input className={field} inputMode="decimal" value={maxLot} onChange={(e) => setMaxLot(e.target.value)} /></div>
           <div className="space-y-1"><Label className={lbl}>Max open</Label><Input className={field} inputMode="numeric" value={maxOpen} onChange={(e) => setMaxOpen(e.target.value)} /></div>
           <div className="space-y-1"><Label className={lbl}>Risk % / trade</Label><Input className={field} inputMode="decimal" value={riskPct} onChange={(e) => setRiskPct(e.target.value)} /></div>
-          <div className="space-y-1"><Label className={lbl}>Max daily loss</Label><Input className={field} inputMode="decimal" value={maxLoss} onChange={(e) => setMaxLoss(e.target.value)} /></div>
+          <div className="space-y-1"><Label className={lbl}>Max daily loss ($)</Label><Input className={field} inputMode="decimal" placeholder="Off" value={maxLoss} onChange={(e) => setMaxLoss(e.target.value)} /></div>
+          {cloudConfigOf(bot.terminal_info) && (<>
+          <div className="space-y-1"><Label className={lbl}>Lose per trade ($)</Label><Input className={field} inputMode="decimal" placeholder="e.g. 10" value={riskAmt} onChange={(e) => setRiskAmt(e.target.value)} /></div>
+          <div className="space-y-1"><Label className={lbl}>Win per trade ($)</Label><Input className={field} inputMode="decimal" placeholder="e.g. 20" value={targetAmt} onChange={(e) => setTargetAmt(e.target.value)} /></div>
+          </>)}
         </div>
+        <p className="mt-2 text-xs text-muted-foreground">Cloud trading only. Fill in both and the bot sizes each trade's lot so a stop-out loses about your "lose" amount, and sets the take profit at about your "win" amount. Leave both empty to use the default lot. USD accounts; gold and major pairs only. Trades are skipped if even the smallest lot would risk more than your limit. Leave Max daily loss empty for no daily limit: the bot then keeps trading after losing days, so rely on the per-trade loss amount.</p>
         <label className="mt-4 flex items-center justify-between gap-3 text-sm">
           <span>Demo accounts only <span className="block text-xs text-muted-foreground">Orders are held if the terminal reports a live account.</span></span>
           <Switch checked={bot.demo_only} onCheckedChange={(v) => update.mutate({ demo_only: v })} />
         </label>
-        <button type="button" className="pw-btn mt-4" onClick={() => update.mutate({ default_lot: Number(lot), max_lot: Number(maxLot), max_open_trades: Number(maxOpen), strategy, risk_per_trade_pct: Number(riskPct), max_daily_loss: Number(maxLoss) }, { onSuccess: () => toast.success("Settings saved") })}>Save settings</button>
-      </Section>
-
-      <NeonCard className="p-4">
-        <PwLabel>Profit goal</PwLabel>
-        <p className="mt-1 text-xs text-muted-foreground">The bot trades all day until your total profit reaches this amount, then closes its trades. Set 0 to turn it off. Stop-losses and the daily loss limit still apply.</p>
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <div className="space-y-1"><Label className={lbl}>Goal amount</Label><Input className={field} inputMode="decimal" value={goal} onChange={(e) => setGoal(e.target.value)} /></div>
-          <div className="space-y-1"><Label className={lbl}>When reached</Label>
-            <Select value={goalMode} onValueChange={setGoalMode}><SelectTrigger className={field}><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="stop">Close trades & stop bot</SelectItem>
-                <SelectItem value="again">Close trades & start new goal</SelectItem>
-              </SelectContent></Select>
-          </div>
-        </div>
-        {Number(bot.profit_goal) > 0 && (
-          <div className="mt-3">
-            <div className="flex justify-between text-xs text-muted-foreground"><span>Progress</span><span className="font-mono">{Number(bot.goal_profit).toFixed(2)} / {Number(bot.profit_goal).toFixed(2)}</span></div>
-            <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary" style={{ width: `${Math.max(0, Math.min(100, (Number(bot.goal_profit) / Number(bot.profit_goal)) * 100))}%` }} /></div>
-          </div>
-        )}
         <button type="button" className="pw-btn mt-4" onClick={() => {
-          const g = Number(goal);
-          if (!Number.isFinite(g) || g < 0) { toast.error("Enter 0 or a positive amount"); return; }
-          update.mutate({ profit_goal: g, profit_goal_mode: goalMode, ...(Number(bot.profit_goal) !== g ? { goal_started_at: new Date().toISOString(), goal_profit: 0 } : {}) }, { onSuccess: () => toast.success("Profit goal saved") });
-        }}>Save goal</button>
-      </NeonCard>
+          const dl = maxLoss.trim() === "" ? NO_DAILY_LIMIT : Number(maxLoss);
+          if (!Number.isFinite(dl) || dl <= 0) { toast.error("Max daily loss must be a positive number, or empty for no daily limit."); return; }
+          const r = riskAmt.trim() === "" ? null : Number(riskAmt);
+          const t = targetAmt.trim() === "" ? null : Number(targetAmt);
+          if ((r === null) !== (t === null)) { toast.error("Fill in both the lose and win amounts, or leave both empty."); return; }
+          if (r !== null && t !== null) {
+            if (!(r > 0) || !(t > 0) || !Number.isFinite(r) || !Number.isFinite(t)) { toast.error("Lose and win amounts must be positive numbers."); return; }
+            if (t / r < 0.25 || t / r > 10) { toast.error("Win amount should be between 0.25x and 10x the lose amount."); return; }
+          }
+          update.mutate({ default_lot: Number(lot), max_lot: Number(maxLot), max_open_trades: Number(maxOpen), strategy, risk_per_trade_pct: Number(riskPct), max_daily_loss: dl, ...(cloudConfigOf(bot.terminal_info) ? { terminal_info: withPerTrade(bot.terminal_info, r, t) as never } : {}) }, { onSuccess: () => toast.success("Settings saved") });
+        }}>Save settings</button>
+      </Section>
 
       <Section title="Trade without a PC (API2Trade)" open={cloudOpen} onToggle={setCloudOpen}>
         <CloudConnect botId={bot.id} accountLogin={account.account_login} accountServer={account.broker_server} terminalInfo={bot.terminal_info} />
