@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useRef, useState } from "react";
-import { Bot, Play, Pause, Square, KeyRound, Copy, Download, Send, X, ChevronDown, Plus, Sparkles } from "lucide-react";
+import { Bot, Play, Pause, Square, KeyRound, Copy, Download, Send, X, ChevronDown, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -218,9 +218,6 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
           </div>
         </div>
         {botFeedback && <p role="status" className="mt-3 text-sm text-bull">{botFeedback}</p>}
-        <Button asChild variant="frame" className="mt-3">
-          <Link to="/dashboard/ai" search={{ botId: bot.id }}><Sparkles className="h-4 w-4" />Ask bot AI</Link>
-        </Button>
         <ChangeAccount botId={bot.id} login={account.account_login} server={account.broker_server} label={account.label} isCloud={isCloud} />
         {blockers.length > 0 && (
           <div role="alert" className="mt-4 rounded-xl border border-destructive/50 p-3 text-sm">

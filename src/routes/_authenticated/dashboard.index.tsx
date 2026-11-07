@@ -3,8 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { ScanLine, Clock, ChevronRight, Globe, Key, Check, Upload, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ScanLine, Clock, ChevronRight, Globe, Key, Check, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getScanQuota } from "@/lib/scan.functions";
 import { startBot, stopBot } from "@/lib/bot.functions";
@@ -181,9 +180,6 @@ function ClientOverview() {
         }}
       />
       {botFeedback && <p role="status" className="text-center text-sm text-bull">{botFeedback}</p>}
-      <Button asChild variant="frame" className="w-full">
-        <Link to="/dashboard/ai" search={{ botId: userBot?.id }}><Sparkles className="h-4 w-4" />Ask bot AI</Link>
-      </Button>
       <div className="flex items-center justify-center gap-2">
         {online ? <Pill tone="ok">MT5 online</Pill> : <Pill tone="idle">MT5 bridge offline</Pill>}
       </div>
