@@ -1,5 +1,12 @@
 # EA VORTEX — Resume & Complete
 
+## Current client portal update
+- [x] Correct phone layout sizing without disabling accessibility zoom
+- [x] Connect the bot controls to the existing AI assistant with private, read-only bot context
+- [x] Show successful START confirmation without masking start blockers
+- [x] Verify 320/390/1280px layouts, authenticated assistant reply, and 37 relevant tests; build OK
+- [ ] Verify successful START and bot-specific chat in the live client flow — the requesting account has no configured bot or MT5 account; do not create or start real trading for testing
+
 ## Current homepage update
 - [x] Restyle the public homepage using the November 1 EA NEXUS references, retain EA VORTEX branding and existing destinations, and verify desktop/mobile navigation
 

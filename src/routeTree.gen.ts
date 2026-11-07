@@ -21,6 +21,7 @@ import { Route as ScannerRouteImport } from './routes/scanner'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
 import { Route as AuthenticatedDashboardAdminRouteImport } from './routes/_authenticated/dashboard.admin'
+import { Route as AuthenticatedDashboardAiRouteImport } from './routes/_authenticated/dashboard.ai'
 import { Route as AuthenticatedDashboardAnalyticsRouteImport } from './routes/_authenticated/dashboard.analytics'
 import { Route as AuthenticatedDashboardAutoTradeRouteImport } from './routes/_authenticated/dashboard.auto-trade'
 import { Route as AuthenticatedDashboardEaRouteImport } from './routes/_authenticated/dashboard.ea'
@@ -94,6 +95,12 @@ const AuthenticatedDashboardAdminRoute =
   AuthenticatedDashboardAdminRouteImport.update({
     id: '/admin',
     path: '/admin',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardAiRoute =
+  AuthenticatedDashboardAiRouteImport.update({
+    id: '/ai',
+    path: '/ai',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
 const AuthenticatedDashboardAnalyticsRoute =
@@ -184,6 +191,7 @@ export interface FileRoutesByFullPath {
   '/scanner': typeof ScannerRoute
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/dashboard/admin': typeof AuthenticatedDashboardAdminRoute
+  '/dashboard/ai': typeof AuthenticatedDashboardAiRoute
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/auto-trade': typeof AuthenticatedDashboardAutoTradeRoute
   '/dashboard/ea': typeof AuthenticatedDashboardEaRoute
@@ -209,6 +217,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/scanner': typeof ScannerRoute
   '/dashboard/admin': typeof AuthenticatedDashboardAdminRoute
+  '/dashboard/ai': typeof AuthenticatedDashboardAiRoute
   '/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/dashboard/auto-trade': typeof AuthenticatedDashboardAutoTradeRoute
   '/dashboard/ea': typeof AuthenticatedDashboardEaRoute
@@ -237,6 +246,7 @@ export interface FileRoutesById {
   '/scanner': typeof ScannerRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_authenticated/dashboard/admin': typeof AuthenticatedDashboardAdminRoute
+  '/_authenticated/dashboard/ai': typeof AuthenticatedDashboardAiRoute
   '/_authenticated/dashboard/analytics': typeof AuthenticatedDashboardAnalyticsRoute
   '/_authenticated/dashboard/auto-trade': typeof AuthenticatedDashboardAutoTradeRoute
   '/_authenticated/dashboard/ea': typeof AuthenticatedDashboardEaRoute
@@ -265,6 +275,7 @@ export interface FileRouteTypes {
     | '/scanner'
     | '/dashboard'
     | '/dashboard/admin'
+    | '/dashboard/ai'
     | '/dashboard/analytics'
     | '/dashboard/auto-trade'
     | '/dashboard/ea'
@@ -290,6 +301,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/scanner'
     | '/dashboard/admin'
+    | '/dashboard/ai'
     | '/dashboard/analytics'
     | '/dashboard/auto-trade'
     | '/dashboard/ea'
@@ -317,6 +329,7 @@ export interface FileRouteTypes {
     | '/scanner'
     | '/_authenticated/dashboard'
     | '/_authenticated/dashboard/admin'
+    | '/_authenticated/dashboard/ai'
     | '/_authenticated/dashboard/analytics'
     | '/_authenticated/dashboard/auto-trade'
     | '/_authenticated/dashboard/ea'
@@ -433,6 +446,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardAdminRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/ai': {
+      id: '/_authenticated/dashboard/ai'
+      path: '/ai'
+      fullPath: '/dashboard/ai'
+      preLoaderRoute: typeof AuthenticatedDashboardAiRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/_authenticated/dashboard/analytics': {
       id: '/_authenticated/dashboard/analytics'
       path: '/analytics'
@@ -529,6 +549,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardAdminRoute: typeof AuthenticatedDashboardAdminRoute
+  AuthenticatedDashboardAiRoute: typeof AuthenticatedDashboardAiRoute
   AuthenticatedDashboardAnalyticsRoute: typeof AuthenticatedDashboardAnalyticsRoute
   AuthenticatedDashboardAutoTradeRoute: typeof AuthenticatedDashboardAutoTradeRoute
   AuthenticatedDashboardEaRoute: typeof AuthenticatedDashboardEaRoute
@@ -546,6 +567,7 @@ interface AuthenticatedDashboardRouteChildren {
 const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
   {
     AuthenticatedDashboardAdminRoute: AuthenticatedDashboardAdminRoute,
+    AuthenticatedDashboardAiRoute: AuthenticatedDashboardAiRoute,
     AuthenticatedDashboardAnalyticsRoute: AuthenticatedDashboardAnalyticsRoute,
     AuthenticatedDashboardAutoTradeRoute: AuthenticatedDashboardAutoTradeRoute,
     AuthenticatedDashboardEaRoute: AuthenticatedDashboardEaRoute,

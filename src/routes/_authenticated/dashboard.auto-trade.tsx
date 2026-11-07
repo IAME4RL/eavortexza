@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useRef, useState } from "react";
-import { Bot, Play, Pause, Square, KeyRound, Copy, Download, Send, X, ChevronDown, Plus } from "lucide-react";
+import { Bot, Play, Pause, Square, KeyRound, Copy, Download, Send, X, ChevronDown, Plus, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StatusBadge } from "@/components/dash";
@@ -104,6 +105,8 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
   const liveOff = useServerFn(disableLiveMode);
   const closeFn = useServerFn(requestEmergencyClose);
   const [blockers, setBlockers] = useState<string[]>([]);
+  const [botFeedback, setBotFeedback] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
   const [liveText, setLiveText] = useState("");
   const [liveAck, setLiveAck] = useState(false);
   const [closeText, setCloseText] = useState("");
@@ -148,7 +151,20 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Update failed"),
   });
 
-  const doStart = () => run(async () => { const r = await startFn({ data: { botId: bot.id } }); setBlockers(r.blockers); if (!r.ok) throw new Error("Start blocked — see checks below"); }, "Bot started");
+  const doStart = async () => {
+    if (starting) return;
+    setStarting(true);
+    setBotFeedback(null);
+    try {
+      const r = await startFn({ data: { botId: bot.id } });
+      setBlockers(r.blockers);
+      if (!r.ok) throw new Error("Start blocked — see checks below");
+      setBotFeedback("Bot started");
+      toast.success("Bot started");
+      refresh();
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Action failed"); }
+    finally { setStarting(false); }
+  };
   const doStop = () => run(async () => { const r = await stopFn({ data: { botId: bot.id } }); qc.invalidateQueries({ queryKey: ["signals", bot.id] }); return r; }, "Bot stopped — new orders blocked, queued orders cancelled");
   const queue = useMutation({
     mutationFn: async () => {
@@ -196,11 +212,15 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
             {bot.stop_requested_at && !bot.stop_ack_at && <p className="mt-2 text-xs text-muted-foreground">Stop awaiting terminal confirmation</p>}
           </div>
           <div className="flex flex-wrap gap-2">
-            {bot.status !== "running" && <button type="button" className="pw-btn pw-btn-solid" onClick={doStart}><Play className="h-4 w-4" />{bot.status === "paused" ? "Resume" : "Start"}</button>}
+            {bot.status !== "running" && <Button variant="hero" disabled={starting} onClick={doStart}><Play className="h-4 w-4" />{starting ? "Starting…" : bot.status === "paused" ? "Resume" : "Start"}</Button>}
             {bot.status === "running" && <button type="button" className="pw-btn" onClick={() => update.mutate({ status: "paused" })}><Pause className="h-4 w-4" />Pause</button>}
             {bot.status !== "stopped" && <button type="button" className="pw-btn" onClick={doStop}><Square className="h-4 w-4" />Stop</button>}
           </div>
         </div>
+        {botFeedback && <p role="status" className="mt-3 text-sm text-bull">{botFeedback}</p>}
+        <Button asChild variant="frame" className="mt-3">
+          <Link to="/dashboard/ai" search={{ botId: bot.id }}><Sparkles className="h-4 w-4" />Ask bot AI</Link>
+        </Button>
         <ChangeAccount botId={bot.id} login={account.account_login} server={account.broker_server} label={account.label} isCloud={isCloud} />
         {blockers.length > 0 && (
           <div role="alert" className="mt-4 rounded-xl border border-destructive/50 p-3 text-sm">

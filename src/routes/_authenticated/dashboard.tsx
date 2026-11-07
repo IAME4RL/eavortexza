@@ -126,7 +126,7 @@ function ClientShell() {
   }, [open]);
 
   return (
-    <div className="relative min-h-dvh lg:pl-64">
+    <div className="relative w-full min-w-0 min-h-dvh overflow-x-clip lg:pl-64">
       <VortexBackground />
       <div className="pw-vignette" aria-hidden />
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-sidebar-border bg-sidebar lg:block">
@@ -142,7 +142,7 @@ function ClientShell() {
           </aside>
         </div>
       )}
-      <main className="relative z-10 mx-auto max-w-6xl px-4 pb-32 pt-5 sm:px-6 lg:px-8 lg:pb-12 lg:pt-10"><Outlet /></main>
+      <main className="relative z-10 mx-auto w-full min-w-0 max-w-6xl px-4 pb-32 pt-5 sm:px-6 lg:px-8 lg:pb-12 lg:pt-10"><Outlet /></main>
       <BotRunningOverlay />
       <TabBar />
     </div>

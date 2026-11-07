@@ -3,7 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { ScanLine, Clock, ChevronRight, Globe, Key, Check, Upload } from "lucide-react";
+import { ScanLine, Clock, ChevronRight, Globe, Key, Check, Upload, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { getScanQuota } from "@/lib/scan.functions";
 import { startBot, stopBot } from "@/lib/bot.functions";
@@ -16,7 +17,17 @@ import { getMyAssignedMentorBot, redeemMentorLicense } from "@/lib/mentorBots";
 import { BotControls, BotPills, FeaturedBotCard } from "@/components/FeaturedBotCard";
 import { NewsSignals } from "@/components/NewsSignals";
 
-export const Route = createFileRoute("/_authenticated/dashboard/")({ component: ClientOverview });
+export const Route = createFileRoute("/_authenticated/dashboard/")({
+  head: () => ({ meta: [
+    { title: "Client Portal — EA VORTEX" },
+    { name: "description", content: "Your EA VORTEX bot, private chart scans, and trading signals." },
+    { property: "og:title", content: "Client Portal — EA VORTEX" },
+    { property: "og:description", content: "Manage your bot and review your private trading activity." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
+  component: ClientOverview,
+});
 
 const WATCHLIST = [
   { label: "GOLD", instrument: "XAUUSD", tf: "H1" },
@@ -89,8 +100,10 @@ function ClientOverview() {
   const startFn = useServerFn(startBot);
   const stopFn = useServerFn(stopBot);
   const [blockers, setBlockers] = useState<string[]>([]);
+  const [botFeedback, setBotFeedback] = useState<string | null>(null);
   const botAction = useMutation({
     mutationFn: async (kind: "start" | "stop") => {
+      setBotFeedback(null);
       if (!userBot) throw new Error("Set up your bot first");
       if (kind === "start") {
         const r = await startFn({ data: { botId: userBot.id } });
@@ -102,7 +115,7 @@ function ClientOverview() {
       await stopFn({ data: { botId: userBot.id } });
       return "Bot stopped — new orders blocked";
     },
-    onSuccess: (msg) => { toast.success(msg); },
+    onSuccess: (msg) => { setBotFeedback(msg); toast.success(msg); },
     onError: (e) => { toast.error(e instanceof Error ? e.message : "Action failed"); },
     onSettled: () => { queryClient.invalidateQueries({ queryKey: ["portal-bot", user?.id] }); },
   });
@@ -137,7 +150,7 @@ function ClientOverview() {
   };
 
   return (
-    <div className="space-y-5 pb-10">
+    <div className="w-full min-w-0 space-y-5 pb-10">
       {counts.data?.profile?.mentor_requested && !hasRole("mentor") && (
         <div className="pw-card-quiet flex items-center gap-3 p-4 text-sm text-neutral">
           <Clock className="h-4 w-4 shrink-0 text-primary" />
@@ -167,6 +180,10 @@ function ClientOverview() {
           onStop: () => botAction.mutate("stop"),
         }}
       />
+      {botFeedback && <p role="status" className="text-center text-sm text-bull">{botFeedback}</p>}
+      <Button asChild variant="frame" className="w-full">
+        <Link to="/dashboard/ai" search={{ botId: userBot?.id }}><Sparkles className="h-4 w-4" />Ask bot AI</Link>
+      </Button>
       <div className="flex items-center justify-center gap-2">
         {online ? <Pill tone="ok">MT5 online</Pill> : <Pill tone="idle">MT5 bridge offline</Pill>}
       </div>
@@ -184,7 +201,7 @@ function ClientOverview() {
       </NeonCard>
 
       {/* MARKET WATCHLIST & SESSION INTELLIGENCE */}
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid min-w-0 gap-5 lg:grid-cols-2 [&>*]:min-w-0">
         {/* Watchlist */}
         <NeonCard className="p-5">
           <div className="flex items-center justify-between">
