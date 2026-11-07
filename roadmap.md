@@ -1,5 +1,11 @@
 # EA VORTEX — Resume & Complete
 
+## Current client portal update
+- [ ] Correct phone layout sizing without disabling accessibility zoom
+- [ ] Connect the bot controls to the existing AI assistant with private, read-only bot context
+- [ ] Show successful START confirmation without masking start blockers
+- [ ] Verify phone/desktop layout, assistant flow, and relevant tests
+
 ## Current homepage update
 - [x] Restyle the public homepage using the November 1 EA NEXUS references, retain EA VORTEX branding and existing destinations, and verify desktop/mobile navigation
 
