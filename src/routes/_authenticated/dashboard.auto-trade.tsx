@@ -127,7 +127,6 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
   const [connectOpen, setConnectOpen] = useState(!bot.bridge_token_hash && !isCloud);
   const [orderOpen, setOrderOpen] = useState(false);
   const [showAllSignals, setShowAllSignals] = useState(false);
-  const [showOlderHistory, setShowOlderHistory] = useState(false);
   const orderRef = useRef<HTMLDetailsElement>(null);
 
   const online = !!bot.last_heartbeat && Date.now() - new Date(bot.last_heartbeat).getTime() < HEARTBEAT_ONLINE_MS;
@@ -173,13 +172,14 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
 
   const rows = signals.data ?? [];
   const closed = rows.filter((r) => r.status === "closed" && r.profit != null);
-  // Trade history shows the last 24 hours; older trades stay saved and can be revealed.
+  // Trade history and recent signals show the last 24 hours only; older trades stay saved in the database.
   const historyAll = rows.filter((r) => r.status === "closed");
   const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
   const historyToday = historyAll.filter((r) => new Date(r.closed_at ?? r.created_at).getTime() >= dayAgo);
-  const history = showOlderHistory ? historyAll : historyToday;
-  const olderCount = historyAll.length - historyToday.length;
-  const recent = rows.filter((r) => r.status !== "closed");
+  const history = historyToday;
+  // Live orders always show; finished ones (rejected / failed / cancelled) disappear after 24 hours.
+  const LIVE = new Set(["queued", "sent", "filled", "pending"]);
+  const recent = rows.filter((r) => r.status !== "closed" && (LIVE.has(r.status) || new Date(r.created_at).getTime() >= dayAgo));
   const pnl = closed.reduce((s, r) => s + Number(r.profit), 0);
   const endpoint = typeof window !== "undefined" ? `${window.location.origin}/api/public/bridge/mt5` : "";
   const positions = Array.isArray(info?.positions) ? info!.positions! : [];
@@ -249,13 +249,12 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
       </NeonCard>
 
       <NeonCard>
-        <div className="border-b border-primary/20 px-4 py-3.5 sm:px-5"><PwLabel>{showOlderHistory ? "Trade history" : "Trade history · last 24 hours"}</PwLabel></div>
+        <div className="border-b border-primary/20 px-4 py-3.5 sm:px-5"><PwLabel>Trade history · last 24 hours</PwLabel></div>
         {!history.length ? <p className="px-5 py-6 text-sm text-muted-foreground">{historyAll.length ? "No closed bot trades in the last 24 hours." : "No closed bot trades yet."}</p> : (
           <ul className="divide-y divide-primary/10">
             {history.map((r) => <OrderRow key={r.id} r={r} />)}
           </ul>
         )}
-        {olderCount > 0 && <button type="button" className="w-full border-t border-primary/15 py-3 text-xs text-primary" onClick={() => setShowOlderHistory((v) => !v)}>{showOlderHistory ? "Show last 24 hours only" : `Show older trades (${olderCount})`}</button>}
       </NeonCard>
 
       <NeonCard>
