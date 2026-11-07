@@ -160,7 +160,7 @@ export function NewsSignals({ instrument = "XAUUSD", limit, full = false }: { in
 
       <div className="mt-3.5 space-y-3">
         {q.isLoading && <p className="text-xs text-muted-foreground">Loading news signals…</p>}
-        {q.data && !q.data.ok && <p className="text-xs text-muted-foreground">{q.data.error}</p>}
+        {q.isError && <p className="text-xs text-muted-foreground">The economic calendar is unavailable right now. Try again shortly.</p>}
         {q.data?.ok && items.length === 0 && (
           <p className="text-xs text-muted-foreground">No upcoming high or medium impact events found for this market.</p>
         )}

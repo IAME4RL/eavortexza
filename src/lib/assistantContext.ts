@@ -18,9 +18,9 @@ export function assistantBotContext(bot: AssistantBot, now = Date.now()) {
     lastDecision: bot.last_decision?.slice(0, 1200) ?? null,
     lastHeartbeat: bot.last_heartbeat,
     heartbeatAgeSeconds: bot.last_heartbeat ? Math.max(0, Math.round((now - Date.parse(bot.last_heartbeat)) / 1000)) : null,
-    balance: typeof info.balance === "number" ? info.balance : null,
-    equity: typeof info.equity === "number" ? info.equity : null,
-    currency: typeof info.currency === "string" ? info.currency.slice(0, 8) : null,
-    openPositions: typeof info.open === "number" ? info.open : null,
+    balance: typeof info["balance"] === "number" ? info["balance"] : null,
+    equity: typeof info["equity"] === "number" ? info["equity"] : null,
+    currency: typeof info["currency"] === "string" ? info["currency"].slice(0, 8) : null,
+    openPositions: typeof info["open"] === "number" ? info["open"] : null,
   };
 }

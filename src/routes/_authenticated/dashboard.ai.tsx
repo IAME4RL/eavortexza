@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/dashboard/ai")({
   validateSearch: (search: Record<string, unknown>) => ({
-    botId: typeof search.botId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(search.botId) ? search.botId : undefined,
+    botId: typeof search["botId"] === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(search["botId"]) ? search["botId"] : undefined,
   }),
   head: () => ({
     meta: [
@@ -65,7 +65,7 @@ function AssistantPage() {
     try {
       const res = await fn({
         data: {
-          messages: newMsgs.map((m) => ({ role: m.role, content: m.content })),
+          messages: newMsgs.slice(-30).map((m) => ({ role: m.role, content: m.content })),
           botId,
         },
       });
