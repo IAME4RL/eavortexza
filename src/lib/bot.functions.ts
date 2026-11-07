@@ -47,10 +47,10 @@ export const startBot = createServerFn({ method: "POST" })
         connected, accountType: cloud.accountType, mode: bot.trading_mode as TradingMode, liveConfirmed: !!bot.live_confirmed_at, demoOnly: bot.demo_only,
         strategy: bot.strategy, defaultLot: Number(bot.default_lot), maxLot: Number(bot.max_lot), maxOpen: bot.max_open_trades,
         riskPct: Number(bot.risk_per_trade_pct), maxDailyLoss: Number(bot.max_daily_loss), instrument: cloud.instrument, brokerSymbol: cloud.brokerSymbol,
-        profitGoal: Number(bot.profit_goal), goalMode: bot.profit_goal_mode,
+        riskAmount: cloud.riskPerTrade ?? null, targetAmount: cloud.targetPerTrade ?? null,
       });
       if (blockers.length) return { ok: false, already: false, blockers };
-      await (await admin()).from("bots").update({ status: "running", stop_requested_at: null, stop_ack_at: null, last_error: null, goal_started_at: new Date().toISOString(), goal_profit: 0, last_heartbeat: new Date().toISOString() }).eq("id", bot.id).neq("status", "running");
+      await (await admin()).from("bots").update({ status: "running", stop_requested_at: null, stop_ack_at: null, last_error: null, last_heartbeat: new Date().toISOString() }).eq("id", bot.id).neq("status", "running");
       // Do not wait for the next scheduled check: evaluate now and open the first trade right away.
       let entry = "Bot started. The first check runs within a minute.";
       try { entry = await (await import("@/lib/cloudEngine")).runCloudBotOnce(bot.id, { entryOnStart: true }); } catch { /* the scheduled check will pick it up */ }
@@ -66,7 +66,7 @@ export const startBot = createServerFn({ method: "POST" })
     });
     if (blockers.length) return { ok: false, already: false, blockers };
     // Conditional update prevents duplicate START commands racing each other.
-    await (await admin()).from("bots").update({ status: "running", stop_requested_at: null, stop_ack_at: null, goal_started_at: new Date().toISOString(), goal_profit: 0 }).eq("id", bot.id).neq("status", "running");
+    await (await admin()).from("bots").update({ status: "running", stop_requested_at: null, stop_ack_at: null }).eq("id", bot.id).neq("status", "running");
     return { ok: true, already: false, blockers };
   });
 

@@ -8,6 +8,9 @@ export interface CloudConfig {
   brokerSymbol: string;
   timeframe: string;
   connectedAt?: string;
+  /** Optional per-trade money controls in USD (stored in terminal_info.cloud, no database change needed). */
+  riskPerTrade?: number;
+  targetPerTrade?: number;
 }
 
 export interface Quote {
@@ -34,16 +37,16 @@ export interface CycleInput {
   feedLast: number;
   digits: number;
   brokerSymbol: string;
-  /** Running profit target (0 = off), profit banked since the goal window opened, and what to do when it is hit. */
-  profitGoal: number;
-  profitSinceGoal: number;
-  goalMode: "stop" | "again";
+  /** Optional per-trade money controls (USD). Both set = lot and take profit are sized from them. */
+  riskAmount?: number | null;
+  targetAmount?: number | null;
+  accountCurrency?: string | null;
+  instrument?: string;
 }
 
 export type CyclePlan =
   | { kind: "hold"; reason: string }
   | { kind: "stop"; reason: string }
-  | { kind: "goal"; mode: "stop" | "again"; reason: string }
   | {
       kind: "trade";
       trade: {
@@ -83,10 +86,29 @@ export function cloudConfigOf(terminalInfo: unknown): CloudConfig | null {
     brokerSymbol: c["brokerSymbol"],
     timeframe: typeof c["timeframe"] === "string" ? c["timeframe"] : "H1",
     ...(typeof c["connectedAt"] === "string" ? { connectedAt: c["connectedAt"] } : {}),
+    ...(isPos(c["riskPerTrade"]) && isPos(c["targetPerTrade"]) ? { riskPerTrade: c["riskPerTrade"], targetPerTrade: c["targetPerTrade"] } : {}),
   };
 }
 
+const isPos = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v) && v > 0;
+
+/** Returns terminal_info with the per-trade loss/win amounts set (both) or cleared (null). */
+export function withPerTrade(terminalInfo: unknown, risk: number | null, target: number | null): Record<string, unknown> {
+  const ti = { ...((terminalInfo && typeof terminalInfo === "object" ? terminalInfo : {}) as Record<string, unknown>) };
+  const cloud = { ...((ti["cloud"] && typeof ti["cloud"] === "object" ? ti["cloud"] : {}) as Record<string, unknown>) };
+  delete cloud["riskPerTrade"];
+  delete cloud["targetPerTrade"];
+  if (risk !== null && target !== null) { cloud["riskPerTrade"] = risk; cloud["targetPerTrade"] = target; }
+  ti["cloud"] = cloud;
+  return ti;
+}
+
+/** "No daily loss limit" is saved as this large value, so no database change is needed. */
+export const NO_DAILY_LIMIT = 1_000_000;
+export const dailyLimitOff = (v: number) => !(v > 0) || v >= NO_DAILY_LIMIT;
+
 export function dailyLossBreached(closedTodayPL: number, floatingPL: number, maxDailyLoss: number): boolean {
+  if (dailyLimitOff(maxDailyLoss)) return false; // the client chose no daily limit
   if (maxDailyLoss <= 0) return false;
   const netPL = closedTodayPL + floatingPL;
   return netPL <= -Math.abs(maxDailyLoss);
@@ -135,21 +157,43 @@ export function toBrokerLevels(
   }
 }
 
+/**
+ * USD profit/loss per 1.00 move in price for one standard lot, for instruments whose contract size is
+ * the same at virtually every broker (gold = 100 oz, FX = 100,000 units). Assumes a USD account.
+ * Returns null for anything else, so the bot never guesses a lot size.
+ */
+export function usdPerPriceUnitPerLot(instrument: string, price: number): number | null {
+  const k = instrument.toUpperCase();
+  if (k === "XAUUSD") return 100;
+  if (k === "EURUSD" || k === "GBPUSD" || k === "AUDUSD") return 100_000;
+  if ((k === "USDJPY" || k === "USDCHF" || k === "USDCAD") && price > 0) return 100_000 / price;
+  return null;
+}
+
+/**
+ * Lot size so that a stop-out loses at most `risk` dollars (rounded DOWN to the lot step), plus the take-profit
+ * distance that would win about `target` dollars at that lot. Never rounds up, so the real loss never exceeds `risk`.
+ */
+export function sizeFromMoney(o: { risk: number; target: number; slDist: number; perUnit: number; maxLot: number; minLot?: number; step?: number }):
+  { ok: true; volume: number; tpDist: number; riskAtStop: number } | { ok: false; reason: string } {
+  const minLot = o.minLot ?? 0.01;
+  const step = o.step ?? 0.01;
+  const perLotRisk = o.slDist * o.perUnit;
+  if (!(perLotRisk > 0) || !(o.risk > 0) || !(o.target > 0)) return { ok: false, reason: "Cannot size the trade from the loss/win amounts" };
+  let volume = Math.floor(o.risk / perLotRisk / step + 1e-9) * step;
+  volume = Number(Math.min(volume, o.maxLot).toFixed(2));
+  if (volume < minLot) {
+    return { ok: false, reason: `Smallest lot (${minLot}) would risk $${(minLot * perLotRisk).toFixed(2)} at this stop, more than your $${o.risk} limit. Trade skipped.` };
+  }
+  return { ok: true, volume, tpDist: o.target / (volume * o.perUnit), riskAtStop: volume * perLotRisk };
+}
+
 export function planCloudCycle(input: CycleInput): CyclePlan {
   if (input.status !== "running") return { kind: "hold", reason: "Bot is stopped" };
   if (!input.connected) return { kind: "hold", reason: "Cloud broker disconnected" };
 
   if (dailyLossBreached(input.closedTodayPL, input.floatingPL, input.maxDailyLoss)) {
     return { kind: "stop", reason: "Daily loss limit reached" };
-  }
-
-  // The goal is a running total, not a daily quota: it keeps counting while the bot runs, all day.
-  if (input.profitGoal > 0 && input.profitSinceGoal >= input.profitGoal) {
-    return {
-      kind: "goal",
-      mode: input.goalMode,
-      reason: `Profit goal reached: ${input.profitSinceGoal.toFixed(2)} of ${input.profitGoal.toFixed(2)}`,
-    };
   }
 
   if (input.accountType === "live" && (!input.liveConfirmed || input.mode !== "live" || input.demoOnly)) {
@@ -170,7 +214,25 @@ export function planCloudCycle(input: CycleInput): CyclePlan {
     return { kind: "hold", reason: `Levels check failed: ${levels.reason}` };
   }
 
-  const volume = Math.min(Math.max(input.defaultLot, 0.01), input.maxLot);
+  let volume = Math.min(Math.max(input.defaultLot, 0.01), input.maxLot);
+  let tp = levels.tp;
+
+  // Per-trade money controls: size the lot from "willing to lose" and place the take profit at "wants to win".
+  if (input.riskAmount && input.targetAmount && input.riskAmount > 0 && input.targetAmount > 0) {
+    if (!input.accountCurrency || input.accountCurrency.toUpperCase() !== "USD") {
+      return { kind: "hold", reason: "Per-trade loss/win amounts need a USD account (could not confirm USD)" };
+    }
+    const perUnit = usdPerPriceUnitPerLot(input.instrument ?? "", levels.entry);
+    if (perUnit === null) {
+      return { kind: "hold", reason: `Per-trade loss/win amounts are not supported for ${input.instrument || input.brokerSymbol} yet` };
+    }
+    const sized = sizeFromMoney({ risk: input.riskAmount, target: input.targetAmount, slDist: Math.abs(levels.entry - levels.sl), perUnit, maxLot: input.maxLot });
+    if (!sized.ok) return { kind: "hold", reason: sized.reason };
+    const mid = (input.quote.bid + input.quote.ask) / 2;
+    if (sized.tpDist > mid * 0.1) return { kind: "hold", reason: "Win amount is too far from price for this lot. Lower the win amount or raise the loss amount." };
+    volume = sized.volume;
+    tp = Number((tradeIdea.side === "buy" ? levels.entry + sized.tpDist : levels.entry - sized.tpDist).toFixed(input.digits));
+  }
 
   return {
     kind: "trade",
@@ -179,7 +241,7 @@ export function planCloudCycle(input: CycleInput): CyclePlan {
       volume,
       entry: levels.entry,
       sl: levels.sl,
-      tp: levels.tp,
+      tp,
       key: tradeIdea.key,
       strategy: tradeIdea.strategy,
       comment: `EA VORTEX ${tradeIdea.strategy}`.slice(0, 31),
@@ -202,10 +264,18 @@ export function cloudStartBlockers(params: {
   maxDailyLoss: number;
   instrument: string;
   brokerSymbol: string;
-  profitGoal: number;
-  goalMode: string;
+  riskAmount?: number | null;
+  targetAmount?: number | null;
 }): string[] {
   const blockers: string[] = [];
+
+  const r = params.riskAmount ?? 0;
+  const t = params.targetAmount ?? 0;
+  if ((r > 0) !== (t > 0)) {
+    blockers.push("Set both the amount you will lose and the amount you want to win per trade, or leave both empty.");
+  } else if (r > 0 && (t / r < 0.25 || t / r > 10)) {
+    blockers.push("Win amount should be between 0.25x and 10x the loss amount.");
+  }
 
   if (!params.connected) {
     blockers.push("Cloud MT5 connection is offline.");
@@ -215,12 +285,6 @@ export function cloudStartBlockers(params: {
   }
   if (params.maxDailyLoss <= 0) {
     blockers.push("Max daily loss must be greater than 0.");
-  }
-  if (!Number.isFinite(params.profitGoal) || params.profitGoal < 0) {
-    blockers.push("Profit goal must be 0 (off) or a positive amount.");
-  }
-  if (params.profitGoal > 0 && params.goalMode !== "stop" && params.goalMode !== "again") {
-    blockers.push("Choose what happens when the profit goal is reached: stop, or start a new goal.");
   }
   if (params.defaultLot <= 0 || params.defaultLot > params.maxLot) {
     blockers.push("Default lot must be positive and not exceed max lot.");
