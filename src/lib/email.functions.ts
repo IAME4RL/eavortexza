@@ -1,7 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 
+// Public link to the EA VORTEX robot avatar (the image must be in the /public folder).
+const EMAIL_AVATAR_URL = "https://eavortexza.lovable.app/vortex-avatar.png";
+
 export const sendLicenseEmail = createServerFn({ method: "POST" })
-  .validator((d: { clientEmail: string; clientName: string; botName: string; licenseKey: string; mentorName: string; avatarUrl?: string }) => d)
+  .validator((d: { clientEmail: string; clientName: string; botName: string; licenseKey: string; mentorName: string}) => d)
   .handler(async ({ data }) => {
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
@@ -9,9 +12,7 @@ export const sendLicenseEmail = createServerFn({ method: "POST" })
       return { sent: false, reason: "missing_api_key" };
     }
 
-    const avatarHtml = data.avatarUrl
-      ? `<div style="text-align: center; margin-bottom: 14px;"><img src="${data.avatarUrl}" width="80" height="80" alt="${data.botName}" style="border-radius: 50%; border: 2px solid #e2282b; object-fit: cover;" /></div>`
-      : "";
+    const avatarHtml = `<div style="text-align: center; margin-bottom: 14px;"><img src="${EMAIL_AVATAR_URL}" width="90" height="90" alt="EA VORTEX" style="border-radius: 18px; border: 2px solid #e2282b; object-fit: cover;" /></div>`;
 
     const html = `
       <div style="background-color: #060606; color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; border-radius: 12px; border: 1px solid #e2282b; max-width: 540px; margin: 0 auto;">
