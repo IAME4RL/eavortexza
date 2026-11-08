@@ -53,45 +53,50 @@
   --color-chart-5: var(--foreground);
 }
 
+/*
+  Colours are plain hex (not oklch) and glows use rgba (not color-mix) so that
+  older Android WebViews and in-app browsers (Instagram, TikTok, APK wrappers)
+  render the borders and backgrounds correctly instead of falling back to white.
+*/
 :root {
   --radius: 0.5rem;
-  --background: oklch(0.095 0.004 270);        /* near-black, as in the app reference */
-  --surface: oklch(0.14 0.006 270);
-  --card: oklch(0.16 0.007 270);
-  --card-foreground: oklch(0.98 0.003 20);
-  --popover: oklch(0.16 0.007 270);
-  --popover-foreground: oklch(1 0 0);
-  --foreground: oklch(0.98 0.003 20);
-  --primary: oklch(0.585 0.225 27);          /* vivid red #E2282B */
-  --primary-foreground: oklch(1 0 0);
-  --primary-soft: oklch(0.7 0.19 27);
-  --primary-deep: oklch(0.4 0.16 26);          /* deep red #8F1317 */
-  --secondary: oklch(0.2 0.008 270);
-  --secondary-foreground: oklch(1 0 0);
-  --muted: oklch(0.2 0.008 270);
-  --muted-foreground: oklch(0.7 0.008 20);
-  --accent: oklch(0.23 0.02 25);
-  --accent-foreground: oklch(1 0 0);
-  --destructive: oklch(0.585 0.225 27);
-  --destructive-foreground: oklch(1 0 0);
-  --bull: oklch(0.75 0.17 155);
-  --bear: oklch(0.585 0.225 27);
-  --neutral: oklch(0.78 0.1 85);
-  --border: oklch(0.27 0.025 25);
-  --input: oklch(0.25 0.022 25);
-  --ring: oklch(0.585 0.225 27);
-  --sidebar: oklch(0.11 0.005 270);
-  --sidebar-foreground: oklch(0.85 0 0);
-  --sidebar-primary: oklch(0.585 0.225 27);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.2 0.02 25);
-  --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(0.24 0.025 25);
-  --sidebar-ring: oklch(0.585 0.225 27);
+  --background: #030304;        /* near-black */
+  --surface: #08090c;
+  --card: #0c0d10;
+  --card-foreground: #faf8f7;
+  --popover: #0c0d10;
+  --popover-foreground: #ffffff;
+  --foreground: #faf8f7;
+  --primary: #e2282b;           /* vivid red */
+  --primary-foreground: #ffffff;
+  --primary-soft: #ff655a;
+  --primary-deep: #8f1317;      /* deep red */
+  --secondary: #15161a;
+  --secondary-foreground: #ffffff;
+  --muted: #15161a;
+  --muted-foreground: #a39c9c;
+  --accent: #261918;
+  --accent-foreground: #ffffff;
+  --destructive: #e2282b;
+  --destructive-foreground: #ffffff;
+  --bull: #33cc7d;
+  --bear: #e2282b;
+  --neutral: #d5b36a;
+  --border: #322220;
+  --input: #2b1e1c;
+  --ring: #e2282b;
+  --sidebar: #040406;
+  --sidebar-foreground: #cecece;
+  --sidebar-primary: #e2282b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1e1311;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #2a1b19;
+  --sidebar-ring: #e2282b;
 
-  --glow-red: 0 0 40px -8px color-mix(in oklab, var(--primary) 44%, transparent);
-  --glow-red-soft: 0 0 80px -20px color-mix(in oklab, var(--primary) 32%, transparent);
-  --gradient-red: linear-gradient(135deg, var(--primary), var(--primary-deep));
+  --glow-red: 0 0 40px -8px rgba(226, 40, 43, 0.44);
+  --glow-red-soft: 0 0 80px -20px rgba(226, 40, 43, 0.32);
+  --gradient-red: linear-gradient(135deg, #e2282b, #8f1317);
 }
 
 @layer base {
@@ -109,8 +114,8 @@
 
 @utility grid-bg {
   background-image:
-    linear-gradient(color-mix(in oklab, var(--foreground) 5%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in oklab, var(--foreground) 5%, transparent) 1px, transparent 1px);
+    linear-gradient(rgba(250, 248, 247, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(250, 248, 247, 0.05) 1px, transparent 1px);
   background-size: 48px 48px;
 }
 @utility red-glow { box-shadow: var(--glow-red); }
@@ -129,7 +134,7 @@
   border-radius: var(--radius-xl);
 }
 @utility radial-red {
-  background: radial-gradient(ellipse at 70% 30%, color-mix(in oklab, var(--primary) 18%, transparent), transparent 60%);
+  background: radial-gradient(ellipse at 70% 30%, rgba(226, 40, 43, 0.18), transparent 60%);
 }
 
 @keyframes scanline { 0% { transform: translateY(-100%); } 100% { transform: translateY(400%); } }
@@ -148,9 +153,9 @@
 }
 .vortex-wash {
   background:
-    radial-gradient(ellipse 60% 45% at 18% 12%, color-mix(in oklab, var(--primary) 9%, transparent), transparent 70%),
-    radial-gradient(ellipse 55% 50% at 85% 78%, color-mix(in oklab, var(--primary-deep) 12%, transparent), transparent 70%),
-    radial-gradient(ellipse 40% 35% at 60% 30%, color-mix(in oklab, var(--primary) 5%, transparent), transparent 70%);
+    radial-gradient(ellipse 60% 45% at 18% 12%, rgba(226, 40, 43, 0.09), transparent 70%),
+    radial-gradient(ellipse 55% 50% at 85% 78%, rgba(143, 19, 23, 0.12), transparent 70%),
+    radial-gradient(ellipse 40% 35% at 60% 30%, rgba(226, 40, 43, 0.05), transparent 70%);
   animation: vortex-drift 26s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -166,20 +171,15 @@
   position: relative;
   border-radius: 1.15rem;
   border: 1px solid rgba(226, 40, 43, 0.4);
-  border: 1px solid color-mix(in oklab, var(--primary) 40%, transparent);
   background: #040404;
   background: linear-gradient(180deg, rgba(226, 40, 43, 0.08), #040404 62%);
   box-shadow:
     inset 0 0 26px -14px rgba(226, 40, 43, 0.6),
     0 0 34px -18px rgba(226, 40, 43, 0.7);
-  box-shadow:
-    inset 0 0 26px -14px color-mix(in oklab, var(--primary) 60%, transparent),
-    0 0 34px -18px color-mix(in oklab, var(--primary) 70%, transparent);
 }
 .pw-card-quiet {
   border-radius: 1.15rem;
   border: 1px solid rgba(226, 40, 43, 0.2);
-  border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
   background: #060606;
 }
 .pw-label {
@@ -194,8 +194,8 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--primary);
-  text-shadow: 0 0 16px color-mix(in oklab, var(--primary) 42%, transparent);
+  color: #e2282b;
+  text-shadow: 0 0 16px rgba(226, 40, 43, 0.42);
 }
 .pw-btn {
   display: inline-flex;
@@ -204,65 +204,69 @@
   justify-content: center;
   gap: 0.5rem;
   border-radius: 0.85rem;
-  border: 1px solid color-mix(in oklab, var(--primary) 65%, transparent);
+  border: 1px solid rgba(226, 40, 43, 0.65);
   padding: 0.55rem 1.1rem;
   font-family: var(--font-display);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--primary);
-  background: color-mix(in oklab, var(--primary) 6%, transparent);
-  box-shadow: 0 0 22px -10px color-mix(in oklab, var(--primary) 80%, transparent);
+  color: #e2282b;
+  background: rgba(226, 40, 43, 0.06);
+  box-shadow: 0 0 22px -10px rgba(226, 40, 43, 0.8);
   transition: background-color 0.15s, box-shadow 0.15s, transform 0.1s;
   -webkit-tap-highlight-color: transparent;
 }
-.pw-btn:hover:not(:disabled) { background: color-mix(in oklab, var(--primary) 16%, transparent); }
+.pw-btn:hover:not(:disabled) { background: rgba(226, 40, 43, 0.16); }
 .pw-btn:active:not(:disabled) { transform: scale(0.98); }
 .pw-btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
 .pw-btn:focus-visible, .pw-chip:focus-visible, .pw-tab:focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid #e2282b;
   outline-offset: 2px;
 }
 .pw-btn-solid {
-  color: var(--primary-foreground);
-  background: var(--gradient-red);
-  border-color: color-mix(in oklab, var(--primary) 80%, white);
+  color: #ffffff;
+  background: #c4181c;
+  background: linear-gradient(135deg, #e2282b, #8f1317);
+  border-color: #e8595b;
 }
-.pw-btn-solid:hover:not(:disabled) { background: var(--gradient-red); filter: brightness(1.1); }
+.pw-btn-solid:hover:not(:disabled) {
+  background: linear-gradient(135deg, #e2282b, #8f1317);
+  filter: brightness(1.1);
+}
 .pw-btn-danger {
-  color: var(--destructive);
-  border-color: color-mix(in oklab, var(--destructive) 55%, transparent);
+  color: #e2282b;
+  border-color: rgba(226, 40, 43, 0.55);
 }
 .pw-chip {
   display: inline-flex;
   min-height: 2.25rem;
   align-items: center;
   border-radius: 999px;
-  border: 1px solid var(--border);
+  border: 1px solid #322220;
   padding: 0.35rem 0.9rem;
   font-family: var(--font-display);
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--muted-foreground);
+  color: #a39c9c;
   background: transparent;
   transition: color 0.15s, border-color 0.15s, background-color 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
-.pw-chip:hover { color: var(--foreground); border-color: color-mix(in oklab, var(--primary) 45%, transparent); }
+.pw-chip:hover { color: #faf8f7; border-color: rgba(226, 40, 43, 0.45); }
 .pw-chip[data-active="true"] {
-  color: var(--primary);
-  border-color: color-mix(in oklab, var(--primary) 70%, transparent);
-  background: color-mix(in oklab, var(--primary) 12%, transparent);
-  box-shadow: 0 0 16px -6px color-mix(in oklab, var(--primary) 80%, transparent);
+  color: #e2282b;
+  border-color: rgba(226, 40, 43, 0.7);
+  background: rgba(226, 40, 43, 0.12);
+  box-shadow: 0 0 16px -6px rgba(226, 40, 43, 0.8);
 }
 .pw-field {
   width: 100%;
   min-height: 2.75rem;
   border-radius: 0.75rem;
-  border: 1px solid color-mix(in oklab, var(--primary) 22%, var(--border));
+  border: 1px solid #592322;
   background: #050505;
   padding: 0.5rem 0.75rem;
   font-size: 0.95rem;
@@ -308,10 +312,8 @@
   padding: 0.35rem;
   border-radius: 1.2rem;
   border: 1px solid rgba(226, 40, 43, 0.35);
-  border: 1px solid color-mix(in oklab, var(--primary) 30%, transparent);
   background: #050505;
   box-shadow: 0 0 30px -14px rgba(226, 40, 43, 0.75);
-  box-shadow: 0 0 30px -14px color-mix(in oklab, var(--primary) 70%, transparent);
 }
 .pw-tab {
   position: relative;
@@ -328,14 +330,14 @@
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--muted-foreground);
+  color: #a39c9c;
   -webkit-tap-highlight-color: transparent;
 }
 .pw-tab[data-status="active"] {
-  color: var(--primary);
-  border-color: color-mix(in oklab, var(--primary) 65%, transparent);
-  background: color-mix(in oklab, var(--primary) 8%, transparent);
-  box-shadow: 0 0 20px -8px color-mix(in oklab, var(--primary) 85%, transparent);
+  color: #e2282b;
+  border-color: rgba(226, 40, 43, 0.65);
+  background: rgba(226, 40, 43, 0.08);
+  box-shadow: 0 0 20px -8px rgba(226, 40, 43, 0.85);
 }
 .pw-tab[data-status="active"]::after {
   content: "";
@@ -344,8 +346,8 @@
   width: 0.25rem;
   height: 0.25rem;
   border-radius: 999px;
-  background: var(--primary);
-  box-shadow: 0 0 8px var(--primary);
+  background: #e2282b;
+  box-shadow: 0 0 8px #e2282b;
 }
 
 /* Soft edge darkening + red crown light over the shared background canvas */
@@ -355,8 +357,8 @@
   inset: 0;
   z-index: 0;
   background:
-    radial-gradient(ellipse 70% 38% at 50% -6%, color-mix(in oklab, var(--primary) 16%, transparent), transparent 70%),
-    radial-gradient(ellipse at 50% 50%, transparent 45%, rgb(0 0 0 / 0.65) 100%);
+    radial-gradient(ellipse 70% 38% at 50% -6%, rgba(226, 40, 43, 0.16), transparent 70%),
+    radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(0, 0, 0, 0.65) 100%);
 }
 
 @keyframes pw-spin { to { transform: rotate(360deg); } }
