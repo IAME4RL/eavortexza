@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 export const sendLicenseEmail = createServerFn({ method: "POST" })
-  .validator((d: { clientEmail: string; clientName: string; botName: string; licenseKey: string; mentorName: string }) => d)
+  .validator((d: { clientEmail: string; clientName: string; botName: string; licenseKey: string; mentorName: string; avatarUrl?: string }) => d)
   .handler(async ({ data }) => {
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
@@ -9,9 +9,14 @@ export const sendLicenseEmail = createServerFn({ method: "POST" })
       return { sent: false, reason: "missing_api_key" };
     }
 
+    const avatarHtml = data.avatarUrl
+      ? `<div style="text-align: center; margin-bottom: 14px;"><img src="${data.avatarUrl}" width="80" height="80" alt="${data.botName}" style="border-radius: 50%; border: 2px solid #e2282b; object-fit: cover;" /></div>`
+      : "";
+
     const html = `
       <div style="background-color: #060606; color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; border-radius: 12px; border: 1px solid #e2282b; max-width: 540px; margin: 0 auto;">
         <div style="text-align: center; margin-bottom: 25px;">
+          ${avatarHtml}
           <h1 style="color: #e2282b; letter-spacing: 2px; margin: 0; font-size: 24px;">EA VORTEX</h1>
           <p style="color: #888888; font-size: 11px; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px;">Power Your Trading</p>
         </div>
@@ -62,5 +67,8 @@ export const sendLicenseEmail = createServerFn({ method: "POST" })
     });
 
     const result = await res.json();
+    if (!res.ok) {
+      console.error("Resend rejected the email:", result);
+    }
     return { sent: res.ok, result };
   });
