@@ -212,15 +212,19 @@ await queryClient.invalidateQueries({ queryKey: ["mentor-bot-licenses", user?.id
       import { sendLicenseEmail } from "@/lib/email.functions";
 
 // Inside your key generation function right after: const key = await issueMentorLicense(...);
-await sendLicenseEmail({
-  data: {
-    clientEmail: clientEmailInput,
-    clientName: clientNameInput,
-    botName: selectedBot?.name || "EA VORTEX Bot",
-    licenseKey: key,
-    mentorName: mentorName,
-  },
-});                                     }
+   try {
+  await sendLicenseEmail({
+    data: {
+      clientEmail: clientEmailInput,
+      clientName: clientNameInput,
+      botName: "EA VORTEX Bot",
+      licenseKey: generated,
+      mentorName: "Your mentor",
+    },
+  });
+} catch (e) {
+  console.error("Email failed", e);
+   }                                  
 
   if (!loading && !hasRole("mentor") && !hasRole("admin")) {
     return <Navigate to="/dashboard" />;
