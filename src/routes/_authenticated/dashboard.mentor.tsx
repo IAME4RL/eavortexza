@@ -205,7 +205,6 @@ export function MentorPortalPage() {
             botName: selectedBot?.name || "EA VORTEX Bot",
             licenseKey: generated,
             mentorName: selectedBot?.mentorName || defaultMentorName,
-            avatarUrl: selectedBot?.avatarUrl?.startsWith("http") ? selectedBot.avatarUrl : undefined,
           },
         });
       } catch (emailError) {
