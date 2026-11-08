@@ -192,13 +192,18 @@ export function MentorPortalPage() {
     const botId = selectedBotForNewKey || mentorBots[0]?.id;
     if (!botId || !clientEmailInput.trim() || !clientNameInput.trim()) return;
     try {
-      const generated = await issueMentorLicense({ botId, clientName: clientNameInput, clientEmail: clientEmailInput });
-      await queryClient.invalidateQueries({ queryKey: ["mentor-bot-licenses", user?.id] });
-      setIsGenerateKeyModalOpen(false); setClientNameInput(""); setClientEmailInput("");
-      await navigator.clipboard.writeText(generated);
-      alert(`License key created and copied. Give this key to ${clientEmailInput}. It can only be redeemed by that email address.`);
-    } catch (error) { alert(error instanceof Error ? error.message : "Could not generate license key."); }
-  };
+      import { sendLicenseEmail } from "@/lib/email.functions";
+
+// Inside your key generation function right after: const key = await issueMentorLicense(...);
+await sendLicenseEmail({
+  data: {
+    clientEmail: clientEmailInput,
+    clientName: clientNameInput,
+    botName: selectedBot?.name || "EA VORTEX Bot",
+    licenseKey: key,
+    mentorName: mentorName,
+  },
+});                                     }
 
   if (!loading && !hasRole("mentor") && !hasRole("admin")) {
     return <Navigate to="/dashboard" />;
