@@ -5,9 +5,6 @@ import { ShieldCheck, Save, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, EmptyState, Stat } from "@/components/dash";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/lib/auth";
 
@@ -89,10 +86,10 @@ function Page() {
   const s = stats.data;
 
   return (
-    <>
+    <div className="space-y-6 pb-12">
       <PageHeader eyebrow="Administration" title="Admin Console" sub="Platform usage, scanner controls and mentor approvals." />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <Stat label="Users" value={s?.users ?? "—"} />
         <Stat label="Total scans" value={s?.scans ?? "—"} />
         <Stat label="Scans today" value={s?.scans_today ?? "—"} />
@@ -100,50 +97,70 @@ function Page() {
         <Stat label="Trading accounts" value={s?.accounts ?? "—"} />
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <div className="panel p-6">
-          <h2 className="font-bold uppercase">Scanner controls</h2>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="pw-card p-5">
+          <h2 className="pw-title text-lg">Scanner controls</h2>
           <div className="mt-5 space-y-5">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium">Scanner enabled</p>
+            <div className="pw-card-quiet flex items-center justify-between gap-4 p-4">
+              <div className="min-w-0">
+                <p className="text-sm font-bold">Scanner enabled</p>
                 <p className="text-xs text-muted-foreground">When off, users cannot run new AI scans.</p>
               </div>
               <Switch checked={enabled} onCheckedChange={setEnabled} aria-label="Scanner enabled" />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="limit" className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Free scans per user per day</Label>
-              <Input id="limit" type="number" min={0} max={1000} value={limit} onChange={(e) => setLimit(e.target.value)} className="w-32" />
+            <div>
+              <label htmlFor="limit" className="pw-label block text-muted-foreground">Free scans per user per day</label>
+              <input
+                id="limit"
+                type="number"
+                min={0}
+                max={1000}
+                value={limit}
+                onChange={(e) => setLimit(e.target.value)}
+                className="pw-field mt-1 w-32"
+              />
             </div>
-            <Button variant="hero" onClick={() => saveSettings.mutate()} disabled={saveSettings.isPending}>
-              <Save />{saveSettings.isPending ? "Saving…" : "Save settings"}
-            </Button>
+            <button
+              onClick={() => saveSettings.mutate()}
+              disabled={saveSettings.isPending}
+              className="pw-btn pw-btn-solid w-full justify-center disabled:opacity-60"
+            >
+              <Save className="h-4 w-4" />{saveSettings.isPending ? "Saving…" : "Save settings"}
+            </button>
           </div>
         </div>
 
-        <div className="panel p-6">
-          <h2 className="font-bold uppercase">Mentor access requests</h2>
+        <div className="pw-card p-5">
+          <h2 className="pw-title text-lg">Mentor access requests</h2>
           {requests.data?.length ? (
             <ul className="mt-5 space-y-3">
               {requests.data.map((r) => (
-                <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-3">
-                  <div>
-                    <p className="text-sm font-medium">{r.display_name || r.email}</p>
-                    {r.display_name && <p className="text-xs text-muted-foreground">{r.email}</p>}
+                <li key={r.id} className="pw-card-quiet p-4">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold">{r.display_name || r.email}</p>
+                    {r.display_name && <p className="truncate text-xs text-muted-foreground">{r.email}</p>}
                   </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="hero" onClick={() => decide.mutate({ id: r.id, approve: true })} disabled={decide.isPending}>
-                      <Check />Approve
-                    </Button>
-                    <Button size="sm" variant="frame" onClick={() => decide.mutate({ id: r.id, approve: false })} disabled={decide.isPending}>
-                      <X />Decline
-                    </Button>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      onClick={() => decide.mutate({ id: r.id, approve: true })}
+                      disabled={decide.isPending}
+                      className="pw-btn pw-btn-solid flex-1 justify-center disabled:opacity-60"
+                    >
+                      <Check className="h-3.5 w-3.5" />Approve
+                    </button>
+                    <button
+                      onClick={() => decide.mutate({ id: r.id, approve: false })}
+                      disabled={decide.isPending}
+                      className="pw-btn flex-1 justify-center disabled:opacity-60"
+                    >
+                      <X className="h-3.5 w-3.5" />Decline
+                    </button>
                   </div>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-5 text-sm text-muted-foreground">No pending requests.</p>
+            <p className="mt-5 text-xs text-muted-foreground">No pending requests.</p>
           )}
         </div>
       </div>
@@ -151,6 +168,6 @@ function Page() {
       {!s && !stats.isLoading && (
         <EmptyState icon={ShieldCheck} title="Stats unavailable">Platform statistics could not be loaded.</EmptyState>
       )}
-    </>
+    </div>
   );
 }
