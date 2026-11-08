@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
-// Public link to the EA VORTEX robot avatar (the image must be in the /public folder).
-const EMAIL_AVATAR_URL = "https://eavortexza.lovable.app/vortex-avatar.png";
+// Public link to the EA VORTEX robot avatar (hashed build asset: if the image ever changes, this filename changes too).
+const EMAIL_AVATAR_URL = "https://eavortexza.lovable.app/assets/assistant-avatar-BptebAvQ.jpg";
 
 export const sendLicenseEmail = createServerFn({ method: "POST" })
   .validator((d: { clientEmail: string; clientName: string; botName: string; licenseKey: string; mentorName: string}) => d)
