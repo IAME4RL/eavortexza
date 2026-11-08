@@ -192,6 +192,23 @@ export function MentorPortalPage() {
     const botId = selectedBotForNewKey || mentorBots[0]?.id;
     if (!botId || !clientEmailInput.trim() || !clientNameInput.trim()) return;
     try {
+      const generated = await issueMentorLicense({ botId, clientName: clientNameInput, clientEmail: clientEmailInput });
+
+try {
+  await sendLicenseEmail({
+    data: {
+      clientEmail: clientEmailInput,
+      clientName: clientNameInput,
+      botName: "EA VORTEX Bot",
+      licenseKey: generated,
+      mentorName: "Your mentor",
+    },
+  });
+} catch (e) {
+  console.error("Email failed", e);
+}
+
+await queryClient.invalidateQueries({ queryKey: ["mentor-bot-licenses", user?.id] });
       import { sendLicenseEmail } from "@/lib/email.functions";
 
 // Inside your key generation function right after: const key = await issueMentorLicense(...);
