@@ -61,6 +61,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "AI chart analysis and Expert Advisor management in one trading platform." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "google-site-verification", content: "ALLo7KNqPSPMh9D6fhDbO3qV_6A2YQmT1Nxs2IjA-uc" },
     ],
     links: [
       { rel: "manifest", href: "/manifest.webmanifest" },
