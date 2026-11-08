@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth";
 import { timeframeLabel } from "@/lib/instruments";
 import { STRATEGIES } from "@/lib/strategy";
 import { deleteMentorBot, issueMentorLicense, listMentorBots, listMentorLicenses, saveMentorBot, updateMentorBot, type MentorBotRecord } from "@/lib/mentorBots";
+import { sendLicenseEmail } from "@/lib/email.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard/mentor")({ component: MentorPortalPage });
 
@@ -107,7 +108,7 @@ export function MentorPortalPage() {
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "avatar" | "bg") => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "avatar" | "bg") => {
     const file = e.target.files?.[0] ?? null;
     if (!file) return;
     if (type === "avatar") { setAvatarFile(file); setAvatarPreview(URL.createObjectURL(file)); }
@@ -148,38 +149,38 @@ export function MentorPortalPage() {
   };
 
   const handleSaveBot = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!user || !botName.trim() || saving) return;
-  setSaving(true);
+    e.preventDefault();
+    if (!user || !botName.trim() || saving) return;
+    setSaving(true);
 
-  try {
-    const input = {
-      mentorId: user.id,
-      name: botName,
-      mentorName,
-      description,
-      strategies: strategyInput,
-      avatarFile,
-      bannerFile,
-    };
+    try {
+      const input = {
+        mentorId: user.id,
+        name: botName,
+        mentorName,
+        description,
+        strategies: strategyInput,
+        avatarFile,
+        bannerFile,
+      };
 
-    if (editingBot) {
-      await updateMentorBot({ ...input, botId: editingBot.id });
-    } else {
-      await saveMentorBot(input);
+      if (editingBot) {
+        await updateMentorBot({ ...input, botId: editingBot.id });
+      } else {
+        await saveMentorBot(input);
+      }
+
+      await queryClient.invalidateQueries({
+        queryKey: ["mentor-bots", user.id],
+      });
+
+      closeBotModal();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Could not save bot.");
+    } finally {
+      setSaving(false);
     }
-
-    await queryClient.invalidateQueries({
-      queryKey: ["mentor-bots", user.id],
-    });
-
-    closeBotModal();
-  } catch (error) {
-    alert(error instanceof Error ? error.message : "Could not save bot.");
-  } finally {
-    setSaving(false);
-  }
-};
+  };
 
   const handleDeleteBot = async (id: string) => {
     if (!confirm("Delete this bot? Any active license assigned to it will also be removed.")) return;
@@ -194,37 +195,28 @@ export function MentorPortalPage() {
     try {
       const generated = await issueMentorLicense({ botId, clientName: clientNameInput, clientEmail: clientEmailInput });
 
-try {
-  await sendLicenseEmail({
-    data: {
-      clientEmail: clientEmailInput,
-      clientName: clientNameInput,
-      botName: "EA VORTEX Bot",
-      licenseKey: generated,
-      mentorName: "Your mentor",
-    },
-  });
-} catch (e) {
-  console.error("Email failed", e);
-}
+      // Send the branded license email. A failure here must not block license creation.
+      const selectedBot = mentorBots.find((b) => b.id === botId);
+      try {
+        await sendLicenseEmail({
+          data: {
+            clientEmail: clientEmailInput,
+            clientName: clientNameInput,
+            botName: selectedBot?.name || "EA VORTEX Bot",
+            licenseKey: generated,
+            mentorName: selectedBot?.mentorName || defaultMentorName,
+          },
+        });
+      } catch (emailError) {
+        console.error("Email failed", emailError);
+      }
 
-await queryClient.invalidateQueries({ queryKey: ["mentor-bot-licenses", user?.id] });
-      import { sendLicenseEmail } from "@/lib/email.functions";
-
-// Inside your key generation function right after: const key = await issueMentorLicense(...);
-   try {
-  await sendLicenseEmail({
-    data: {
-      clientEmail: clientEmailInput,
-      clientName: clientNameInput,
-      botName: "EA VORTEX Bot",
-      licenseKey: generated,
-      mentorName: "Your mentor",
-    },
-  });
-} catch (e) {
-  console.error("Email failed", e);
-   }                                  
+      await queryClient.invalidateQueries({ queryKey: ["mentor-bot-licenses", user?.id] });
+      setIsGenerateKeyModalOpen(false); setClientNameInput(""); setClientEmailInput("");
+      await navigator.clipboard.writeText(generated);
+      alert(`License key created and copied. Give this key to ${clientEmailInput}. It can only be redeemed by that email address.`);
+    } catch (error) { alert(error instanceof Error ? error.message : "Could not generate license key."); }
+  };
 
   if (!loading && !hasRole("mentor") && !hasRole("admin")) {
     return <Navigate to="/dashboard" />;
@@ -356,7 +348,7 @@ await queryClient.invalidateQueries({ queryKey: ["mentor-bot-licenses", user?.id
                   </div>
                 </div>
               ))}
-                        </div>
+            </div>
           )}
         </div>
       )}
@@ -523,7 +515,8 @@ await queryClient.invalidateQueries({ queryKey: ["mentor-bot-licenses", user?.id
                   className="pw-field mt-1"
                 />
               </div>
-                            {/* Bot Avatar with Live Thumbnail Preview */}
+
+              {/* Bot Avatar with Live Thumbnail Preview */}
               <div>
                 <label className="pw-label block text-muted-foreground">Bot Avatar</label>
                 <div className="mt-1.5 flex items-center gap-3">
@@ -561,7 +554,6 @@ await queryClient.invalidateQueries({ queryKey: ["mentor-bot-licenses", user?.id
                   Shown as the picture on the client's bot card.{editingBot ? " Leave empty to keep the current one." : ""}
                 </p>
               </div>
-
 
               <div className="pt-2">
                 <button
