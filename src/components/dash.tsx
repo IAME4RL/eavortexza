@@ -3,11 +3,11 @@ import { cn } from "@/lib/utils";
 
 export function PageHeader({ eyebrow, title, sub, actions }: { eyebrow?: string; title: string; sub?: string; actions?: React.ReactNode }) {
   return (
-    <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        <h1 className="mt-1 text-2xl font-bold uppercase sm:text-3xl">{title}</h1>
-        {sub && <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{sub}</p>}
+    <div className="mb-6 flex flex-col gap-4 border-b border-primary/20 pb-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="min-w-0">
+        {eyebrow && <p className="pw-label text-primary">{eyebrow}</p>}
+        <h1 className="pw-title mt-1 text-2xl">{title}</h1>
+        {sub && <p className="mt-1 max-w-2xl text-xs text-muted-foreground">{sub}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>
@@ -16,11 +16,11 @@ export function PageHeader({ eyebrow, title, sub, actions }: { eyebrow?: string;
 
 export function EmptyState({ icon: I, title, children, action }: { icon: LucideIcon; title: string; children?: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <div className="panel flex flex-col items-center px-6 py-14 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-md border border-primary/40 text-primary"><I className="h-5 w-5" /></div>
-      <h3 className="mt-5 text-lg font-bold uppercase">{title}</h3>
-      <div className="mt-2 max-w-md text-sm text-muted-foreground">{children}</div>
-      {action && <div className="mt-6">{action}</div>}
+    <div className="pw-card-quiet flex flex-col items-center border-dashed px-6 py-12 text-center">
+      <I className="h-12 w-12 text-muted-foreground/40" />
+      <h3 className="mt-4 font-display text-base font-bold uppercase text-foreground">{title}</h3>
+      <div className="mt-1 max-w-md text-xs text-muted-foreground">{children}</div>
+      {action && <div className="mt-5">{action}</div>}
     </div>
   );
 }
@@ -51,14 +51,14 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 };
 export function StatusBadge({ status }: { status: string }) {
   const s = STATUS[status] ?? { label: status, cls: "border-border text-muted-foreground" };
-  return <span className={cn("inline-flex items-center gap-1.5 rounded border px-2 py-0.5 font-mono text-[11px] uppercase", s.cls)}><span className="h-1.5 w-1.5 rounded-full bg-current" />{s.label}</span>;
+  return <span className={cn("inline-flex items-center gap-1.5 rounded-full border bg-black/40 px-2.5 py-0.5 font-mono text-[10px] uppercase", s.cls)}><span className="h-1.5 w-1.5 rounded-full bg-current" />{s.label}</span>;
 }
 
 export function Stat({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
   return (
-    <div className="panel p-5">
-      <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">{label}</p>
-      <p className="mt-2 font-display text-3xl font-bold">{value}</p>
+    <div className="pw-card-quiet p-4">
+      <p className="pw-label text-muted-foreground">{label}</p>
+      <p className="mt-1 font-mono text-2xl font-bold">{value}</p>
       {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
