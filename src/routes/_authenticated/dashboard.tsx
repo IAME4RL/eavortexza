@@ -35,6 +35,9 @@ const NAV = [
 
 const linkCls = "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground data-[status=active]:bg-sidebar-accent data-[status=active]:text-primary data-[status=active]:shadow-[inset_2px_0_0_var(--primary)]";
 
+// Newer look, used only by the phone slide-out menu.
+const clientLinkCls = "pw-card-quiet flex items-center gap-3 px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:border-primary/50 data-[status=active]:border-primary/60 data-[status=active]:text-primary";
+
 function useSignOut() {
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -46,7 +49,11 @@ function useSignOut() {
   };
 }
 
-function SidebarContent({ onNavigate, showNav = true }: { onNavigate: () => void; showNav?: boolean }) {
+function SidebarContent({
+  onNavigate,
+  showNav = true,
+  variant = "classic",
+}: { onNavigate: () => void; showNav?: boolean; variant?: "classic" | "client" }) {
   const { user, hasRole } = useAuth();
   const signOut = useSignOut();
   const profile = useQuery({
@@ -54,6 +61,37 @@ function SidebarContent({ onNavigate, showNav = true }: { onNavigate: () => void
     queryFn: async () => (await supabase.from("profiles").select("*").eq("id", user!.id).single()).data,
   });
   const displayName = profile.data?.display_name?.trim();
+
+  if (variant === "client") {
+    return (
+      <div className="flex h-full flex-col">
+        <div className="flex h-16 items-center border-b border-primary/20 px-5"><Logo /></div>
+        <nav className="flex-1 space-y-2 overflow-y-auto p-4">
+          {showNav && NAV.map(({ to, label, I, ...rest }) => (
+            <Link key={to} to={to} activeOptions={{ exact: "exact" in rest }} className={clientLinkCls} onClick={onNavigate}>
+              <I className="h-4 w-4" />{label}
+            </Link>
+          ))}
+          {(hasRole("mentor") || hasRole("admin")) && (
+            <>
+              <p className="pw-label px-1 pb-1 pt-3 text-muted-foreground">Portals</p>
+              {hasRole("mentor") && <Link to="/dashboard/mentor" className={clientLinkCls} onClick={onNavigate}><Users className="h-4 w-4" />Mentor Portal</Link>}
+              {hasRole("admin") && <Link to="/dashboard/admin" className={clientLinkCls} onClick={onNavigate}><ShieldCheck className="h-4 w-4" />Admin</Link>}
+            </>
+          )}
+        </nav>
+        <div className="space-y-3 border-t border-primary/20 p-4">
+          <div className="pw-card-quiet px-4 py-3">
+            {displayName && <p className="pw-title truncate text-base">{displayName}</p>}
+            <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+          </div>
+          <Link to="/dashboard/settings" className="pw-btn w-full justify-center" onClick={onNavigate}><Settings className="h-3.5 w-3.5" />Change display name</Link>
+          <button onClick={signOut} className="pw-btn pw-btn-solid w-full justify-center"><LogOut className="h-3.5 w-3.5" />Sign out</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center border-b border-sidebar-border px-5"><Logo /></div>
@@ -139,7 +177,7 @@ function ClientShell() {
           <div className="absolute inset-0 bg-black/80" onClick={() => setOpen(false)} />
           <aside className="absolute inset-y-0 right-0 w-72 max-w-[85vw] border-l border-primary/30 bg-sidebar">
             <button aria-label="Close menu" className="absolute right-3 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground" onClick={() => setOpen(false)}><X /></button>
-            <SidebarContent onNavigate={() => setOpen(false)} showNav={false} />
+            <SidebarContent onNavigate={() => setOpen(false)} showNav={false} variant="client" />
           </aside>
         </div>
       )}
