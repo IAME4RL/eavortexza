@@ -108,20 +108,64 @@ export async function redeemMentorLicense(licenseKey: string) {
 }
 
 /**
- * The bot assigned to this client by their most recently redeemed mentor license,
- * or null when they have not redeemed one (the home screen then keeps the default
- * EAVORTEX card). Row-level security only exposes the client's own redeemed rows.
+ * The bot assigned to this client. If a mentor generated a license for this
+ * client's email, it automatically redeems and unlocks it so the client
+ * never has to manually paste or type a license key.
  */
 export async function getMyAssignedMentorBot(userId?: string): Promise<AssignedMentorBot | null> {
-  const clientId = userId ?? (await supabase.auth.getUser()).data.user?.id;
+  const authUser = (await supabase.auth.getUser()).data.user;
+  const clientId = userId ?? authUser?.id;
   if (!clientId) return null;
-  const { data, error } = await db.from("mentor_bot_licenses")
+
+  // 1. Check if the client already has a redeemed mentor bot
+  const { data: existing } = await db.from("mentor_bot_licenses")
     .select("id,bot:mentor_bots(id,name,mentor_name,description,strategies,avatar_url,background_url)")
     .eq("client_id", clientId)
-    .eq("status", "redeemed").order("redeemed_at", { ascending: false }).limit(1).maybeSingle();
-  throwIfError(error);
-  return normalizeAssignedBot(data?.bot);
+    .eq("status", "redeemed")
+    .order("redeemed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existing?.bot) {
+    return normalizeAssignedBot(existing.bot);
+  }
+
+  // 2. If not yet redeemed, check if a mentor issued a license for their email address
+  const clientEmail = authUser?.email?.trim().toLowerCase();
+  if (clientEmail) {
+    const { data: pending } = await db.from("mentor_bot_licenses")
+      .select("license_key")
+      .eq("client_email", clientEmail)
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (pending?.license_key) {
+      try {
+        // Automatically redeem the key for this client
+        await redeemMentorLicense(pending.license_key);
+
+        // Fetch and show their newly unlocked mentor bot
+        const { data: updated } = await db.from("mentor_bot_licenses")
+          .select("id,bot:mentor_bots(id,name,mentor_name,description,strategies,avatar_url,background_url)")
+          .eq("client_id", clientId)
+          .eq("status", "redeemed")
+          .limit(1)
+          .maybeSingle();
+
+        if (updated?.bot) {
+          return normalizeAssignedBot(updated.bot);
+        }
+      } catch (err) {
+        console.warn("Auto-redeem check skipped:", err);
+      }
+    }
+  }
+
+  return null;
 }
+
 
 export async function updateMentorBot(input: {
   botId: string;
