@@ -1,4 +1,5 @@
 import type { Decision } from "@/lib/strategy";
+import { MAX_RISK_PCT, MIN_TRADES_PER_SIGNAL } from "@/lib/bridge";
 
 export interface CloudConfig {
   provider: "api2trade";
@@ -8,9 +9,10 @@ export interface CloudConfig {
   brokerSymbol: string;
   timeframe: string;
   connectedAt?: string;
-  /** Optional per-trade money controls in USD (stored in terminal_info.cloud, no database change needed). */
-  riskPerTrade?: number;
+  /** Profit each trade closes at, in USD (stored in terminal_info.cloud, no database change needed). */
   targetPerTrade?: number;
+  /** Legacy "lose per trade" amount. Trades no longer carry a stop loss, so it is kept only so old settings still load. */
+  riskPerTrade?: number;
 }
 
 export interface Quote {
@@ -37,8 +39,7 @@ export interface CycleInput {
   feedLast: number;
   digits: number;
   brokerSymbol: string;
-  /** Optional per-trade money controls (USD). Both set = lot and take profit are sized from them. */
-  riskAmount?: number | null;
+  /** Optional profit each trade closes at, in USD. When set, the take profit is placed so the trade wins about this much. */
   targetAmount?: number | null;
   accountCurrency?: string | null;
   instrument?: string;
@@ -53,7 +54,8 @@ export type CyclePlan =
         side: "buy" | "sell";
         volume: number;
         entry: number;
-        sl: number;
+        /** Always null: trades are opened without a stop loss; the bot's own drawdown check protects the account. */
+        sl: null;
         tp: number;
         key: string;
         strategy: string;
@@ -86,19 +88,19 @@ export function cloudConfigOf(terminalInfo: unknown): CloudConfig | null {
     brokerSymbol: c["brokerSymbol"],
     timeframe: typeof c["timeframe"] === "string" ? c["timeframe"] : "H1",
     ...(typeof c["connectedAt"] === "string" ? { connectedAt: c["connectedAt"] } : {}),
-    ...(isPos(c["riskPerTrade"]) && isPos(c["targetPerTrade"]) ? { riskPerTrade: c["riskPerTrade"], targetPerTrade: c["targetPerTrade"] } : {}),
+    ...(isPos(c["targetPerTrade"]) ? { targetPerTrade: c["targetPerTrade"], ...(isPos(c["riskPerTrade"]) ? { riskPerTrade: c["riskPerTrade"] } : {}) } : {}),
   };
 }
 
 const isPos = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v) && v > 0;
 
-/** Returns terminal_info with the per-trade loss/win amounts set (both) or cleared (null). */
+/** Returns terminal_info with the per-trade win amount set (and the legacy loss amount, if given) or cleared (null). */
 export function withPerTrade(terminalInfo: unknown, risk: number | null, target: number | null): Record<string, unknown> {
   const ti = { ...((terminalInfo && typeof terminalInfo === "object" ? terminalInfo : {}) as Record<string, unknown>) };
   const cloud = { ...((ti["cloud"] && typeof ti["cloud"] === "object" ? ti["cloud"] : {}) as Record<string, unknown>) };
   delete cloud["riskPerTrade"];
   delete cloud["targetPerTrade"];
-  if (risk !== null && target !== null) { cloud["riskPerTrade"] = risk; cloud["targetPerTrade"] = target; }
+  if (target !== null) { cloud["targetPerTrade"] = target; if (risk !== null) cloud["riskPerTrade"] = risk; }
   ti["cloud"] = cloud;
   return ti;
 }
@@ -200,8 +202,9 @@ export function planCloudCycle(input: CycleInput): CyclePlan {
     return { kind: "stop", reason: "Live trading not explicitly authorized" };
   }
 
-  if (input.openCount >= input.maxOpen) {
-    return { kind: "hold", reason: "Maximum open positions reached" };
+  // Every signal opens MIN_TRADES_PER_SIGNAL trades together; never open a lone trade.
+  if (input.maxOpen - input.openCount < MIN_TRADES_PER_SIGNAL) {
+    return { kind: "hold", reason: input.openCount >= input.maxOpen ? "Maximum open positions reached" : `Not enough free positions to open ${MIN_TRADES_PER_SIGNAL} trades` };
   }
 
   if (!input.decision || !input.decision.trade || !input.quote) {
@@ -217,21 +220,20 @@ export function planCloudCycle(input: CycleInput): CyclePlan {
   let volume = Math.min(Math.max(input.defaultLot, 0.01), input.maxLot);
   let tp = levels.tp;
 
-  // Per-trade money controls: size the lot from "willing to lose" and place the take profit at "wants to win".
-  if (input.riskAmount && input.targetAmount && input.riskAmount > 0 && input.targetAmount > 0) {
+  // "Win per trade": place the take profit so each trade closes after winning about this much, then the bot can open the next one.
+  if (input.targetAmount && input.targetAmount > 0) {
     if (!input.accountCurrency || input.accountCurrency.toUpperCase() !== "USD") {
-      return { kind: "hold", reason: "Per-trade loss/win amounts need a USD account (could not confirm USD)" };
+      return { kind: "hold", reason: "The win-per-trade amount needs a USD account (could not confirm USD)" };
     }
     const perUnit = usdPerPriceUnitPerLot(input.instrument ?? "", levels.entry);
     if (perUnit === null) {
-      return { kind: "hold", reason: `Per-trade loss/win amounts are not supported for ${input.instrument || input.brokerSymbol} yet` };
+      return { kind: "hold", reason: `The win-per-trade amount is not supported for ${input.instrument || input.brokerSymbol} yet` };
     }
-    const sized = sizeFromMoney({ risk: input.riskAmount, target: input.targetAmount, slDist: Math.abs(levels.entry - levels.sl), perUnit, maxLot: input.maxLot });
-    if (!sized.ok) return { kind: "hold", reason: sized.reason };
+    const tpDist = input.targetAmount / (volume * perUnit);
     const mid = (input.quote.bid + input.quote.ask) / 2;
-    if (sized.tpDist > mid * 0.1) return { kind: "hold", reason: "Win amount is too far from price for this lot. Lower the win amount or raise the loss amount." };
-    volume = sized.volume;
-    tp = Number((tradeIdea.side === "buy" ? levels.entry + sized.tpDist : levels.entry - sized.tpDist).toFixed(input.digits));
+    if (tpDist > mid * 0.1) return { kind: "hold", reason: "Win amount is too far from price for this lot. Lower the win amount or raise the lot." };
+    if (tpDist <= (input.quote.ask - input.quote.bid) * 2) return { kind: "hold", reason: "Win amount is smaller than the spread for this lot. Raise the win amount or lower the lot." };
+    tp = Number((tradeIdea.side === "buy" ? levels.entry + tpDist : levels.entry - tpDist).toFixed(input.digits));
   }
 
   return {
@@ -240,7 +242,7 @@ export function planCloudCycle(input: CycleInput): CyclePlan {
       side: tradeIdea.side,
       volume,
       entry: levels.entry,
-      sl: levels.sl,
+      sl: null,
       tp,
       key: tradeIdea.key,
       strategy: tradeIdea.strategy,
@@ -264,18 +266,9 @@ export function cloudStartBlockers(params: {
   maxDailyLoss: number;
   instrument: string;
   brokerSymbol: string;
-  riskAmount?: number | null;
   targetAmount?: number | null;
 }): string[] {
   const blockers: string[] = [];
-
-  const r = params.riskAmount ?? 0;
-  const t = params.targetAmount ?? 0;
-  if ((r > 0) !== (t > 0)) {
-    blockers.push("Set both the amount you will lose and the amount you want to win per trade, or leave both empty.");
-  } else if (r > 0 && (t / r < 0.25 || t / r > 10)) {
-    blockers.push("Win amount should be between 0.25x and 10x the loss amount.");
-  }
 
   if (!params.connected) {
     blockers.push("Cloud MT5 connection is offline.");
@@ -288,6 +281,12 @@ export function cloudStartBlockers(params: {
   }
   if (params.defaultLot <= 0 || params.defaultLot > params.maxLot) {
     blockers.push("Default lot must be positive and not exceed max lot.");
+  }
+  if (!(params.maxOpen >= MIN_TRADES_PER_SIGNAL)) {
+    blockers.push(`Max open positions must be at least ${MIN_TRADES_PER_SIGNAL}, because every signal opens ${MIN_TRADES_PER_SIGNAL} trades.`);
+  }
+  if (!(params.riskPct > 0 && params.riskPct <= MAX_RISK_PCT)) {
+    blockers.push(`Risk per trade must be between 0 and ${MAX_RISK_PCT}%.`);
   }
 
   return blockers;

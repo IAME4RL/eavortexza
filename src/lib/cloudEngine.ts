@@ -1,5 +1,5 @@
 import * as api from "./api2trade";
-import { deliverySlots, volumeAllowed } from "./bridge";
+import { MIN_TRADES_PER_SIGNAL, closedProfitSince, deliverySlots, drawdownBreached, floatingProfitOf, volumeAllowed } from "./bridge";
 import { cloudConfigOf, planCloudCycle, utcDayStart, type CloudConfig } from "./cloudTrade";
 import { fetchBars, type FetchResult } from "./marketdata";
 import { biasIdea, decide, type Decision, type StrategySetting } from "./strategy";
@@ -36,6 +36,16 @@ async function syncClosed(db: Db, bot: BotRow, openTickets: Set<string>, history
     const h = history.find((x) => x.ticket === s.ticket);
     if (h) await db.from("trade_signals").update({ status: "closed", profit: h.profit, close_price: h.closePrice, closed_at: iso(Date.now()) }).eq("id", s.id);
   }
+}
+
+/** Closes only this bot's own open positions, never the client's manual trades. */
+async function closeBotPositions(cfg: CloudConfig, pos: api.Position[], botTickets: Set<string>): Promise<{ closed: number; failed: number }> {
+  let closed = 0, failed = 0;
+  for (const p of pos) {
+    if (!botTickets.has(p.ticket)) continue;
+    try { (await api.orderClose(cfg.accountId, p.ticket, p.volume)) ? closed++ : failed++; } catch { failed++; }
+  }
+  return { closed, failed };
 }
 
 async function runBot(db: Db, bot: BotRow, now: number, barsCache: Map<string, FetchResult>, opts: { entryOnStart?: boolean } = {}): Promise<string> {
@@ -82,6 +92,53 @@ async function runBot(db: Db, bot: BotRow, now: number, barsCache: Map<string, F
   } as never;
   patch.last_error = null;
 
+  // ---- the bot's own open trades (matched by ticket, so the client's manual trades are never touched or counted)
+  const { data: filledRows } = await db.from("trade_signals").select("ticket").eq("bot_id", bot.id).eq("status", "filled").not("ticket", "is", null).limit(200);
+  const botTickets = new Set((filledRows ?? []).map((r) => String(r.ticket)));
+  const botPositions = pos.filter((p) => botTickets.has(p.ticket));
+  const botFloating = floatingProfitOf(pos, botTickets);
+  const notify = (title: string, body: string) => db.from("notifications").insert({ user_id: bot.user_id, title, body });
+
+  // ---- safety net: trades have no stop loss, so close them all if floating loss reaches the risk % of the balance
+  const riskPct = Number(bot.risk_per_trade_pct);
+  const balance = summary?.balance ?? (bot.terminal_info as { balance?: number } | null)?.balance;
+  if (bot.status === "running" && botPositions.length && drawdownBreached(botFloating, balance, riskPct)) {
+    const r = await closeBotPositions(cfg, pos, botTickets);
+    await db.from("trade_signals").update({ status: "cancelled" }).eq("bot_id", bot.id).eq("status", "queued");
+    const msg = `Safety net: floating loss ${botFloating.toFixed(2)} reached ${riskPct}% of your balance (${Number(balance).toFixed(2)}). Closed ${r.closed} trade(s), ${r.failed} failed.`;
+    if (r.failed > 0) { await save({ last_decision: `${msg} Retrying next cycle.`, last_error: msg }); return "safety net retry"; }
+    await notify("Bot stopped by safety net", msg);
+    await save({ status: "stopped", stop_requested_at: iso(now), stop_ack_at: iso(now), last_decision: msg, last_error: msg });
+    return "safety net: closed all";
+  }
+
+  // ---- profit goal: when closed + floating profit of the bot's trades reaches the goal, close them all automatically
+  const goal = Number(bot.profit_goal ?? 0);
+  if (goal > 0 && bot.status === "running") {
+    const sinceIso = bot.goal_started_at ?? iso(now);
+    if (!bot.goal_started_at) patch.goal_started_at = sinceIso; // the goal window opens the first time the engine sees the goal
+    const { data: closedRows } = await db.from("trade_signals").select("profit,closed_at").eq("bot_id", bot.id).eq("status", "closed").gte("closed_at", sinceIso).limit(500);
+    const profitSinceGoal = closedProfitSince(closedRows ?? [], Date.parse(sinceIso)) + botFloating;
+    patch.goal_profit = Math.round(profitSinceGoal * 100) / 100;
+    if (profitSinceGoal >= goal) {
+      const r = await closeBotPositions(cfg, pos, botTickets);
+      await db.from("trade_signals").update({ status: "cancelled" }).eq("bot_id", bot.id).eq("status", "queued");
+      const text = `Profit goal reached (${profitSinceGoal.toFixed(2)} of ${goal}). Closed ${r.closed} trade(s).`;
+      if (r.failed > 0) { await save({ last_decision: `${text} ${r.failed} failed to close, retrying next cycle.`, last_error: `${r.failed} trade(s) did not close` }); return "goal close retry"; }
+      // Record the closes now so their profit counts toward THIS goal and not the next one.
+      const [pos2, hist2] = await Promise.all([api.positions(cfg.accountId).catch(() => null), api.orderHistory(cfg.accountId, utcDayStart(now), new Date(now + 3_600_000)).catch(() => null)]);
+      if (pos2 && hist2) await syncClosed(db, bot, new Set(pos2.map((p) => p.ticket)), hist2);
+      const again = bot.profit_goal_mode === "again";
+      const doneAt = iso(Date.now());
+      await notify("Profit goal reached", `${text} ${again ? "A new goal has started." : "The bot has stopped."}`);
+      if (again) await save({ goal_reached_at: doneAt, goal_close_requested_at: doneAt, goal_close_ack_at: doneAt, goal_started_at: iso(Date.now() + 1500), goal_profit: 0, last_error: null, last_decision: `${text} Starting a new goal.` });
+      else await save({ goal_reached_at: doneAt, goal_close_requested_at: doneAt, goal_close_ack_at: doneAt, status: "stopped", stop_requested_at: doneAt, stop_ack_at: doneAt, last_decision: `${text} Bot stopped.` });
+      return "goal reached";
+    }
+  }
+  // While a goal is in progress and the bot is flat, keep cycling: take the favoured direction right away instead of waiting for a perfect setup.
+  const cycleEntry = !!opts.entryOnStart || (goal > 0 && botPositions.length === 0);
+
   // ---- strategy decision from closed candles (skipped for manual-only bots)
   let decision: Decision | null = null;
   let feedLast: number | null = null;
@@ -99,8 +156,8 @@ async function runBot(db: Db, bot: BotRow, now: number, barsCache: Map<string, F
       decision = decide(bot.strategy as StrategySetting, f.bars, cfg.brokerSymbol, cfg.timeframe, f.digits);
     } else decision = { trade: null, reason: `NO TRADE: market data unavailable${f.ok ? "" : ` (${f.error})`}` };
   }
-  // Entry on START: when no strategy qualifies, take the direction the price signals favor. Every risk gate in planCloudCycle still applies.
-  if (opts.entryOnStart && decision && !decision.trade && startBars?.ok && startBars.bars.length) {
+  // Entry on START (or re-entry while a profit goal is running): when no strategy qualifies, take the direction the price signals favor. Every risk gate in planCloudCycle still applies.
+  if (cycleEntry && decision && !decision.trade && startBars?.ok && startBars.bars.length) {
     const b = biasIdea(startBars.bars, cfg.brokerSymbol, cfg.timeframe, digits, String(now));
     decision = b
       ? { trade: b.idea, explanation: `Entry on START: ${b.why}` }
@@ -112,7 +169,7 @@ async function runBot(db: Db, bot: BotRow, now: number, barsCache: Map<string, F
     status: bot.status, connected, accountType: cfg.accountType, mode: bot.trading_mode as "demo" | "live", liveConfirmed: !!bot.live_confirmed_at, demoOnly: bot.demo_only,
     defaultLot: Number(bot.default_lot), maxLot: Number(bot.max_lot), maxOpen: Number(bot.max_open_trades ?? 1), maxDailyLoss: Number(bot.max_daily_loss),
     openCount: pos.length, floatingPL: floating, closedTodayPL: closedToday, decision, quote, feedLast: feedLast ?? 0, digits, brokerSymbol: cfg.brokerSymbol,
-    riskAmount: cfg.riskPerTrade ?? null, targetAmount: cfg.targetPerTrade ?? null, accountCurrency: summary?.currency ?? null, instrument: cfg.instrument,
+    targetAmount: cfg.targetPerTrade ?? null, accountCurrency: summary?.currency ?? null, instrument: cfg.instrument,
   });
 
   if (plan.kind === "stop") {
@@ -128,12 +185,20 @@ async function runBot(db: Db, bot: BotRow, now: number, barsCache: Map<string, F
     const { data: fresh } = await db.from("bots").select("status").eq("id", bot.id).maybeSingle();
     if (fresh?.status !== "running") { await save({ last_decision: "Stopped by you — order not sent." }); return "stopped by user"; }
     const t = plan.trade;
-    const { data: row, error } = await db.from("trade_signals").insert({
-      user_id: bot.user_id, bot_id: bot.id, symbol: cfg.brokerSymbol, side: t.side, volume: t.volume, stop_loss: t.sl, take_profit: t.tp,
-      strategy: t.strategy, signal_key: t.key, comment: t.comment, status: "sent", sent_at: iso(now),
-    }).select("id").maybeSingle();
-    if (error || !row) result = error?.code === "23505" ? `Duplicate signal ignored (${t.key})` : "Could not record strategy signal";
-    else { result = `${plan.reason} → ${await sendAndRecord(db, row.id, cfg, { side: t.side, volume: t.volume, sl: t.sl, tp: t.tp, entry: t.entry })}`; opened = 1; }
+    // Every signal opens MIN_TRADES_PER_SIGNAL trades together. The next one is only sent if the previous one filled, so a lone uncertain order is never doubled.
+    const outcomes: string[] = [];
+    for (let n = 1; n <= MIN_TRADES_PER_SIGNAL; n++) {
+      const { data: row, error } = await db.from("trade_signals").insert({
+        user_id: bot.user_id, bot_id: bot.id, symbol: cfg.brokerSymbol, side: t.side, volume: t.volume, stop_loss: t.sl, take_profit: t.tp,
+        strategy: t.strategy, signal_key: `${t.key}_${n}`, comment: `${t.comment.slice(0, 27)} #${n}`, status: "sent", sent_at: iso(now),
+      }).select("id").maybeSingle();
+      if (error || !row) { outcomes.push(error?.code === "23505" ? `duplicate signal ignored (${t.key}_${n})` : "could not record strategy signal"); break; }
+      const out = await sendAndRecord(db, row.id, cfg, { side: t.side, volume: t.volume, sl: t.sl, tp: t.tp, entry: t.entry });
+      opened++;
+      outcomes.push(out);
+      if (!out.startsWith("filled")) break;
+    }
+    result = `${plan.reason} → ${outcomes.join(" · ")}`;
   }
 
   // ---- manual orders the client queued in the Auto Trade page
@@ -141,8 +206,8 @@ async function runBot(db: Db, bot: BotRow, now: number, barsCache: Map<string, F
   if (slots > 0) {
     const { data: queued } = await db.from("trade_signals").select("*").eq("bot_id", bot.id).eq("status", "queued").order("created_at").limit(slots);
     for (const s of queued ?? []) {
-      if (s.stop_loss == null || !volumeAllowed(Number(s.volume), Number(bot.max_lot))) {
-        await db.from("trade_signals").update({ status: "rejected", error: s.stop_loss == null ? "Stop loss required for risk check" : "Volume exceeds bot max lot" }).eq("id", s.id);
+      if (!volumeAllowed(Number(s.volume), Number(bot.max_lot))) {
+        await db.from("trade_signals").update({ status: "rejected", error: "Volume exceeds bot max lot" }).eq("id", s.id);
         continue;
       }
       const claimed = await db.from("trade_signals").update({ status: "sent", sent_at: iso(now) }).eq("id", s.id).eq("status", "queued").select("id");

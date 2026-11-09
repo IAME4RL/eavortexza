@@ -1,5 +1,24 @@
 // Pure helpers for the MT5 bridge protocol (shared by the server route, server functions and tests).
 import { isValidSetting } from "@/lib/strategy";
+/** Every strategy signal opens this many trades together (never fewer). */
+export const MIN_TRADES_PER_SIGNAL = 2;
+/** Highest value the "risk %" setting may take. It is also the drawdown at which the bot closes its own trades. */
+export const MAX_RISK_PCT = 50;
+
+/** How many trades a new signal may open right now: all MIN_TRADES_PER_SIGNAL, or none if they do not all fit. */
+export function signalTradeCount(openTrades: number, maxOpenTrades: number): number {
+  return maxOpenTrades - openTrades >= MIN_TRADES_PER_SIGNAL ? MIN_TRADES_PER_SIGNAL : 0;
+}
+
+/**
+ * Equity safety net: trades have no stop loss, so the bot closes its own trades when floating loss reaches
+ * `riskPct` of the balance (e.g. balance 1200 at 50% closes at -600).
+ */
+export function drawdownBreached(floatingPL: number, balance: number | null | undefined, riskPct: number): boolean {
+  if (!(typeof balance === "number" && balance > 0) || !(riskPct > 0) || !Number.isFinite(floatingPL)) return false;
+  return floatingPL <= -(balance * riskPct) / 100;
+}
+
 export type BotStatus = "running" | "paused" | "stopped";
 export type TradingMode = "demo" | "live";
 /** Account type exactly as MT5 reports ACCOUNT_TRADE_MODE. Anything else is unverified. */
@@ -60,6 +79,7 @@ export const HOLD_TEXT: Record<string, string> = {
   PROFIT_GOAL_UNVERIFIED: "Profit so far toward your goal could not be verified, so no new orders are sent.",
   PROFIT_GOAL_REACHED: "Profit goal reached — closing your trades and holding new orders.",
   MAX_OPEN: "Maximum open positions reached.",
+  DRAWDOWN_LIMIT: "Floating loss reached your risk limit — closing the bot's trades.",
 };
 
 /** Sum of bot trade profits closed at or after the goal window opened. */
@@ -144,13 +164,13 @@ export function startBlockers(i: StartInput): string[] {
     status: "running", mode: i.mode, liveConfirmed: i.liveConfirmed, terminalType: terminalTypeOf(i.terminal.type),
     terminalLogin: String(i.terminal.login ?? ""), accountLogin: i.accountLogin,
     terminalServer: i.terminal.server, accountServer: i.accountServer,
-    openTrades: 0, maxOpenTrades: Math.max(1, i.maxOpen), dayPL: i.terminal.daypl ?? null, maxDailyLoss: i.maxDailyLoss,
+    openTrades: 0, maxOpenTrades: Math.max(MIN_TRADES_PER_SIGNAL, i.maxOpen), dayPL: i.terminal.daypl ?? null, maxDailyLoss: i.maxDailyLoss,
   });
   if (r) out.push(HOLD_TEXT[r] ?? r);
   if (!isValidSetting(i.strategy)) out.push("Selected strategy is not implemented.");
   if (!(i.defaultLot > 0) || !(i.maxLot > 0) || i.defaultLot > i.maxLot) out.push("Lot sizes are invalid (default must be > 0 and ≤ max lot).");
-  if (!(i.maxOpen >= 1)) out.push("Max open positions must be at least 1.");
-  if (!(i.riskPct > 0 && i.riskPct <= 5)) out.push("Risk per trade must be between 0 and 5%.");
+  if (!(i.maxOpen >= MIN_TRADES_PER_SIGNAL)) out.push(`Max open positions must be at least ${MIN_TRADES_PER_SIGNAL}, because every signal opens ${MIN_TRADES_PER_SIGNAL} trades.`);
+  if (!(i.riskPct > 0 && i.riskPct <= MAX_RISK_PCT)) out.push(`Risk per trade must be between 0 and ${MAX_RISK_PCT}%.`);
   if (!(i.maxDailyLoss > 0)) out.push("Max daily loss must be greater than 0.");
   return out;
 }
