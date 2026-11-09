@@ -110,17 +110,28 @@ export const Route = createFileRoute("/api/public/bridge/mt5")({
               else {
                 const d = decide(bot.strategy as StrategySetting, bars, h.symbol, h.tf, h.digits ?? 5);
                 if (!d.trade) patch.last_decision = d.reason;
-                else {
+                                else {
                   const t = d.trade;
                   const volume = Math.min(Number(bot.default_lot), Number(bot.max_lot));
-                  const { error } = await supabaseAdmin.from("trade_signals").insert({
-                    user_id: bot.user_id, bot_id: bot.id, symbol: h.symbol, side: t.side, volume,
-                    stop_loss: t.sl, take_profit: t.tp, strategy: t.strategy, signal_key: t.key, comment: t.reason.slice(0, 180),
-                  });
+                  const availableSlots = Math.max(1, (bot.max_open_trades ?? 3) - (h.open ?? 0));
+                  const count = Math.min(availableSlots, 2);
+                  const newSignals = Array.from({ length: count }, (_, idx) => ({
+                    user_id: bot.user_id,
+                    bot_id: bot.id,
+                    symbol: h.symbol,
+                    side: t.side,
+                    volume,
+                    stop_loss: t.sl,
+                    take_profit: t.tp,
+                    strategy: t.strategy,
+                    signal_key: count > 1 ? `${t.key}_${idx + 1}` : t.key,
+                    comment: `${t.reason.slice(0, 160)}${count > 1 ? ` (#${idx + 1})` : ""}`,
+                  }));
+                  const { error } = await supabaseAdmin.from("trade_signals").insert(newSignals);
                   patch.last_decision = error
                     ? (error.code === "23505" ? `Duplicate signal ignored (${t.key})` : "Could not queue strategy signal")
-                    : `${t.strategy} ${t.side.toUpperCase()} ${h.symbol}: ${t.reason}`;
-                }
+                    : `${t.strategy} ${t.side.toUpperCase()} ${h.symbol} (${count} trades): ${t.reason}`;
+            }
               }
             }
             const { data: queued } = await supabaseAdmin.from("trade_signals").select("*")
