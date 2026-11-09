@@ -293,6 +293,8 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
           Save goal
         </button>
       </NeonCard>
+      
+      <NeonCard className="p-4 sm:p-5">
         <PwLabel red>Active trades</PwLabel>
         {positions.length > 0 ? (
           <ul className="mt-3 divide-y divide-primary/10">
