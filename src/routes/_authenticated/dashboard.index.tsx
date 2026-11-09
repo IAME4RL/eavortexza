@@ -1,8 +1,10 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
+import { ScanLine, Clock, ChevronRight, Globe, Key, Check, Upload } from "lucide-react";
 import { ScanLine, Clock, ChevronRight, Globe, Key, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getScanQuota } from "@/lib/scan.functions";
@@ -13,8 +15,21 @@ import { timeframeLabel } from "@/lib/instruments";
 import { HEARTBEAT_ONLINE_MS } from "@/lib/bridge";
 import { formatRemaining, marketSession } from "@/lib/sessions";
 import { getMyAssignedMentorBot, redeemMentorLicense } from "@/lib/mentorBots";
+import { BotControls, BotPills, FeaturedBotCard } from "@/components/FeaturedBotCard";
+import { NewsSignals } from "@/components/NewsSignals";
 import { FeaturedBotCard } from "@/components/FeaturedBotCard";
 
+export const Route = createFileRoute("/_authenticated/dashboard/")({
+  head: () => ({ meta: [
+    { title: "Client Portal — EA VORTEX" },
+    { name: "description", content: "Your EA VORTEX bot, private chart scans, and trading signals." },
+    { property: "og:title", content: "Client Portal — EA VORTEX" },
+    { property: "og:description", content: "Manage your bot and review your private trading activity." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
+  component: ClientOverview,
+});
 export const Route = createFileRoute("/_authenticated/dashboard/")({ component: ClientOverview });
 
 const WATCHLIST = [
@@ -89,8 +104,10 @@ function ClientOverview() {
   const startFn = useServerFn(startBot);
   const stopFn = useServerFn(stopBot);
   const [blockers, setBlockers] = useState<string[]>([]);
+  const [botFeedback, setBotFeedback] = useState<string | null>(null);
   const botAction = useMutation({
     mutationFn: async (kind: "start" | "stop") => {
+      setBotFeedback(null);
       if (!userBot) throw new Error("Set up your bot first");
       if (kind === "start") {
         const r = await startFn({ data: { botId: userBot.id } });
@@ -102,6 +119,7 @@ function ClientOverview() {
       await stopFn({ data: { botId: userBot.id } });
       return "Bot stopped — new orders blocked";
     },
+    onSuccess: (msg) => { setBotFeedback(msg); toast.success(msg); },
     onSuccess: (msg, kind) => {
       toast.success(msg);
       // Once the bot has actually started, take the client to the profit card on the Trades page.
@@ -142,6 +160,7 @@ function ClientOverview() {
   };
 
   return (
+    <div className="w-full min-w-0 space-y-5 pb-10">
     <div className="space-y-5 pb-10">
       {/* Top Welcome / Mentor alert */}
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
@@ -166,6 +185,8 @@ function ClientOverview() {
         </div>
       )}
 
+      {/* Status pills, then the bot card: the picture only, name and avatar are in the top bar */}
+      <BotPills running={!!running} />
       {/* FEATURED BOT CARD: the mentor's bot once a license is redeemed, otherwise the default EAVORTEX bot */}
       <div ref={featuredCardRef} className="scroll-mt-4">
         <FeaturedBotCard
@@ -185,6 +206,19 @@ function ClientOverview() {
         />
       </div>
 
+      <BotControls
+        control={{
+          hasBot: !!userBot,
+          status: userBot?.status ?? "stopped",
+          busy: botAction.isPending,
+          blockers,
+          onStart: () => botAction.mutate("start"),
+          onStop: () => botAction.mutate("stop"),
+        }}
+      />
+      {botFeedback && <p role="status" className="text-center text-sm text-bull">{botFeedback}</p>}
+      <div className="flex items-center justify-center gap-2">
+        {online ? <Pill tone="ok">MT5 online</Pill> : <Pill tone="idle">MT5 bridge offline</Pill>}
       {/* TWO MAIN CALL TO ACTION BUTTONS (Reference Screen) */}
       <div className="grid grid-cols-1 gap-4">
         <Link
@@ -208,7 +242,20 @@ function ClientOverview() {
         </Link>
       </div>
 
+      {/* AI CHART VISION */}
+      <NeonCard className="p-5">
+        <PwLabel>AI Chart Vision</PwLabel>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Drop a TradingView or MT5 screenshot — the AI reads structure, liquidity and your trade result.
+        </p>
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <Link to="/dashboard/scanner" className="pw-btn"><ScanLine className="h-4 w-4" />Scan chart</Link>
+          <Link to="/dashboard/history" className="pw-btn border-transparent bg-transparent shadow-none"><Upload className="h-4 w-4" />Trade result</Link>
+        </div>
+      </NeonCard>
+
       {/* MARKET WATCHLIST & SESSION INTELLIGENCE */}
+      <div className="grid min-w-0 gap-5 lg:grid-cols-2 [&>*]:min-w-0">
       <div className="grid gap-5 lg:grid-cols-2">
         {/* Watchlist */}
         <NeonCard className="p-5">
@@ -216,6 +263,9 @@ function ClientOverview() {
             <PwLabel>Market Watchlist</PwLabel>
             <span className="text-[11px] font-mono text-muted-foreground">TAP TO SCAN</span>
           </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {WATCHLIST.map((w, i) => (
+              <Link key={w.label} to="/dashboard/scanner" className="pw-chip" data-active={i === 0}>{w.label}</Link>
           <div className="mt-3 grid grid-cols-3 gap-2">
             {WATCHLIST.map((w) => (
               <Link
@@ -232,6 +282,7 @@ function ClientOverview() {
 
         {/* Session Card */}
         <SessionCard />
+        <NewsSignals limit={3} />
       </div>
 
       {/* MENTOR KEY REDEMPTION CARD */}
