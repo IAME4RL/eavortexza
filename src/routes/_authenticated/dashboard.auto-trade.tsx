@@ -229,19 +229,19 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
         <Metric label="Closed P/L (bot)" value={closed.length ? pnl.toFixed(2) : "—"} hint={`${closed.length} closed bot trades`} tone={closed.length ? (pnl >= 0 ? "bull" : "bear") : undefined} />
       </div>
 
-              {/* Running Profit Goal */}
+            {/* Running Profit Goal */}
       <NeonCard className="p-4 sm:p-5">
         <PwLabel red>Running Profit Goal</PwLabel>
         <p className="mt-1 text-xs text-muted-foreground">
-          Set a target dollar profit. When reached, the bot automatically closes all open trades.
+          Set a target profit in Rands. When reached, the bot automatically closes all open trades.
         </p>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="space-y-1">
-            <Label className={lbl}>Target Profit ($)</Label>
+            <Label className={lbl}>Target Profit (R)</Label>
             <Input
               className={field}
               inputMode="decimal"
-              placeholder="e.g. 50 (or leave empty to disable)"
+              placeholder="e.g. 500 (or leave empty to disable)"
               value={profitGoal}
               onChange={(e) => setProfitGoal(e.target.value)}
             />
@@ -263,7 +263,7 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Goal Progress</span>
               <span className={cn("font-mono font-bold", currentGoalProfit >= targetProfitNum ? "text-bull" : "text-foreground")}>
-                ${currentGoalProfit.toFixed(2)} / ${targetProfitNum.toFixed(2)} ({goalProgress.toFixed(0)}%)
+                R{currentGoalProfit.toFixed(2)} / R{targetProfitNum.toFixed(2)} ({goalProgress.toFixed(0)}%)
               </span>
             </div>
             <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-secondary">
@@ -293,9 +293,10 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
           Save goal
         </button>
       </NeonCard>
-      
+
       <NeonCard className="p-4 sm:p-5">
         <PwLabel red>Active trades</PwLabel>
+      
         {positions.length > 0 ? (
           <ul className="mt-3 divide-y divide-primary/10">
             {positions.map((p) => (
