@@ -229,7 +229,6 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
         <Metric label="Closed P/L (bot)" value={closed.length ? pnl.toFixed(2) : "—"} hint={`${closed.length} closed bot trades`} tone={closed.length ? (pnl >= 0 ? "bull" : "bear") : undefined} />
       </div>
 
-      <NeonCard className="p-4 sm:p-5">
               {/* Running Profit Goal */}
       <NeonCard className="p-4 sm:p-5">
         <PwLabel red>Running Profit Goal</PwLabel>
