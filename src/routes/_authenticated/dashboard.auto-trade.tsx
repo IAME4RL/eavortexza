@@ -175,13 +175,12 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["signals", bot.id] }),
   });
 
-  const rows = signals.data ?? [];
-  const closed = rows.filter((r) => r.status === "closed" && r.profit != null);
-  // Trade history and recent signals show the last 24 hours only; older trades stay saved in the database.
-  const historyAll = rows.filter((r) => r.status === "closed");
+    const rows = signals.data ?? [];
   const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
-  const historyToday = historyAll.filter((r) => new Date(r.closed_at ?? r.created_at).getTime() >= dayAgo);
-  const history = historyToday;
+  const closedAll = rows.filter((r) => r.status === "closed" && r.profit != null);
+  const closedToday = closedAll.filter((r) => new Date(r.closed_at ?? r.created_at).getTime() >= dayAgo);
+  const closed = closedToday;
+  const history = closedToday;
   // Live orders always show; finished ones (rejected / failed / cancelled) disappear after 24 hours.
   const LIVE = new Set(["queued", "sent", "filled", "pending"]);
   const recent = rows.filter((r) => r.status !== "closed" && (LIVE.has(r.status) || new Date(r.created_at).getTime() >= dayAgo));
