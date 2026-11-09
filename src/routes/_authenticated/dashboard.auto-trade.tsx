@@ -117,6 +117,11 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
   const [lot, setLot] = useState(String(bot.default_lot));
   const [maxLot, setMaxLot] = useState(String(bot.max_lot));
   const [maxOpen, setMaxOpen] = useState(String(bot.max_open_trades));
+    const [profitGoal, setProfitGoal] = useState(Number(bot.profit_goal) > 0 ? String(bot.profit_goal) : "");
+  const [profitGoalMode, setProfitGoalMode] = useState<"stop" | "again">(bot.profit_goal_mode === "again" ? "again" : "stop");
+  const currentGoalProfit = Number(bot.goal_profit ?? 0);
+  const targetProfitNum = Number(profitGoal) || 0;
+  const goalProgress = targetProfitNum > 0 ? Math.min(100, Math.max(0, (currentGoalProfit / targetProfitNum) * 100)) : 0;
   const [symbol, setSymbol] = useState("XAUUSD");
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [vol, setVol] = useState(String(bot.default_lot));
