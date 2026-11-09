@@ -356,7 +356,7 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
           <div className="space-y-1"><Label className={lbl}>Max lot</Label><Input className={field} inputMode="decimal" value={maxLot} onChange={(e) => setMaxLot(e.target.value)} /></div>
           <div className="space-y-1"><Label className={lbl}>Max open</Label><Input className={field} inputMode="numeric" value={maxOpen} onChange={(e) => setMaxOpen(e.target.value)} /></div>
           <div className="space-y-1"><Label className={lbl}>Risk % / trade</Label><Input className={field} inputMode="decimal" value={riskPct} onChange={(e) => setRiskPct(e.target.value)} /></div>
-          <div className="space-y-1"><Label className={lbl}>Max daily loss ($)</Label><Input className={field} inputMode="decimal" placeholder="Off" value={maxLoss} onChange={(e) => setMaxLoss(e.target.value)} /></div>
+          <div className="space-y-1"><Label className={lbl}>Max daily loss (R)</Label><Input className={field} inputMode="decimal" placeholder="Off" value={maxLoss} onChange={(e) => setMaxLoss(e.target.value)} /></div>
           {cloudConfigOf(bot.terminal_info) && (<>
           <div className="space-y-1"><Label className={lbl}>Lose per trade ($)</Label><Input className={field} inputMode="decimal" placeholder="e.g. 10" value={riskAmt} onChange={(e) => setRiskAmt(e.target.value)} /></div>
           <div className="space-y-1"><Label className={lbl}>Win per trade ($)</Label><Input className={field} inputMode="decimal" placeholder="e.g. 20" value={targetAmt} onChange={(e) => setTargetAmt(e.target.value)} /></div>
