@@ -137,10 +137,11 @@ export const Route = createFileRoute("/api/public/bridge/mt5")({
             const { data: queued } = await supabaseAdmin.from("trade_signals").select("*")
               .eq("bot_id", bot.id).eq("status", "queued").order("created_at").limit(deliverySlots(h.open, bot.max_open_trades));
             for (const s of queued ?? []) {
-              if (!volumeAllowed(Number(s.volume), Number(bot.max_lot)) || s.stop_loss == null) {
-                await supabaseAdmin.from("trade_signals").update({ status: "rejected", error: s.stop_loss == null ? "Stop loss required for risk check" : "Volume exceeds bot max lot" }).eq("id", s.id);
-                continue;
-              }
+              if (!volumeAllowed(Number(s.volume), Number(bot.max_lot))) {
+  await supabaseAdmin.from("trade_signals").update({ status: "rejected", error: "Volume exceeds bot max lot" }).eq("id", s.id);
+  continue;
+}
+
               const { data: claimed } = await supabaseAdmin.from("trade_signals")
                 .update({ status: "sent", sent_at: now }).eq("id", s.id).eq("status", "queued").select("id");
               if (claimed?.length) lines.push(formatSignalLine({ id: s.id, symbol: s.symbol, side: s.side as "buy" | "sell", volume: Number(s.volume), stop_loss: s.stop_loss, take_profit: s.take_profit }));
