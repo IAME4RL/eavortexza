@@ -18,7 +18,7 @@ import { STRATEGIES } from "@/lib/strategy";
 import { CloudConnect } from "@/components/CloudConnect";
 import { ChangeAccount } from "@/components/ChangeAccount";
 import { cloudConfigOf, NO_DAILY_LIMIT, withPerTrade } from "@/lib/cloudTrade";
-import { HEARTBEAT_ONLINE_MS } from "@/lib/bridge";
+import { HEARTBEAT_ONLINE_MS, MAX_RISK_PCT, MIN_TRADES_PER_SIGNAL } from "@/lib/bridge";
 import type { Database } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/dashboard/auto-trade")({
@@ -110,7 +110,6 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
   const [strategy, setStrategy] = useState(bot.strategy);
   const [riskPct, setRiskPct] = useState(String(bot.risk_per_trade_pct));
   const [maxLoss, setMaxLoss] = useState(Number(bot.max_daily_loss) > 0 && Number(bot.max_daily_loss) < NO_DAILY_LIMIT ? String(bot.max_daily_loss) : "");
-  const [riskAmt, setRiskAmt] = useState(cloudConfigOf(bot.terminal_info)?.riskPerTrade != null ? String(cloudConfigOf(bot.terminal_info)?.riskPerTrade) : "");
   const [targetAmt, setTargetAmt] = useState(cloudConfigOf(bot.terminal_info)?.targetPerTrade != null ? String(cloudConfigOf(bot.terminal_info)?.targetPerTrade) : "");
   const run = async (fn: () => Promise<unknown>, ok?: string) => { try { await fn(); if (ok) toast.success(ok); refresh(); } catch (e) { toast.error(e instanceof Error ? e.message : "Action failed"); } };
   const [token, setToken] = useState<string | null>(null);
@@ -233,7 +232,7 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
       <NeonCard className="p-4 sm:p-5">
         <PwLabel red>Running Profit Goal</PwLabel>
         <p className="mt-1 text-xs text-muted-foreground">
-          Set a target profit in Rands. When reached, the bot automatically closes all open trades.
+          Set a target profit in Rands. Trades close themselves as they reach their small profit and the bot opens the next ones until the goal is reached. Then the bot automatically closes all its open trades.
         </p>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="space-y-1">
@@ -355,14 +354,13 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
           <div className="space-y-1"><Label className={lbl}>Default lot</Label><Input className={field} inputMode="decimal" value={lot} onChange={(e) => setLot(e.target.value)} /></div>
           <div className="space-y-1"><Label className={lbl}>Max lot</Label><Input className={field} inputMode="decimal" value={maxLot} onChange={(e) => setMaxLot(e.target.value)} /></div>
           <div className="space-y-1"><Label className={lbl}>Max open</Label><Input className={field} inputMode="numeric" value={maxOpen} onChange={(e) => setMaxOpen(e.target.value)} /></div>
-          <div className="space-y-1"><Label className={lbl}>Risk % / trade</Label><Input className={field} inputMode="decimal" value={riskPct} onChange={(e) => setRiskPct(e.target.value)} /></div>
+          <div className="space-y-1"><Label className={lbl}>Max loss % (auto-close)</Label><Input className={field} inputMode="decimal" value={riskPct} onChange={(e) => setRiskPct(e.target.value)} /></div>
           <div className="space-y-1"><Label className={lbl}>Max daily loss (R)</Label><Input className={field} inputMode="decimal" placeholder="Off" value={maxLoss} onChange={(e) => setMaxLoss(e.target.value)} /></div>
           {cloudConfigOf(bot.terminal_info) && (<>
-          <div className="space-y-1"><Label className={lbl}>Lose per trade ($)</Label><Input className={field} inputMode="decimal" placeholder="e.g. 10" value={riskAmt} onChange={(e) => setRiskAmt(e.target.value)} /></div>
-          <div className="space-y-1"><Label className={lbl}>Win per trade ($)</Label><Input className={field} inputMode="decimal" placeholder="e.g. 20" value={targetAmt} onChange={(e) => setTargetAmt(e.target.value)} /></div>
+          <div className="space-y-1"><Label className={lbl}>Close each trade at ($)</Label><Input className={field} inputMode="decimal" placeholder="e.g. 5" value={targetAmt} onChange={(e) => setTargetAmt(e.target.value)} /></div>
           </>)}
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">Cloud trading only. Fill in both and the bot sizes each trade's lot so a stop-out loses about your "lose" amount, and sets the take profit at about your "win" amount. Leave both empty to use the default lot. USD accounts; gold and major pairs only. Trades are skipped if even the smallest lot would risk more than your limit. Leave Max daily loss empty for no daily limit: the bot then keeps trading after losing days, so rely on the per-trade loss amount.</p>
+        <p className="mt-2 text-xs text-muted-foreground">Every signal opens 2 trades, so Max open must be at least 2. Trades are opened without a stop loss. Instead, if the bot's floating loss reaches "Max loss %" of your balance (for example 50% of a 1200 balance is 600), the bot closes all its trades and stops. Cloud trading only: set "Close each trade at ($)" to a small amount and each trade closes by itself once it wins about that much, then the bot opens the next ones until your Profit Goal is reached. Leave it empty to use the strategy's own take profit. USD accounts; gold and major pairs only. Leave Max daily loss empty for no daily limit.</p>
         <label className="mt-4 flex items-center justify-between gap-3 text-sm">
           <span>Demo accounts only <span className="block text-xs text-muted-foreground">Orders are held if the terminal reports a live account.</span></span>
           <Switch checked={bot.demo_only} onCheckedChange={(v) => update.mutate({ demo_only: v })} />
@@ -370,14 +368,11 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
         <button type="button" className="pw-btn mt-4" onClick={() => {
           const dl = maxLoss.trim() === "" ? NO_DAILY_LIMIT : Number(maxLoss);
           if (!Number.isFinite(dl) || dl <= 0) { toast.error("Max daily loss must be a positive number, or empty for no daily limit."); return; }
-          const r = riskAmt.trim() === "" ? null : Number(riskAmt);
           const t = targetAmt.trim() === "" ? null : Number(targetAmt);
-          if ((r === null) !== (t === null)) { toast.error("Fill in both the lose and win amounts, or leave both empty."); return; }
-          if (r !== null && t !== null) {
-            if (!(r > 0) || !(t > 0) || !Number.isFinite(r) || !Number.isFinite(t)) { toast.error("Lose and win amounts must be positive numbers."); return; }
-            if (t / r < 0.25 || t / r > 10) { toast.error("Win amount should be between 0.25x and 10x the lose amount."); return; }
-          }
-          update.mutate({ default_lot: Number(lot), max_lot: Number(maxLot), max_open_trades: Number(maxOpen), strategy, risk_per_trade_pct: Number(riskPct), max_daily_loss: dl, ...(cloudConfigOf(bot.terminal_info) ? { terminal_info: withPerTrade(bot.terminal_info, r, t) as never } : {}) }, { onSuccess: () => toast.success("Settings saved") });
+          if (t !== null && (!(t > 0) || !Number.isFinite(t))) { toast.error("The close-at amount must be a positive number, or empty."); return; }
+          if (!(Number(maxOpen) >= MIN_TRADES_PER_SIGNAL)) { toast.error(`Max open must be at least ${MIN_TRADES_PER_SIGNAL}: every signal opens ${MIN_TRADES_PER_SIGNAL} trades.`); return; }
+          if (!(Number(riskPct) > 0 && Number(riskPct) <= MAX_RISK_PCT)) { toast.error(`Max loss % must be above 0 and at most ${MAX_RISK_PCT}.`); return; }
+          update.mutate({ default_lot: Number(lot), max_lot: Number(maxLot), max_open_trades: Number(maxOpen), strategy, risk_per_trade_pct: Number(riskPct), max_daily_loss: dl, ...(cloudConfigOf(bot.terminal_info) ? { terminal_info: withPerTrade(bot.terminal_info, null, t) as never } : {}) }, { onSuccess: () => toast.success("Settings saved") });
         }}>Save settings</button>
       </Section>
 
