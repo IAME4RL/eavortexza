@@ -228,6 +228,70 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
       </div>
 
       <NeonCard className="p-4 sm:p-5">
+              {/* Running Profit Goal */}
+      <NeonCard className="p-4 sm:p-5">
+        <PwLabel red>Running Profit Goal</PwLabel>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Set a target dollar profit. When reached, the bot automatically closes all open trades.
+        </p>
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="space-y-1">
+            <Label className={lbl}>Target Profit ($)</Label>
+            <Input
+              className={field}
+              inputMode="decimal"
+              placeholder="e.g. 50 (or leave empty to disable)"
+              value={profitGoal}
+              onChange={(e) => setProfitGoal(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className={lbl}>When reached</Label>
+            <Select value={profitGoalMode} onValueChange={(v) => setProfitGoalMode(v as "stop" | "again")}>
+              <SelectTrigger className={field}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="stop">Stop bot (bank profit)</SelectItem>
+                <SelectItem value="again">Keep trading (start new goal)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {targetProfitNum > 0 && (
+          <div className="mt-4 rounded-xl border border-primary/20 bg-background/50 p-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Goal Progress</span>
+              <span className={cn("font-mono font-bold", currentGoalProfit >= targetProfitNum ? "text-bull" : "text-foreground")}>
+                ${currentGoalProfit.toFixed(2)} / ${targetProfitNum.toFixed(2)} ({goalProgress.toFixed(0)}%)
+              </span>
+            </div>
+            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-secondary">
+              <div
+                className="h-full bg-primary transition-all duration-300"
+                style={{ width: `${goalProgress}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        <button
+          type="button"
+          className="pw-btn mt-4"
+          onClick={() => {
+            const g = profitGoal.trim() === "" ? 0 : Number(profitGoal);
+            if (g < 0 || !Number.isFinite(g)) {
+              toast.error("Profit goal must be 0 or a positive number");
+              return;
+            }
+            update.mutate(
+              { profit_goal: g, profit_goal_mode: profitGoalMode },
+              { onSuccess: () => toast.success("Profit goal saved") }
+            );
+          }}
+        >
+          Save goal
+        </button>
+      </NeonCard>
         <PwLabel red>Active trades</PwLabel>
         {positions.length > 0 ? (
           <ul className="mt-3 divide-y divide-primary/10">
