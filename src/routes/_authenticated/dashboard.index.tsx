@@ -1,11 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { ScanLine, Clock, ChevronRight, Globe, Key, Check, Upload } from "lucide-react";
-import { ScanLine, Clock, ChevronRight, Globe, Key, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getScanQuota } from "@/lib/scan.functions";
 import { startBot, stopBot } from "@/lib/bot.functions";
@@ -17,7 +15,6 @@ import { formatRemaining, marketSession } from "@/lib/sessions";
 import { getMyAssignedMentorBot, redeemMentorLicense } from "@/lib/mentorBots";
 import { BotControls, BotPills, FeaturedBotCard } from "@/components/FeaturedBotCard";
 import { NewsSignals } from "@/components/NewsSignals";
-import { FeaturedBotCard } from "@/components/FeaturedBotCard";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   head: () => ({ meta: [
@@ -30,7 +27,6 @@ export const Route = createFileRoute("/_authenticated/dashboard/")({
   ] }),
   component: ClientOverview,
 });
-export const Route = createFileRoute("/_authenticated/dashboard/")({ component: ClientOverview });
 
 const WATCHLIST = [
   { label: "GOLD", instrument: "XAUUSD", tf: "H1" },
@@ -100,7 +96,6 @@ function ClientOverview() {
 
   // Start/Stop for the client's bridge bot, available on the featured card for the default
   // bot and for every mentor bot. The server re-checks account, bridge, mode and risk limits.
-  const navigate = useNavigate();
   const startFn = useServerFn(startBot);
   const stopFn = useServerFn(stopBot);
   const [blockers, setBlockers] = useState<string[]>([]);
@@ -120,12 +115,6 @@ function ClientOverview() {
       return "Bot stopped — new orders blocked";
     },
     onSuccess: (msg) => { setBotFeedback(msg); toast.success(msg); },
-    onSuccess: (msg, kind) => {
-      toast.success(msg);
-      // Once the bot has actually started, take the client to the profit card on the Trades page.
-      // If the start is blocked the mutation throws instead, so they stay here and see the checks.
-      if (kind === "start") void navigate({ to: "/dashboard/auto-trade", hash: "profit-card" });
-    },
     onError: (e) => { toast.error(e instanceof Error ? e.message : "Action failed"); },
     onSettled: () => { queryClient.invalidateQueries({ queryKey: ["portal-bot", user?.id] }); },
   });
@@ -161,23 +150,6 @@ function ClientOverview() {
 
   return (
     <div className="w-full min-w-0 space-y-5 pb-10">
-    <div className="space-y-5 pb-10">
-      {/* Top Welcome / Mentor alert */}
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <div>
-          <h1 className="font-display text-xl font-bold uppercase tracking-wider text-foreground sm:text-2xl">
-            Client Trading Portal
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            Welcome back{name ? `, ${name}` : ""}. Real-time algorithmic status & technical analysis.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {running ? <Pill tone="live">Bot active</Pill> : <Pill tone="idle">Bot standby</Pill>}
-          {online ? <Pill tone="ok">MT5 online</Pill> : <Pill tone="idle">MT5 bridge offline</Pill>}
-        </div>
-      </div>
-
       {counts.data?.profile?.mentor_requested && !hasRole("mentor") && (
         <div className="pw-card-quiet flex items-center gap-3 p-4 text-sm text-neutral">
           <Clock className="h-4 w-4 shrink-0 text-primary" />
@@ -187,7 +159,6 @@ function ClientOverview() {
 
       {/* Status pills, then the bot card: the picture only, name and avatar are in the top bar */}
       <BotPills running={!!running} />
-      {/* FEATURED BOT CARD: the mentor's bot once a license is redeemed, otherwise the default EAVORTEX bot */}
       <div ref={featuredCardRef} className="scroll-mt-4">
         <FeaturedBotCard
           mentorBot={assignedMentorBot.data}
@@ -195,14 +166,6 @@ function ClientOverview() {
           userBot={userBot}
           running={running}
           online={!!online}
-          control={{
-            hasBot: !!userBot,
-            status: userBot?.status ?? "stopped",
-            busy: botAction.isPending,
-            blockers,
-            onStart: () => botAction.mutate("start"),
-            onStop: () => botAction.mutate("stop"),
-          }}
         />
       </div>
 
@@ -219,27 +182,6 @@ function ClientOverview() {
       {botFeedback && <p role="status" className="text-center text-sm text-bull">{botFeedback}</p>}
       <div className="flex items-center justify-center gap-2">
         {online ? <Pill tone="ok">MT5 online</Pill> : <Pill tone="idle">MT5 bridge offline</Pill>}
-      {/* TWO MAIN CALL TO ACTION BUTTONS (Reference Screen) */}
-      <div className="grid grid-cols-1 gap-4">
-        <Link
-          to="/dashboard/scanner"
-          className="group relative flex items-center justify-between overflow-hidden rounded-xl border border-primary/30 bg-surface/80 p-5 transition-all hover:border-primary hover:bg-surface hover:shadow-lg hover:shadow-primary/10"
-        >
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20 text-primary transition-transform group-hover:scale-105">
-              <ScanLine className="h-6 w-6" />
-            </div>
-            <div>
-              <h3 className="font-display text-lg font-bold uppercase text-foreground">
-                SCAN CHART
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Upload TradingView/MT5 chart for AI vision analysis
-              </p>
-            </div>
-          </div>
-          <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
-        </Link>
       </div>
 
       {/* AI CHART VISION */}
@@ -256,7 +198,6 @@ function ClientOverview() {
 
       {/* MARKET WATCHLIST & SESSION INTELLIGENCE */}
       <div className="grid min-w-0 gap-5 lg:grid-cols-2 [&>*]:min-w-0">
-      <div className="grid gap-5 lg:grid-cols-2">
         {/* Watchlist */}
         <NeonCard className="p-5">
           <div className="flex items-center justify-between">
@@ -266,16 +207,6 @@ function ClientOverview() {
           <div className="mt-3 flex flex-wrap gap-2">
             {WATCHLIST.map((w, i) => (
               <Link key={w.label} to="/dashboard/scanner" className="pw-chip" data-active={i === 0}>{w.label}</Link>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {WATCHLIST.map((w) => (
-              <Link
-                key={w.label}
-                to="/dashboard/scanner"
-                className="flex flex-col items-center justify-center rounded-lg border border-border/80 bg-background/50 p-3 text-center transition-all hover:border-primary/50 hover:bg-primary/5"
-              >
-                <span className="font-display text-sm font-bold text-foreground">{w.label}</span>
-                <span className="font-mono text-[10px] text-muted-foreground">{w.instrument}</span>
-              </Link>
             ))}
           </div>
         </NeonCard>

@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useRef, useState } from "react";
-import { useEffect, useRef, useState } from "react";
 import { Bot, Play, Pause, Square, KeyRound, Copy, Download, Send, X, ChevronDown, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +18,6 @@ import { STRATEGIES } from "@/lib/strategy";
 import { CloudConnect } from "@/components/CloudConnect";
 import { ChangeAccount } from "@/components/ChangeAccount";
 import { cloudConfigOf, NO_DAILY_LIMIT, withPerTrade } from "@/lib/cloudTrade";
-import { cloudConfigOf } from "@/lib/cloudTrade";
 import { HEARTBEAT_ONLINE_MS } from "@/lib/bridge";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -100,16 +98,6 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const genToken = useServerFn(createBridgeToken);
-  // Arriving from the home screen's "Start bot" lands on the profit card, scrolled into view.
-  useEffect(() => {
-    if (window.location.hash !== "#profit-card") return;
-    const el = document.getElementById("profit-card");
-    if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
-    el.classList.add("ring-2", "ring-primary");
-    const t = window.setTimeout(() => el.classList.remove("ring-2", "ring-primary"), 2500);
-    return () => window.clearTimeout(t);
-  }, []);
   const startFn = useServerFn(startBot);
   const stopFn = useServerFn(stopBot);
   const liveOn = useServerFn(enableLiveMode);
@@ -124,7 +112,6 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
   const [maxLoss, setMaxLoss] = useState(Number(bot.max_daily_loss) > 0 && Number(bot.max_daily_loss) < NO_DAILY_LIMIT ? String(bot.max_daily_loss) : "");
   const [riskAmt, setRiskAmt] = useState(cloudConfigOf(bot.terminal_info)?.riskPerTrade != null ? String(cloudConfigOf(bot.terminal_info)?.riskPerTrade) : "");
   const [targetAmt, setTargetAmt] = useState(cloudConfigOf(bot.terminal_info)?.targetPerTrade != null ? String(cloudConfigOf(bot.terminal_info)?.targetPerTrade) : "");
-  const [maxLoss, setMaxLoss] = useState(String(bot.max_daily_loss));
   const run = async (fn: () => Promise<unknown>, ok?: string) => { try { await fn(); if (ok) toast.success(ok); refresh(); } catch (e) { toast.error(e instanceof Error ? e.message : "Action failed"); } };
   const [token, setToken] = useState<string | null>(null);
   const [lot, setLot] = useState(String(bot.default_lot));
@@ -199,9 +186,6 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
   // Live orders always show; finished ones (rejected / failed / cancelled) disappear after 24 hours.
   const LIVE = new Set(["queued", "sent", "filled", "pending"]);
   const recent = rows.filter((r) => r.status !== "closed" && (LIVE.has(r.status) || new Date(r.created_at).getTime() >= dayAgo));
-  const closed = rows.filter((r) => r.status === "closed" && r.profit != null);
-  const history = rows.filter((r) => r.status === "closed");
-  const recent = rows.filter((r) => r.status !== "closed");
   const pnl = closed.reduce((s, r) => s + Number(r.profit), 0);
   const endpoint = typeof window !== "undefined" ? `${window.location.origin}/api/public/bridge/mt5` : "";
   const positions = Array.isArray(info?.positions) ? info!.positions! : [];
@@ -243,7 +227,6 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
         <Metric label="Equity" value={info?.equity != null ? info.equity.toFixed(2) : "—"} />
         <Metric label="Open positions" value={info?.open ?? "—"} hint={`Limit ${bot.max_open_trades}`} />
         <Metric label="Closed P/L (bot)" value={closed.length ? pnl.toFixed(2) : "—"} hint={`${closed.length} closed bot trades`} tone={closed.length ? (pnl >= 0 ? "bull" : "bear") : undefined} />
-        <Metric id="profit-card" label="Closed P/L (bot)" value={closed.length ? pnl.toFixed(2) : "—"} hint={`${closed.length} closed bot trades`} tone={closed.length ? (pnl >= 0 ? "bull" : "bear") : undefined} />
       </div>
 
             {/* Running Profit Goal */}
@@ -340,8 +323,6 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
       <NeonCard>
         <div className="border-b border-primary/20 px-4 py-3.5 sm:px-5"><PwLabel>Trade history · last 24 hours</PwLabel></div>
         {!history.length ? <p className="px-5 py-6 text-sm text-muted-foreground">{historyAll.length ? "No closed bot trades in the last 24 hours." : "No closed bot trades yet."}</p> : (
-        <div className="border-b border-primary/20 px-4 py-3.5 sm:px-5"><PwLabel>Trade history</PwLabel></div>
-        {!history.length ? <p className="px-5 py-6 text-sm text-muted-foreground">No closed bot trades yet.</p> : (
           <ul className="divide-y divide-primary/10">
             {history.map((r) => <OrderRow key={r.id} r={r} />)}
           </ul>
@@ -380,7 +361,6 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
           <div className="space-y-1"><Label className={lbl}>Lose per trade ($)</Label><Input className={field} inputMode="decimal" placeholder="e.g. 10" value={riskAmt} onChange={(e) => setRiskAmt(e.target.value)} /></div>
           <div className="space-y-1"><Label className={lbl}>Win per trade ($)</Label><Input className={field} inputMode="decimal" placeholder="e.g. 20" value={targetAmt} onChange={(e) => setTargetAmt(e.target.value)} /></div>
           </>)}
-          <div className="space-y-1"><Label className={lbl}>Max daily loss</Label><Input className={field} inputMode="decimal" value={maxLoss} onChange={(e) => setMaxLoss(e.target.value)} /></div>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">Cloud trading only. Fill in both and the bot sizes each trade's lot so a stop-out loses about your "lose" amount, and sets the take profit at about your "win" amount. Leave both empty to use the default lot. USD accounts; gold and major pairs only. Trades are skipped if even the smallest lot would risk more than your limit. Leave Max daily loss empty for no daily limit: the bot then keeps trading after losing days, so rely on the per-trade loss amount.</p>
         <label className="mt-4 flex items-center justify-between gap-3 text-sm">
@@ -399,7 +379,6 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
           }
           update.mutate({ default_lot: Number(lot), max_lot: Number(maxLot), max_open_trades: Number(maxOpen), strategy, risk_per_trade_pct: Number(riskPct), max_daily_loss: dl, ...(cloudConfigOf(bot.terminal_info) ? { terminal_info: withPerTrade(bot.terminal_info, r, t) as never } : {}) }, { onSuccess: () => toast.success("Settings saved") });
         }}>Save settings</button>
-        <button type="button" className="pw-btn mt-4" onClick={() => update.mutate({ default_lot: Number(lot), max_lot: Number(maxLot), max_open_trades: Number(maxOpen), strategy, risk_per_trade_pct: Number(riskPct), max_daily_loss: Number(maxLoss) }, { onSuccess: () => toast.success("Settings saved") })}>Save settings</button>
       </Section>
 
       <Section title="Trade without a PC (API2Trade)" open={cloudOpen} onToggle={setCloudOpen}>
@@ -472,10 +451,8 @@ function BotPanel({ account, bot }: { account: Account; bot: BotRow }) {
 }
 
 function Metric({ label, value, hint, tone }: { label: string; value: React.ReactNode; hint?: string; tone?: "bull" | "bear" | undefined }) {
-function Metric({ id, label, value, hint, tone }: { id?: string; label: string; value: React.ReactNode; hint?: string; tone?: "bull" | "bear" | undefined }) {
   return (
     <div className="pw-card-quiet p-3.5">
-    <div id={id} className="pw-card-quiet scroll-mt-24 rounded-2xl p-3.5 transition-shadow">
       <p className="pw-label text-[0.6rem] text-muted-foreground">{label}</p>
       <p className={cn("mt-1 break-words font-display text-xl font-bold sm:text-2xl", tone === "bull" && "text-bull", tone === "bear" && "text-bear")}>{value}</p>
       {hint && <p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p>}
