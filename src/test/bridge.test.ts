@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deliverySlots, formatSignalLine, holdReason, reportTransition, volumeAllowed } from "@/lib/bridge";
+import { MIN_TRADES_PER_SIGNAL, deliverySlots, drawdownBreached, formatSignalLine, holdReason, reportTransition, signalTradeCount, volumeAllowed } from "@/lib/bridge";
 
 describe("MT5 queued-order bridge", () => {
   const input = { status: "running" as const, mode: "demo" as const, liveConfirmed: false, terminalType: "demo" as const, terminalLogin: "12345", accountLogin: "12345", openTrades: 0, maxOpenTrades: 3 };
@@ -67,5 +67,33 @@ describe("startBlockers strategy validation", () => {
   it("still rejects an unknown strategy", async () => {
     const { startBlockers } = await import("@/lib/bridge");
     expect(startBlockers({ ...base, strategy: "does_not_exist" })).toContain("Selected strategy is not implemented.");
+  });
+  it("allows risk up to 50% and requires room for 2 trades", async () => {
+    const { startBlockers } = await import("@/lib/bridge");
+    expect(startBlockers({ ...base, riskPct: 50 })).toEqual([]);
+    expect(startBlockers({ ...base, riskPct: 51 }).join(" ")).toContain("between 0 and 50%");
+    expect(startBlockers({ ...base, maxOpen: 1 }).join(" ")).toContain("at least 2");
+  });
+});
+
+describe("2 trades per signal and the drawdown safety net", () => {
+  it("opens exactly 2 trades when they fit, and none when they do not", () => {
+    expect(signalTradeCount(0, 3)).toBe(2);
+    expect(signalTradeCount(1, 3)).toBe(2);
+    expect(signalTradeCount(2, 3)).toBe(0); // only 1 free: wait rather than open a lone trade
+    expect(signalTradeCount(0, 1)).toBe(0);
+    expect(MIN_TRADES_PER_SIGNAL).toBe(2);
+  });
+  it("closes the bot's trades when floating loss reaches the risk % of the balance", () => {
+    expect(drawdownBreached(-600, 1200, 50)).toBe(true); // the 1200 -> -600 example
+    expect(drawdownBreached(-599.99, 1200, 50)).toBe(false);
+    expect(drawdownBreached(-100, 1200, 5)).toBe(true);
+    expect(drawdownBreached(250, 1200, 50)).toBe(false);
+  });
+  it("never fires when the balance or risk % is unknown or invalid", () => {
+    expect(drawdownBreached(-5000, null, 50)).toBe(false);
+    expect(drawdownBreached(-5000, 0, 50)).toBe(false);
+    expect(drawdownBreached(-5000, 1200, 0)).toBe(false);
+    expect(drawdownBreached(Number.NaN, 1200, 50)).toBe(false);
   });
 });

@@ -45,7 +45,7 @@ describe("planCloudCycle", () => {
     expect(p.kind).toBe("trade");
     if (p.kind === "trade") {
       expect(p.trade.volume).toBe(0.02);
-      expect(p.trade.sl).toBeLessThan(quote.ask);
+      expect(p.trade.sl).toBeNull(); // trades carry no stop loss
       expect(p.trade.tp).toBeGreaterThan(quote.ask);
       expect(p.trade.key).toBe("ema:XAUUSD:H1:1");
     }
@@ -57,6 +57,11 @@ describe("planCloudCycle", () => {
     expect(planCloudCycle({ ...base, decision: { trade: null, reason: "NO TRADE: flat" } }).kind).toBe("hold");
     expect(planCloudCycle({ ...base, decision: null }).kind).toBe("hold");
     expect(planCloudCycle({ ...base, quote: null }).kind).toBe("hold");
+  });
+  it("never opens a lone trade: a signal needs room for 2 trades", () => {
+    expect(planCloudCycle({ ...base, maxOpen: 3, openCount: 1 }).kind).toBe("trade"); // 2 free
+    expect(planCloudCycle({ ...base, maxOpen: 3, openCount: 2 }).kind).toBe("hold"); // only 1 free
+    expect(planCloudCycle({ ...base, maxOpen: 1, openCount: 0 }).kind).toBe("hold"); // can never fit 2
   });
   it("stops the bot on the daily loss limit", () => {
     expect(planCloudCycle({ ...base, closedTodayPL: -40, floatingPL: -15 }).kind).toBe("stop");
@@ -71,7 +76,7 @@ describe("planCloudCycle", () => {
 });
 
 describe("cloudStartBlockers", () => {
-  const ok = { connected: true, accountType: "demo" as const, mode: "demo" as const, liveConfirmed: false, demoOnly: true, strategy: "auto", defaultLot: 0.01, maxLot: 0.1, maxOpen: 1, riskPct: 1, maxDailyLoss: 20, instrument: "XAUUSD", brokerSymbol: "XAUUSD" };
+  const ok = { connected: true, accountType: "demo" as const, mode: "demo" as const, liveConfirmed: false, demoOnly: true, strategy: "auto", defaultLot: 0.01, maxLot: 0.1, maxOpen: 2, riskPct: 1, maxDailyLoss: 20, instrument: "XAUUSD", brokerSymbol: "XAUUSD" };
   it("passes for a valid demo setup", () => expect(cloudStartBlockers(ok)).toEqual([]));
   it("blocks when not connected, live without confirmation, or bad limits", () => {
     expect(cloudStartBlockers({ ...ok, connected: false }).length).toBe(1);
@@ -79,6 +84,12 @@ describe("cloudStartBlockers", () => {
     expect(cloudStartBlockers({ ...ok, accountType: "live", mode: "live", liveConfirmed: true, demoOnly: false })).toEqual([]);
     expect(cloudStartBlockers({ ...ok, maxDailyLoss: -5, defaultLot: 1 }).length).toBe(2);
     expect(cloudStartBlockers({ ...ok, maxDailyLoss: NO_DAILY_LIMIT })).toEqual([]); // "no daily limit" passes
+  });
+  it("allows risk up to 50% (not 5%) and requires room for 2 trades", () => {
+    expect(cloudStartBlockers({ ...ok, riskPct: 50 })).toEqual([]);
+    expect(cloudStartBlockers({ ...ok, riskPct: 51 }).length).toBe(1);
+    expect(cloudStartBlockers({ ...ok, riskPct: 0 }).length).toBe(1);
+    expect(cloudStartBlockers({ ...ok, maxOpen: 1 }).length).toBe(1);
   });
 });
 
@@ -113,23 +124,19 @@ describe("per-trade money controls", () => {
     expect(usdPerPriceUnitPerLot("USDJPY", 150)).toBeCloseTo(666.67, 1);
     expect(usdPerPriceUnitPerLot("NAS100", 18000)).toBeNull();
   });
-  it("planCloudCycle uses the money amounts for lot and take profit", () => {
-    const p = planCloudCycle({ ...base, maxLot: 1, riskAmount: 20, targetAmount: 40, accountCurrency: "USD", instrument: "XAUUSD" });
+  it("planCloudCycle places the take profit so each trade closes at the win-per-trade amount, with no stop loss", () => {
+    const p = planCloudCycle({ ...base, maxLot: 1, targetAmount: 40, accountCurrency: "USD", instrument: "XAUUSD" });
     expect(p.kind).toBe("trade");
     if (p.kind === "trade") {
-      expect(p.trade.volume).toBe(0.02); // $20 / ($1000 per lot at a 10-point stop)
+      expect(p.trade.volume).toBe(0.02); // the default lot; the amount no longer changes the lot
+      expect(p.trade.sl).toBeNull();
       expect(p.trade.tp).toBeCloseTo(p.trade.entry + 20, 1); // $40 / (0.02 lot * $100) = 20 points
     }
   });
-  it("holds when the account is not USD or the instrument is unsupported", () => {
-    expect(planCloudCycle({ ...base, riskAmount: 20, targetAmount: 40, accountCurrency: "ZAR", instrument: "XAUUSD" }).kind).toBe("hold");
-    expect(planCloudCycle({ ...base, riskAmount: 20, targetAmount: 40, accountCurrency: "USD", instrument: "NAS100" }).kind).toBe("hold");
-  });
-  it("start blockers require both amounts and a sane win/loss ratio", () => {
-    const params = { connected: true, accountType: "demo" as const, mode: "demo" as const, liveConfirmed: false, demoOnly: true, strategy: "auto", defaultLot: 0.01, maxLot: 0.1, maxOpen: 1, riskPct: 1, maxDailyLoss: 50, instrument: "XAUUSD", brokerSymbol: "XAUUSD" };
-    expect(cloudStartBlockers({ ...params, riskAmount: 10, targetAmount: null }).length).toBe(1);
-    expect(cloudStartBlockers({ ...params, riskAmount: 10, targetAmount: 500 }).length).toBe(1);
-    expect(cloudStartBlockers({ ...params, riskAmount: 10, targetAmount: 20 })).toEqual([]);
+  it("holds when the account is not USD, the instrument is unsupported, or the win amount is inside the spread", () => {
+    expect(planCloudCycle({ ...base, targetAmount: 40, accountCurrency: "ZAR", instrument: "XAUUSD" }).kind).toBe("hold");
+    expect(planCloudCycle({ ...base, targetAmount: 40, accountCurrency: "USD", instrument: "NAS100" }).kind).toBe("hold");
+    expect(planCloudCycle({ ...base, targetAmount: 0.5, accountCurrency: "USD", instrument: "XAUUSD" }).kind).toBe("hold"); // 0.25 points < 2 spreads
   });
 });
 
@@ -142,6 +149,11 @@ describe("per-trade amounts stored in the cloud config (no database change)", ()
   });
   it("clears the amounts when set to null", () => {
     expect(cloudConfigOf(withPerTrade(withPerTrade(ti, 10, 20), null, null))).not.toHaveProperty("riskPerTrade");
+  });
+  it("loads a win amount on its own (no loss amount needed any more)", () => {
+    const saved = withPerTrade(ti, null, 5);
+    expect(cloudConfigOf(saved)).toMatchObject({ targetPerTrade: 5 });
+    expect(cloudConfigOf(saved)).not.toHaveProperty("riskPerTrade");
   });
   it("ignores bad or half-set amounts", () => {
     const bad = { ...ti, cloud: { ...ti.cloud, riskPerTrade: 10 } };
