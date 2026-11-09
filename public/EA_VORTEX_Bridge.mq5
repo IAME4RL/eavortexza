@@ -5,7 +5,7 @@
 // DEMO accounts trade only when the bot is in demo mode. REAL accounts trade only when BOTH the dashboard
 // has confirmed live mode AND AllowLiveTrading=true here. Contest/unknown account types never trade.
 // STOP blocks new orders; it never closes positions. Emergency close runs only on a separately confirmed request.
-// Every order requires a stop loss so risk per trade can be verified. The EA never bypasses broker rules.
+// Orders may carry no stop loss; when one is sent its risk is checked, and the server closes the bot's trades on drawdown. The EA never bypasses broker rules.
 // Execution intent is journaled before submission; uncertain submissions are reconciled from history, never retried.
 // Never share your token. Trading carries risk; no profit is guaranteed.
 #property strict
@@ -19,8 +19,8 @@ input long ExpectedLogin = 0;
 input string ExpectedServer = "";
 input bool AllowLiveTrading = false;      // second, terminal-side permission for REAL accounts
 input double MaxLot = 0.10;               // terminal cap (effective = min with dashboard)
-input int MaxOpenPositions = 3;           // terminal cap
-input double MaxRiskPercent = 1.0;        // terminal cap on loss-at-stop as % of balance
+input int MaxOpenPositions = 6;           // terminal cap (every signal opens 2 trades, so keep this at 2 or more)
+input double MaxRiskPercent = 50.0;       // terminal cap on loss-at-stop as % of balance (max 50)
 input double MaxDailyLoss = 50.0;         // terminal cap in account currency
 input int MaxSpreadPoints = 50;
 input int DeviationPoints = 10;
@@ -290,7 +290,8 @@ void ProcessSignal(string line) {
    if(!ModeOK()) { Reject(i,"Account type "+AccountType()+" does not match bot mode "+cfg.mode+(AccountType()=="real" && !AllowLiveTrading ? " (AllowLiveTrading is off)" : "")); Report(i); return; }
    if((r.side!="buy" && r.side!="sell") || !NumberText(f[4]) || !NumberText(f[5]) || !NumberText(f[6]) || r.volume<=0 || r.volume>effMaxLot ||
       r.symbol=="" || StringLen(r.symbol)>30) { Reject(i,"Invalid signal or maximum lot exceeded"); Report(i); return; }
-   if(r.sl<=0) { Reject(i,"Stop loss required so risk per trade can be verified"); Report(i); return; }
+   // Trades may be sent without a stop loss (sl = 0). The server closes the bot's trades on drawdown instead (see MaxRiskPercent).
+   if(r.sl<0) { Reject(i,"Invalid stop loss"); Report(i); return; }
    if(BotPositions()>=effOpen) { Reject(i,"Maximum open positions reached"); Report(i); return; }
    if(DayPL()<=-effDaily) { Reject(i,"Daily loss limit reached"); Report(i); return; }
    if(!SymbolSelect(r.symbol,true)) { Reject(i,"Exact broker symbol is unavailable"); Report(i); return; }
@@ -306,13 +307,15 @@ void ProcessSignal(string line) {
    r.sl=Snap(r.sl,tickSize,digits); r.tp=Snap(r.tp,tickSize,digits); records[i].sl=r.sl; records[i].tp=r.tp;
    double distance=(double)SymbolInfoInteger(r.symbol,SYMBOL_TRADE_STOPS_LEVEL)*point;
    double entry=r.side=="buy" ? tick.ask : tick.bid, base=r.side=="buy" ? tick.bid : tick.ask;
-   bool badSL=r.side=="buy" ? r.sl>=base || base-r.sl<distance : r.sl<=base || r.sl-base<distance;
+   bool badSL=r.sl>0 && (r.side=="buy" ? r.sl>=base || base-r.sl<distance : r.sl<=base || r.sl-base<distance);
    bool badTP=r.tp>0 && (r.side=="buy" ? r.tp<=base || r.tp-base<distance : r.tp>=base || base-r.tp<distance);
    if(badSL || badTP) { Reject(i,"Stop prices violate broker direction or minimum distance"); Report(i); return; }
-   double lossAtStop=0;
-   if(!OrderCalcProfit(r.side=="buy" ? ORDER_TYPE_BUY : ORDER_TYPE_SELL,r.symbol,r.volume,entry,r.sl,lossAtStop)) { Reject(i,"Could not calculate risk at stop loss"); Report(i); return; }
-   double balance=AccountInfoDouble(ACCOUNT_BALANCE);
-   if(balance<=0 || -lossAtStop>balance*effRisk/100.0) { Reject(i,StringFormat("Risk at stop %.2f exceeds %.2f%% of balance",-lossAtStop,effRisk)); Report(i); return; }
+   if(r.sl>0) { // risk-at-stop can only be checked when a stop loss was sent
+      double lossAtStop=0;
+      if(!OrderCalcProfit(r.side=="buy" ? ORDER_TYPE_BUY : ORDER_TYPE_SELL,r.symbol,r.volume,entry,r.sl,lossAtStop)) { Reject(i,"Could not calculate risk at stop loss"); Report(i); return; }
+      double balance=AccountInfoDouble(ACCOUNT_BALANCE);
+      if(balance<=0 || -lossAtStop>balance*effRisk/100.0) { Reject(i,StringFormat("Risk at stop %.2f exceeds %.2f%% of balance",-lossAtStop,effRisk)); Report(i); return; }
+   }
    if(!trade.SetTypeFillingBySymbol(r.symbol)) { Reject(i,"Broker filling mode unavailable"); Report(i); return; }
    bool submitted=r.side=="buy" ? trade.Buy(r.volume,r.symbol,0,r.sl,r.tp,Tag(r.id)) : trade.Sell(r.volume,r.symbol,0,r.sl,r.tp,Tag(r.id));
    uint code=trade.ResultRetcode();
@@ -377,7 +380,7 @@ void OnChartEvent(const int id,const long &l,const double &d,const string &sp) {
 int OnInit() {
    if(StringFind(BridgeURL,"https://")!=0 || StringFind(BridgeURL,"/api/public/bridge/mt5")<8 || StringFind(BridgeURL,"?")>=0 || StringFind(BridgeURL,"#")>=0 ||
       StringFind(BridgeURL,"@")>=0 || StringLen(BridgeToken)!=52 || StringSubstr(BridgeToken,0,4)!="evx_" || ExpectedLogin<=0 || ExpectedServer=="" ||
-      MaxLot<=0 || MaxOpenPositions<1 || MaxRiskPercent<=0 || MaxRiskPercent>5 || MaxDailyLoss<=0 || MaxSpreadPoints<1 || DeviationPoints<0 ||
+      MaxLot<=0 || MaxOpenPositions<1 || MaxRiskPercent<=0 || MaxRiskPercent>50 || MaxDailyLoss<=0 || MaxSpreadPoints<1 || DeviationPoints<0 ||
       PollSeconds<2 || RequestTimeoutMs<1000 || RequestTimeoutMs>30000 || StrategyBars<60 || StrategyBars>300 || MagicNumber==0) {
       Print("Bridge inputs invalid. Supply HTTPS endpoint, token, exact account login/server and positive safety limits."); return INIT_PARAMETERS_INCORRECT;
    }
