@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import {
-  closedProfitSince, deliverySlots, floatingProfitOf, formatConfigLine, formatSignalLine, holdReason, reportTransition, sha256Hex, volumeAllowed,
-  type BotStatus, type TradingMode,
+  closedProfitSince, deliverySlots, drawdownBreached, floatingProfitOf, formatConfigLine, formatSignalLine, holdReason, reportTransition, sha256Hex, signalTradeCount, volumeAllowed,
+  MIN_TRADES_PER_SIGNAL, type BotStatus, type TradingMode,
 } from "@/lib/bridge";
 import type { Database } from "@/integrations/supabase/types";
 import { decide, parseBars, type StrategySetting } from "@/lib/strategy";
@@ -59,6 +59,7 @@ export const Route = createFileRoute("/api/public/bridge/mt5")({
           const goalOn = Number(bot.profit_goal) > 0;
           let profitSinceGoal: number | null = null;
           if (goalOn) {
+            // The goal window opens the first time the terminal reports in with a goal set; without this, banked profit never accumulates.
             const sinceMs = bot.goal_started_at ? new Date(bot.goal_started_at).getTime() : Date.now();
             const [{ data: closedRows }, { data: filledRows }] = await Promise.all([
               supabaseAdmin.from("trade_signals").select("profit,closed_at").eq("bot_id", bot.id).eq("status", "closed").gte("closed_at", new Date(sinceMs).toISOString()).limit(500),
@@ -78,6 +79,7 @@ export const Route = createFileRoute("/api/public/bridge/mt5")({
           const patch: Database["public"]["Tables"]["bots"]["Update"] = {
             last_heartbeat: now, last_error: reason,
             ...(goalOn ? { goal_profit: Math.round((profitSinceGoal ?? 0) * 100) / 100 } : {}),
+            ...(goalOn && !bot.goal_started_at ? { goal_started_at: now } : {}),
             terminal_info: {
               login: h.login, server: h.server, type: h.type, demo: h.type === "demo", balance: h.balance ?? null, equity: h.equity ?? null,
               currency: h.currency ?? null, open: h.open, daypl: h.daypl ?? null, positions: hbPositions,
@@ -100,9 +102,18 @@ export const Route = createFileRoute("/api/public/bridge/mt5")({
             closeAt = now;
             Object.assign(patch, { goal_reached_at: now, goal_close_requested_at: now, goal_close_ack_at: null, emergency_close_requested_at: now, emergency_close_ack_at: null, emergency_close_result: null });
           }
+          // Safety net: trades carry no stop loss, so close them all when floating loss reaches the risk % of the balance, then stop the bot.
+          const floatingLoss = hbPositions.reduce((s, p) => s + (Number.isFinite(p.profit) ? p.profit : 0), 0);
+          if (identityOk && bot.status === "running" && !closeAt && hbPositions.length && drawdownBreached(floatingLoss, h.balance, Number(bot.risk_per_trade_pct))) {
+            closeAt = now;
+            const msg = `Safety net: floating loss ${floatingLoss.toFixed(2)} reached ${Number(bot.risk_per_trade_pct)}% of your balance. Closing the bot's trades and stopping.`;
+            Object.assign(patch, { status: "stopped", stop_requested_at: now, stop_ack_at: null, emergency_close_requested_at: now, emergency_close_ack_at: null, emergency_close_result: null, last_error: "DRAWDOWN_LIMIT", last_decision: msg });
+            await supabaseAdmin.from("trade_signals").update({ status: "cancelled" }).eq("bot_id", bot.id).eq("status", "queued");
+            await supabaseAdmin.from("notifications").insert({ user_id: bot.user_id, title: "Bot stopped by safety net", body: msg });
+          }
           if (identityOk && closeAt) lines.push(`CLOSEALL|${closeAt}`);
 
-          if (action === "poll" && !reason) {
+          if (action === "poll" && !reason && !closeAt) {
             // Strategy engine: evaluate closed bars reported by this terminal; at most one idea, deduped by signal_key.
             if (bot.strategy !== "manual" && h.bars && h.symbol && h.tf) {
               const bars = parseBars(h.bars);
@@ -110,28 +121,32 @@ export const Route = createFileRoute("/api/public/bridge/mt5")({
               else {
                 const d = decide(bot.strategy as StrategySetting, bars, h.symbol, h.tf, h.digits ?? 5);
                 if (!d.trade) patch.last_decision = d.reason;
-                                else {
+                else {
                   const t = d.trade;
                   const volume = Math.min(Number(bot.default_lot), Number(bot.max_lot));
-                  const availableSlots = Math.max(1, (bot.max_open_trades ?? 3) - (h.open ?? 0));
-                  const count = Math.min(availableSlots, 2);
-                  const newSignals = Array.from({ length: count }, (_, idx) => ({
-                    user_id: bot.user_id,
-                    bot_id: bot.id,
-                    symbol: h.symbol,
-                    side: t.side,
-                    volume,
-                    stop_loss: t.sl,
-                    take_profit: t.tp,
-                    strategy: t.strategy,
-                    signal_key: count > 1 ? `${t.key}_${idx + 1}` : t.key,
-                    comment: `${t.reason.slice(0, 160)}${count > 1 ? ` (#${idx + 1})` : ""}`,
-                  }));
-                  const { error } = await supabaseAdmin.from("trade_signals").insert(newSignals);
-                  patch.last_decision = error
-                    ? (error.code === "23505" ? `Duplicate signal ignored (${t.key})` : "Could not queue strategy signal")
-                    : `${t.strategy} ${t.side.toUpperCase()} ${h.symbol} (${count} trades): ${t.reason}`;
-            }
+                  // Every signal opens MIN_TRADES_PER_SIGNAL trades together; if they do not all fit under Max open, wait instead of opening a lone trade.
+                  const count = signalTradeCount(h.open ?? 0, bot.max_open_trades ?? 0);
+                  if (count < MIN_TRADES_PER_SIGNAL) patch.last_decision = `Waiting: not enough free positions to open ${MIN_TRADES_PER_SIGNAL} trades (open ${h.open ?? 0} of max ${bot.max_open_trades}).`;
+                  else {
+                    // No stop loss is sent (stop_loss null); the take profit is the strategy's. The terminal and server safety nets close trades on drawdown.
+                    const newSignals = Array.from({ length: count }, (_, idx) => ({
+                      user_id: bot.user_id,
+                      bot_id: bot.id,
+                      symbol: h.symbol,
+                      side: t.side,
+                      volume,
+                      stop_loss: null,
+                      take_profit: t.tp ?? null,
+                      strategy: t.strategy,
+                      signal_key: `${t.key}_${idx + 1}`,
+                      comment: `${t.reason.slice(0, 150)} (#${idx + 1})`,
+                    }));
+                    const { error } = await supabaseAdmin.from("trade_signals").insert(newSignals);
+                    patch.last_decision = error
+                      ? (error.code === "23505" ? `Duplicate signal ignored (${t.key})` : "Could not queue strategy signal")
+                      : `${t.strategy} ${t.side.toUpperCase()} ${h.symbol} (${count} trades): ${t.reason}`;
+                  }
+                }
               }
             }
             const { data: queued } = await supabaseAdmin.from("trade_signals").select("*")
