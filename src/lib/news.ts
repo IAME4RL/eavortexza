@@ -266,7 +266,7 @@ export function describeShape(json: unknown): string {
   return `fields: ${Object.keys(r).slice(0, 14).join(",")}${samples.length ? ` | ${samples.join(" ")}` : ""}`;
 }
 
-const NOT_A_FIGURE_KEY = /period|date|time|unit|label|year|month|source|id$|url|currency|country/i;
+const NOT_A_FIGURE_KEY = /period|date|time|unit|label|year|month|source|id$|url|currency|country|count|num|rank|flag|has|^is|available|analyst|std|dev|low|high|min|max|range|surprise|revision|change|diff/i;
 
 /** Finds a forecast/previous figure: exact field names first, then any field whose name looks like it. */
 function figureOf(r: Record<string, unknown>, exact: string[], loose: RegExp, unit: unknown): string {
@@ -278,10 +278,26 @@ function figureOf(r: Record<string, unknown>, exact: string[], loose: RegExp, un
   return key ? toFigure(r[key], unit) : "";
 }
 
+/** Drops a forecast that is wildly out of scale with the previous reading (e.g. 1 vs 336.94): it is not a real forecast. */
+function plausibleForecast(forecast: string, previous: string): string {
+  const f = parseNum(forecast);
+  const p = parseNum(previous);
+  if (f !== null && p !== null && f !== 0 && p !== 0) {
+    const ratio = Math.abs(f / p);
+    if (ratio > 50 || ratio < 1 / 50) return "";
+  }
+  return forecast;
+}
+
 function impactOf(r: Record<string, unknown>, title: string): string {
   const key = Object.keys(r).find((k) => IMPACT_KEY.test(k) && r[k] !== undefined && r[k] !== null && r[k] !== "");
   return key ? toImpact(r[key]) : impactFromTitle(title);
 }
+
+/** Bump when the Eulerpool parsing changes (shown in the on-screen diagnostics). */
+export const EULER_PARSER_VERSION = "p3";
+/** Eulerpool forecast figures are switched off until the real field is confirmed: a wrong forecast gives fake signals. */
+const TRUST_EULERPOOL_FORECAST = false;
 
 export function parseEulerpool(json: unknown): NewsEvent[] {
   const arr = findArray(json);
@@ -301,13 +317,15 @@ export function parseEulerpool(json: unknown): NewsEvent[] {
     const country = toCurrency(r);
     if (typeof title !== "string" || !Number.isFinite(time) || !country) return [];
     const unit = pick(r, ["unit", "units"]);
+    const forecast = figureOf(r, ["forecast", "consensus", "estimate", "expected"], /forecast|consensus|estimate|expected|survey|projection/i, unit);
+    const previous = figureOf(r, ["previous", "prior", "prev"], /previous|prior|prev/i, unit);
     return [{
       title,
       country,
       time,
       impact: impactOf(r, title),
-      forecast: figureOf(r, ["forecast", "consensus", "estimate", "expected"], /forecast|consensus|estimate|expected|survey|projection/i, unit),
-      previous: figureOf(r, ["previous", "prior", "prev"], /previous|prior|prev/i, unit),
+      forecast: TRUST_EULERPOOL_FORECAST ? plausibleForecast(forecast, previous) : "",
+      previous,
     }];
   });
 }

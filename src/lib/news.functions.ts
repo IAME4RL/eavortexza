@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { fetchBars } from "./marketdata";
-import { describeShape, sampleRecord, forecastBias, isRelevant, newsReaction, parseEulerpool, parseFeed, type NewsBias, type NewsEvent, type NewsReaction } from "./news";
+import { describeShape, EULER_PARSER_VERSION, sampleRecord, forecastBias, isRelevant, newsReaction, parseEulerpool, parseFeed, type NewsBias, type NewsEvent, type NewsReaction } from "./news";
 
 const FEED_URLS = ["https://nfs.faireconomy.media/ff_calendar_thisweek.json"];
 
@@ -34,7 +34,7 @@ async function fetchEulerpool(failures: string[]): Promise<NewsEvent[] | null> {
       }
       const json: unknown = await res.json().catch(() => null);
       const events = parseEulerpool(json);
-      lastShape = `${describeShape(json)} | CPI sample: ${sampleRecord(json, /\bcpi\b|consumer price|inflation/i)}`;
+      lastShape = `${EULER_PARSER_VERSION} ${describeShape(json)} | CPI sample: ${sampleRecord(json, /\bcpi\b|consumer price|inflation/i)}`;
       if (events.length === 0) {
         failures.push(`eulerpool ${tag}: no usable events (${describeShape(json)})`);
         continue;
@@ -62,7 +62,7 @@ type Loaded = { events: NewsEvent[]; src: string; meta: string };
 const memory: Record<string, Stored | null> = { ff: null, euler: null };
 const KEYS: Record<string, string> = {
   ff: "https://eavortexza.internal/news-calendar-ff-v1",
-  euler: "https://eavortexza.internal/news-calendar-euler-v1",
+  euler: "https://eavortexza.internal/news-calendar-euler-v2",
 };
 const FRESH_MS = 60 * 60_000; // re-download after 1 hour
 const FF_USABLE_MS = 12 * 60 * 60_000; // an older ForexFactory copy still beats Eulerpool (it has forecasts)
