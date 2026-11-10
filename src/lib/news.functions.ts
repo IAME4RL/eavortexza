@@ -6,73 +6,60 @@ import { forecastBias, isRelevant, newsReaction, parseFeed, type NewsBias, type 
 
 const FEED_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json";
 
-// In-memory cache with 1-hour validity to avoid rate limits
-let cache: { at: number; events: NewsEvent[] } | null = null;
+// In-memory copy (per server instance)
+let cache: Stored | null = null;
 
-// Built-in fallback events for this week so the page never fails during feed rate-limits
-const FALLBACK_EVENTS: NewsEvent[] = [
-  {
-    title: "Official Bank Rate",
-    country: "GBP",
-    time: Date.parse("2026-11-05T07:00:00-05:00"),
-    impact: "High",
-    forecast: "4.00%",
-    previous: "3.75%",
-  },
-  {
-    title: "Unemployment Claims",
-    country: "USD",
-    time: Date.parse("2026-11-05T08:30:00-05:00"),
-    impact: "Medium",
-    forecast: "197K",
-    previous: "194K",
-  },
-  {
-    title: "Non-Farm Employment Change (NFP)",
-    country: "USD",
-    time: Date.parse("2026-11-06T08:30:00-05:00"),
-    impact: "High",
-    forecast: "65K",
-    previous: "29K",
-  },
-  {
-    title: "Unemployment Rate",
-    country: "USD",
-    time: Date.parse("2026-11-06T08:30:00-05:00"),
-    impact: "High",
-    forecast: "4.2%",
-    previous: "4.2%",
-  },
-  {
-    title: "Average Hourly Earnings m/m",
-    country: "USD",
-    time: Date.parse("2026-11-06T08:30:00-05:00"),
-    impact: "High",
-    forecast: "0.3%",
-    previous: "0.1%",
-  },
-  {
-    title: "Prelim UoM Consumer Sentiment",
-    country: "USD",
-    time: Date.parse("2026-11-06T10:00:00-05:00"),
-    impact: "Medium",
-    forecast: "48.1",
-    previous: "46.3",
-  },
-  {
-    title: "BOJ Gov Ueda Speaks",
-    country: "JPY",
-    time: Date.parse("2026-11-06T11:00:00-05:00"),
-    impact: "High",
-    forecast: "",
-    previous: "",
-  },
-];
+// Shared cache (Cloudflare Cache API) so one successful download serves every server instance.
+// Falls back to a per-instance memory copy when the Cache API is not available (e.g. local dev).
+const CACHE_KEY = "https://eavortexza.internal/news-calendar-v1";
+const FRESH_MS = 60 * 60_000; // refresh after 1 hour
+const MAX_STALE_MS = 3 * 24 * 60 * 60_000; // still usable (as a fallback) for 3 days
 
-async function loadCalendar(): Promise<NewsEvent[]> {
-  // If we already have fresh cached data from within the last 60 minutes, return it immediately
-  if (cache && Date.now() - cache.at < 60 * 60_000 && cache.events.length > 0) {
-    return cache.events;
+type Stored = { at: number; events: NewsEvent[] };
+
+function sharedCache(): Cache | null {
+  try {
+    return (globalThis as unknown as { caches?: { default?: Cache } }).caches?.default ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function readShared(): Promise<Stored | null> {
+  try {
+    const c = sharedCache();
+    if (!c) return null;
+    const hit = await c.match(CACHE_KEY);
+    if (!hit) return null;
+    const v = (await hit.json()) as Stored;
+    return v && Array.isArray(v.events) && v.events.length > 0 ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeShared(v: Stored): Promise<void> {
+  try {
+    const c = sharedCache();
+    if (!c) return;
+    await c.put(
+      CACHE_KEY,
+      new Response(JSON.stringify(v), {
+        headers: { "Content-Type": "application/json", "Cache-Control": `max-age=${MAX_STALE_MS / 1000}` },
+      }),
+    );
+  } catch {
+    // caching is best-effort
+  }
+}
+
+/** Returns this week's calendar, or null when it cannot be loaded (never returns made-up events). */
+async function loadCalendar(): Promise<NewsEvent[] | null> {
+  const now = Date.now();
+  const saved = (cache && cache.events.length > 0 ? cache : null) ?? (await readShared());
+  if (saved && now - saved.at < FRESH_MS) {
+    cache = saved;
+    return saved.events;
   }
 
   try {
@@ -80,19 +67,23 @@ async function loadCalendar(): Promise<NewsEvent[]> {
       headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
       signal: AbortSignal.timeout(6000),
     });
-
     if (res.ok) {
       const parsed = parseFeed(await res.json());
       if (parsed.length > 0) {
-        cache = { at: Date.now(), events: parsed };
+        cache = { at: now, events: parsed };
+        await writeShared(cache);
         return parsed;
       }
+    } else {
+      console.warn(`Calendar feed returned HTTP ${res.status}`);
     }
-  } catch {
-    // If remote fetch fails or is rate-limited, fall back to cache or backup
+  } catch (err) {
+    console.warn("Calendar feed fetch failed:", err);
   }
 
-  return cache?.events ?? FALLBACK_EVENTS;
+  // Feed failed: use the last good copy if it is not too old, otherwise report unavailable.
+  if (saved && now - saved.at < MAX_STALE_MS) return saved.events;
+  return null;
 }
 
 export interface NewsItem extends NewsEvent {
@@ -105,6 +96,9 @@ export const getNewsSignals = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => z.object({ instrument: z.string().default("XAUUSD") }).parse(d ?? {}))
   .handler(async ({ data }) => {
     const events = await loadCalendar();
+    if (!events) {
+      return { ok: false as const, instrument: data.instrument, items: [] as NewsItem[], error: "calendar_unavailable" };
+    }
     const now = Date.now();
 
     const relevant = events
