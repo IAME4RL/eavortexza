@@ -170,3 +170,104 @@ export function parseFeed(json: unknown): NewsEvent[] {
     }];
   });
 }
+
+// ---------------------------------------------------------------------------
+// Eulerpool economic-calendar adapter. The response format is not strictly documented,
+// so this accepts common field names and shapes and normalises them to NewsEvent.
+// ---------------------------------------------------------------------------
+
+const COUNTRY_TO_CCY: Record<string, string> = {
+  US: "USD", USA: "USD", "UNITED STATES": "USD",
+  EU: "EUR", EA: "EUR", EMU: "EUR", EZ: "EUR", DE: "EUR", FR: "EUR", IT: "EUR", ES: "EUR",
+  "EURO AREA": "EUR", EUROZONE: "EUR", EUROPE: "EUR", GERMANY: "EUR", FRANCE: "EUR", ITALY: "EUR", SPAIN: "EUR",
+  GB: "GBP", UK: "GBP", "UNITED KINGDOM": "GBP",
+  JP: "JPY", JAPAN: "JPY",
+  CA: "CAD", CANADA: "CAD",
+  AU: "AUD", AUSTRALIA: "AUD",
+  NZ: "NZD", "NEW ZEALAND": "NZD",
+  CH: "CHF", SWITZERLAND: "CHF",
+  CN: "CNY", CHINA: "CNY",
+};
+
+function pick(r: Record<string, unknown>, keys: string[]): unknown {
+  for (const k of keys) {
+    const v = r[k];
+    if (v !== undefined && v !== null && v !== "") return v;
+  }
+  return undefined;
+}
+
+function findArray(json: unknown, depth = 0): unknown[] | null {
+  if (Array.isArray(json)) return json;
+  if (json && typeof json === "object" && depth < 3) {
+    for (const v of Object.values(json as Record<string, unknown>)) {
+      const found = findArray(v, depth + 1);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function toCurrency(r: Record<string, unknown>): string {
+  const ccy = pick(r, ["currency", "currency_code", "currencyCode"]);
+  if (typeof ccy === "string" && /^[A-Za-z]{3}$/.test(ccy)) return ccy.toUpperCase();
+  const c = pick(r, ["country", "country_code", "countryCode", "region", "area"]);
+  if (typeof c !== "string") return "";
+  const key = c.trim().toUpperCase();
+  return COUNTRY_TO_CCY[key] ?? (/^[A-Z]{3}$/.test(key) && key !== "USA" ? key : "");
+}
+
+function toImpact(v: unknown): string {
+  if (typeof v === "number") return v >= 3 ? "High" : v === 2 ? "Medium" : "Low";
+  const s = String(v ?? "").trim().toLowerCase();
+  if (["high", "3", "red", "h"].includes(s)) return "High";
+  if (["medium", "moderate", "2", "orange", "m"].includes(s)) return "Medium";
+  return "Low";
+}
+
+function toTime(v: unknown): number {
+  if (typeof v === "number") return v < 1e12 ? v * 1000 : v;
+  if (typeof v !== "string") return NaN;
+  const s = v.trim();
+  if (/^\d+$/.test(s)) return toTime(Number(s));
+  // No timezone in the string: treat as UTC.
+  const withZone = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?$/.test(s) ? s.replace(" ", "T") + "Z" : s;
+  return Date.parse(withZone);
+}
+
+function toFigure(v: unknown, unit: unknown): string {
+  if (v === undefined || v === null || v === "") return "";
+  const s = String(v);
+  if (typeof v === "number" && typeof unit === "string" && /^(%|K|M|B|T)$/i.test(unit.trim())) return s + unit.trim();
+  return s;
+}
+
+/** Short description of the response shape, used in on-screen diagnostics. */
+export function describeShape(json: unknown): string {
+  const arr = findArray(json);
+  if (!arr) return `no list found; top-level: ${json && typeof json === "object" ? Object.keys(json as object).slice(0, 6).join(",") : typeof json}`;
+  const first = arr[0];
+  return `${arr.length} items; fields: ${first && typeof first === "object" ? Object.keys(first as object).slice(0, 10).join(",") : typeof first}`;
+}
+
+export function parseEulerpool(json: unknown): NewsEvent[] {
+  const arr = findArray(json);
+  if (!arr) return [];
+  return arr.flatMap((raw) => {
+    if (!raw || typeof raw !== "object") return [];
+    const r = raw as Record<string, unknown>;
+    const title = pick(r, ["event", "title", "name", "indicator", "category"]);
+    const time = toTime(pick(r, ["date", "datetime", "dateTime", "time", "timestamp", "release_date", "released", "scheduled"]));
+    const country = toCurrency(r);
+    if (typeof title !== "string" || !Number.isFinite(time) || !country) return [];
+    const unit = pick(r, ["unit", "units"]);
+    return [{
+      title,
+      country,
+      time,
+      impact: toImpact(pick(r, ["impact", "importance", "volatility", "priority"])),
+      forecast: toFigure(pick(r, ["forecast", "consensus", "estimate", "expected"]), unit),
+      previous: toFigure(pick(r, ["previous", "prior", "last"]), unit),
+    }];
+  });
+}
