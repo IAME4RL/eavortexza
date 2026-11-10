@@ -4,7 +4,14 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { fetchBars } from "./marketdata";
 import { forecastBias, isRelevant, newsReaction, parseFeed, type NewsBias, type NewsEvent, type NewsReaction } from "./news";
 
-const FEED_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json";
+// Same ForexFactory data on two addresses; if one is rate-limited we try the other.
+const FEED_URLS = [
+  "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
+  "https://cdn-nfs.faireconomy.media/ff_calendar_thisweek.json",
+];
+
+// Why the last download attempt failed (shown on screen to help debugging).
+let lastFailure = "";
 
 // In-memory copy (per server instance)
 let cache: Stored | null = null;
@@ -62,24 +69,43 @@ async function loadCalendar(): Promise<NewsEvent[] | null> {
     return saved.events;
   }
 
-  try {
-    const res = await fetch(FEED_URL, {
-      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
-      signal: AbortSignal.timeout(6000),
-    });
-    if (res.ok) {
-      const parsed = parseFeed(await res.json());
-      if (parsed.length > 0) {
-        cache = { at: now, events: parsed };
-        await writeShared(cache);
-        return parsed;
+  const failures: string[] = [];
+  for (const url of FEED_URLS) {
+    const host = new URL(url).hostname.split(".")[0];
+    try {
+      const res = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+          Accept: "application/json,text/plain,*/*",
+        },
+        signal: AbortSignal.timeout(6000),
+      });
+      if (!res.ok) {
+        failures.push(`${host}: HTTP ${res.status}`);
+        continue;
       }
-    } else {
-      console.warn(`Calendar feed returned HTTP ${res.status}`);
+      let json: unknown;
+      try {
+        json = await res.json();
+      } catch {
+        failures.push(`${host}: not JSON`);
+        continue;
+      }
+      const parsed = parseFeed(json);
+      if (parsed.length === 0) {
+        failures.push(`${host}: empty feed`);
+        continue;
+      }
+      cache = { at: now, events: parsed };
+      lastFailure = "";
+      await writeShared(cache);
+      return parsed;
+    } catch (err) {
+      failures.push(`${host}: ${err instanceof Error ? err.name : "error"}`);
     }
-  } catch (err) {
-    console.warn("Calendar feed fetch failed:", err);
   }
+  lastFailure = failures.join("; ");
+  console.warn("Calendar feed failed:", lastFailure);
 
   // Feed failed: use the last good copy if it is not too old, otherwise report unavailable.
   if (saved && now - saved.at < MAX_STALE_MS) return saved.events;
@@ -97,7 +123,7 @@ export const getNewsSignals = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const events = await loadCalendar();
     if (!events) {
-      return { ok: false as const, instrument: data.instrument, items: [] as NewsItem[], error: "calendar_unavailable" };
+      return { ok: false as const, instrument: data.instrument, items: [] as NewsItem[], error: "calendar_unavailable", detail: lastFailure };
     }
     const now = Date.now();
 
