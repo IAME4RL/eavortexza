@@ -169,7 +169,11 @@ export function NewsSignals({ instrument = "XAUUSD", limit, full = false }: { in
           </p>
         )}
         {q.data?.ok && items.length === 0 && (
-          <p className="text-xs text-muted-foreground">No upcoming high or medium impact events found for this market.</p>
+          <p className="text-xs text-muted-foreground">No upcoming high or medium impact events found for this market.
+            {"debug" in q.data && q.data.debug ? (
+              <span className="block mt-1 pw-mono text-[10px] opacity-70">{q.data.debug}</span>
+            ) : null}
+          </p>
         )}
         {items.map((n) => (
           <Row key={`${n.title}-${n.time}`} n={n} full={full} />
