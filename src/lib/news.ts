@@ -257,7 +257,14 @@ export function parseEulerpool(json: unknown): NewsEvent[] {
     if (!raw || typeof raw !== "object") return [];
     const r = raw as Record<string, unknown>;
     const title = pick(r, ["event", "title", "name", "indicator", "category"]);
-    const time = toTime(pick(r, ["date", "datetime", "dateTime", "time", "timestamp", "release_date", "released", "scheduled"]));
+    let when = pick(r, ["datetime", "dateTime", "timestamp", "date", "release_date", "released", "scheduled", "time"]);
+    // Some feeds give a date-only value plus a separate time of day: combine them (assumed UTC).
+    const clock = pick(r, ["time", "release_time", "hour"]);
+    if (typeof when === "string" && /^\d{4}-\d{2}-\d{2}$/.test(when.trim()) && typeof clock === "string" && /^\d{1,2}:\d{2}/.test(clock.trim())) {
+      const [h, m] = clock.trim().split(":");
+      when = `${when.trim()}T${h!.padStart(2, "0")}:${m!.slice(0, 2)}:00Z`;
+    }
+    const time = toTime(when);
     const country = toCurrency(r);
     if (typeof title !== "string" || !Number.isFinite(time) || !country) return [];
     const unit = pick(r, ["unit", "units"]);
