@@ -7,7 +7,11 @@ import { describeShape, forecastBias, isRelevant, newsReaction, parseEulerpool, 
 const FEED_URLS = ["https://nfs.faireconomy.media/ff_calendar_thisweek.json"];
 
 // Primary source (needs the EULERPOOL_API_KEY secret). ForexFactory feed above is the backup.
-const EULER_URLS = ["https://api.eulerpool.com/v1/calendar/economic", "https://api.eulerpool.com/v1/macro/calendar"];
+const EULER_URLS = [
+  "https://api.eulerpool.com/api/1/calendar/economic",
+  "https://api.eulerpool.com/api/1/macro/calendar",
+  "https://api.eulerpool.com/api/1/calendar/economic-calendar",
+];
 
 async function fetchEulerpool(failures: string[]): Promise<NewsEvent[] | null> {
   const key = process.env.EULERPOOL_API_KEY;
@@ -23,7 +27,9 @@ async function fetchEulerpool(failures: string[]): Promise<NewsEvent[] | null> {
         signal: AbortSignal.timeout(8000),
       });
       if (!res.ok) {
-        failures.push(`eulerpool ${tag}: HTTP ${res.status}`);
+        // Short snippet of the provider's error text (temporary debugging aid).
+        const snippet = (await res.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 70);
+        failures.push(`eulerpool ${tag}: HTTP ${res.status}${snippet ? ` ${snippet}` : ""}`);
         continue;
       }
       const json: unknown = await res.json().catch(() => null);
