@@ -139,8 +139,9 @@ export function NewsSignals({ instrument = "XAUUSD", limit, full = false }: { in
   const q = useQuery({
     queryKey: ["news-signals", instrument],
     queryFn: () => fn({ data: { instrument } }),
-    // 5-minute interval prevents 429 rate limiting
-    refetchInterval: 5 * 60_000,
+    // 5-minute interval prevents 429 rate limiting; retry sooner if the calendar was unavailable
+    refetchInterval: (query) => (query.state.data && !query.state.data.ok ? 30_000 : 5 * 60_000),
+    staleTime: 60_000,
   });
   const items = q.data?.ok ? q.data.items.slice(0, limit ?? 99) : [];
 
@@ -160,7 +161,9 @@ export function NewsSignals({ instrument = "XAUUSD", limit, full = false }: { in
 
       <div className="mt-3.5 space-y-3">
         {q.isLoading && <p className="text-xs text-muted-foreground">Loading news signals…</p>}
-        {q.isError && <p className="text-xs text-muted-foreground">The economic calendar is unavailable right now. Try again shortly.</p>}
+        {(q.isError || (q.data && !q.data.ok)) && (
+          <p className="text-xs text-muted-foreground">The economic calendar couldn't be loaded right now. It retries automatically, or pull down to refresh in a minute.</p>
+        )}
         {q.data?.ok && items.length === 0 && (
           <p className="text-xs text-muted-foreground">No upcoming high or medium impact events found for this market.</p>
         )}
