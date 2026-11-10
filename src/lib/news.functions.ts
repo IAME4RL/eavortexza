@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { fetchBars } from "./marketdata";
-import { describeShape, forecastBias, isRelevant, newsReaction, parseEulerpool, parseFeed, type NewsBias, type NewsEvent, type NewsReaction } from "./news";
+import { describeShape, sampleRecord, forecastBias, isRelevant, newsReaction, parseEulerpool, parseFeed, type NewsBias, type NewsEvent, type NewsReaction } from "./news";
 
 const FEED_URLS = ["https://nfs.faireconomy.media/ff_calendar_thisweek.json"];
 
@@ -34,7 +34,7 @@ async function fetchEulerpool(failures: string[]): Promise<NewsEvent[] | null> {
       }
       const json: unknown = await res.json().catch(() => null);
       const events = parseEulerpool(json);
-      lastShape = describeShape(json);
+      lastShape = `${describeShape(json)} | CPI sample: ${sampleRecord(json, /\bcpi\b|consumer price|inflation/i)}`;
       if (events.length === 0) {
         failures.push(`eulerpool ${tag}: no usable events (${describeShape(json)})`);
         continue;
@@ -57,7 +57,7 @@ let cache: Stored | null = null;
 
 // Shared cache (Cloudflare Cache API) so one successful download serves every server instance.
 // Falls back to a per-instance memory copy when the Cache API is not available (e.g. local dev).
-const CACHE_KEY = "https://eavortexza.internal/news-calendar-v3";
+const CACHE_KEY = "https://eavortexza.internal/news-calendar-v4";
 const FRESH_MS = 60 * 60_000; // refresh after 1 hour
 const MAX_STALE_MS = 3 * 24 * 60 * 60_000; // still usable (as a fallback) for 3 days
 
@@ -198,13 +198,15 @@ export const getNewsSignals = createServerFn({ method: "GET" })
     for (const e of events) impacts[e.impact] = (impacts[e.impact] ?? 0) + 1;
     const times = events.map((e) => e.time).filter(Number.isFinite);
     const day = (t: number) => new Date(t).toISOString().slice(0, 10);
-    const debug = items.length > 0 ? "" : [
-      `${src}: ${events.length} events`,
-      `USD ${events.filter((e) => e.country === "USD").length}`,
-      `impact ${Object.entries(impacts).map(([k, v]) => `${k} ${v}`).join(", ") || "none"}`,
-      times.length ? `dates ${day(Math.min(...times))} to ${day(Math.max(...times))}` : "no dates",
-      ...(events.some((e) => e.impact === "High" || e.impact === "Medium") || !meta ? [] : [meta]),
-    ].join(" · ");
+    const debug = items.length > 0
+      ? (items.some((i) => !i.forecast) && meta ? `${src} · ${meta}` : "")
+      : [
+          `${src}: ${events.length} events`,
+          `USD ${events.filter((e) => e.country === "USD").length}`,
+          `impact ${Object.entries(impacts).map(([k, v]) => `${k} ${v}`).join(", ") || "none"}`,
+          times.length ? `dates ${day(Math.min(...times))} to ${day(Math.max(...times))}` : "no dates",
+          ...(events.some((e) => e.impact === "High" || e.impact === "Medium") || !meta ? [] : [meta]),
+        ].join(" · ");
 
     return {
       ok: true as const,

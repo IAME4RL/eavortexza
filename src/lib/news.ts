@@ -266,6 +266,18 @@ export function describeShape(json: unknown): string {
   return `fields: ${Object.keys(r).slice(0, 14).join(",")}${samples.length ? ` | ${samples.join(" ")}` : ""}`;
 }
 
+const NOT_A_FIGURE_KEY = /period|date|time|unit|label|year|month|source|id$|url|currency|country/i;
+
+/** Finds a forecast/previous figure: exact field names first, then any field whose name looks like it. */
+function figureOf(r: Record<string, unknown>, exact: string[], loose: RegExp, unit: unknown): string {
+  const direct = pick(r, exact);
+  if (direct !== undefined && typeof direct !== "object") return toFigure(direct, unit);
+  const key = Object.keys(r).find(
+    (k) => loose.test(k) && !NOT_A_FIGURE_KEY.test(k) && r[k] !== undefined && r[k] !== null && r[k] !== "" && typeof r[k] !== "object",
+  );
+  return key ? toFigure(r[key], unit) : "";
+}
+
 function impactOf(r: Record<string, unknown>, title: string): string {
   const key = Object.keys(r).find((k) => IMPACT_KEY.test(k) && r[k] !== undefined && r[k] !== null && r[k] !== "");
   return key ? toImpact(r[key]) : impactFromTitle(title);
@@ -294,8 +306,20 @@ export function parseEulerpool(json: unknown): NewsEvent[] {
       country,
       time,
       impact: impactOf(r, title),
-      forecast: toFigure(pick(r, ["forecast", "consensus", "estimate", "expected"]), unit),
-      previous: toFigure(pick(r, ["previous", "prior", "last"]), unit),
+      forecast: figureOf(r, ["forecast", "consensus", "estimate", "expected"], /forecast|consensus|estimate|expected|survey|projection/i, unit),
+      previous: figureOf(r, ["previous", "prior", "prev"], /previous|prior|prev/i, unit),
     }];
   });
+}
+
+/** Compact copy of the first record whose name matches `re` (for on-screen diagnostics). */
+export function sampleRecord(json: unknown, re: RegExp): string {
+  const arr = findArray(json);
+  const hit = arr?.find((x) => x && typeof x === "object" && Object.values(x as object).some((v) => typeof v === "string" && re.test(v)));
+  if (!hit) return "";
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(hit as Record<string, unknown>)) {
+    out[k] = typeof v === "string" ? v.slice(0, 24) : v;
+  }
+  return JSON.stringify(out).slice(0, 320);
 }
