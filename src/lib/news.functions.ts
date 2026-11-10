@@ -4,11 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { fetchBars } from "./marketdata";
 import { forecastBias, isRelevant, newsReaction, parseFeed, type NewsBias, type NewsEvent, type NewsReaction } from "./news";
 
-// Same ForexFactory data on two addresses; if one is rate-limited we try the other.
-const FEED_URLS = [
-  "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
-  "https://cdn-nfs.faireconomy.media/ff_calendar_thisweek.json",
-];
+const FEED_URLS = ["https://nfs.faireconomy.media/ff_calendar_thisweek.json"];
 
 // Why the last download attempt failed (shown on screen to help debugging).
 let lastFailure = "";
