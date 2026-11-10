@@ -1,4 +1,5 @@
 import * as api from "./api2trade";
+import { loadApiKey } from "./cloudKeys";
 import { MIN_TRADES_PER_SIGNAL, closedProfitSince, deliverySlots, drawdownBreached, floatingProfitOf, volumeAllowed } from "./bridge";
 import { cloudConfigOf, planCloudCycle, utcDayStart, type CloudConfig } from "./cloudTrade";
 import { fetchBars, type FetchResult } from "./marketdata";
@@ -12,9 +13,9 @@ const iso = (ms: number) => new Date(ms).toISOString();
 const errText = (e: unknown) => (e instanceof Error ? e.message : "Unknown error").slice(0, 180);
 
 /** Sends one order and records the outcome. An unknown outcome is never retried automatically. */
-async function sendAndRecord(db: Db, rowId: string, cfg: CloudConfig, o: { side: "buy" | "sell"; volume: number; sl: number | null; tp: number | null; entry: number | null }): Promise<string> {
+async function sendAndRecord(db: Db, key: string, rowId: string, cfg: CloudConfig, o: { side: "buy" | "sell"; volume: number; sl: number | null; tp: number | null; entry: number | null }): Promise<string> {
   try {
-    const r = await api.orderSend(cfg.accountId, { symbol: cfg.brokerSymbol, side: o.side, volume: o.volume, stopLoss: o.sl, takeProfit: o.tp });
+    const r = await api.orderSend(key, cfg.accountId, { symbol: cfg.brokerSymbol, side: o.side, volume: o.volume, stopLoss: o.sl, takeProfit: o.tp });
     if (r.ok) {
       await db.from("trade_signals").update({ status: "filled", ticket: r.ticket, fill_price: r.price ?? o.entry, filled_at: iso(Date.now()), error: null }).eq("id", rowId);
       return `filled #${r.ticket}`;
@@ -39,11 +40,11 @@ async function syncClosed(db: Db, bot: BotRow, openTickets: Set<string>, history
 }
 
 /** Closes only this bot's own open positions, never the client's manual trades. */
-async function closeBotPositions(cfg: CloudConfig, pos: api.Position[], botTickets: Set<string>): Promise<{ closed: number; failed: number }> {
+async function closeBotPositions(key: string, cfg: CloudConfig, pos: api.Position[], botTickets: Set<string>): Promise<{ closed: number; failed: number }> {
   let closed = 0, failed = 0;
   for (const p of pos) {
     if (!botTickets.has(p.ticket)) continue;
-    try { (await api.orderClose(cfg.accountId, p.ticket, p.volume)) ? closed++ : failed++; } catch { failed++; }
+    try { (await api.orderClose(key, cfg.accountId, p.ticket, p.volume)) ? closed++ : failed++; } catch { failed++; }
   }
   return { closed, failed };
 }
@@ -63,12 +64,30 @@ async function runBot(db: Db, bot: BotRow, now: number, barsCache: Map<string, F
     await db.from("bots").update(out as never).eq("id", bot.id);
   };
 
-  const connected = await api.checkConnect(cfg.accountId);
+  // Each client trades on their own API2Trade key. Without one this bot cannot place or close anything, so stop it and say so.
+  const key = await loadApiKey(db, bot.user_id);
+  if (!key) {
+    const msg = "Your API2Trade key is missing, so the bot stopped. Any trades still open were NOT closed — close them in MT5 and add your key again.";
+    await save({ status: "stopped", stop_requested_at: iso(now), stop_ack_at: iso(now), last_decision: msg, last_error: "NO_API_KEY" });
+    await db.from("notifications").insert({ user_id: bot.user_id, title: "Bot stopped: API2Trade key missing", body: msg });
+    return "no api key";
+  }
+  let connected: boolean;
+  try { connected = await api.checkConnect(key, cfg.accountId); }
+  catch (e) {
+    if (e instanceof api.CloudError && e.code === "bad_key") {
+      const msg = `${e.message} Any trades still open were NOT closed — check MT5.`;
+      await save({ last_decision: msg, last_error: "BAD_API_KEY" });
+      await db.from("notifications").insert({ user_id: bot.user_id, title: "API2Trade key rejected", body: msg });
+      return "bad api key";
+    }
+    throw e;
+  }
   const [pos, hist, summary] = connected
     ? await Promise.all([
-        api.positions(cfg.accountId).catch(() => null),
-        api.orderHistory(cfg.accountId, utcDayStart(now), new Date(now + 3_600_000)).catch(() => null),
-        api.accountSummary(cfg.accountId).catch(() => null),
+        api.positions(key, cfg.accountId).catch(() => null),
+        api.orderHistory(key, cfg.accountId, utcDayStart(now), new Date(now + 3_600_000)).catch(() => null),
+        api.accountSummary(key, cfg.accountId).catch(() => null),
       ])
     : [null, null, null];
 
@@ -103,7 +122,7 @@ async function runBot(db: Db, bot: BotRow, now: number, barsCache: Map<string, F
   const riskPct = Number(bot.risk_per_trade_pct);
   const balance = summary?.balance ?? (bot.terminal_info as { balance?: number } | null)?.balance;
   if (bot.status === "running" && botPositions.length && drawdownBreached(botFloating, balance, riskPct)) {
-    const r = await closeBotPositions(cfg, pos, botTickets);
+    const r = await closeBotPositions(key, cfg, pos, botTickets);
     await db.from("trade_signals").update({ status: "cancelled" }).eq("bot_id", bot.id).eq("status", "queued");
     const msg = `Safety net: floating loss ${botFloating.toFixed(2)} reached ${riskPct}% of your balance (${Number(balance).toFixed(2)}). Closed ${r.closed} trade(s), ${r.failed} failed.`;
     if (r.failed > 0) { await save({ last_decision: `${msg} Retrying next cycle.`, last_error: msg }); return "safety net retry"; }
@@ -121,12 +140,12 @@ async function runBot(db: Db, bot: BotRow, now: number, barsCache: Map<string, F
     const profitSinceGoal = closedProfitSince(closedRows ?? [], Date.parse(sinceIso)) + botFloating;
     patch.goal_profit = Math.round(profitSinceGoal * 100) / 100;
     if (profitSinceGoal >= goal) {
-      const r = await closeBotPositions(cfg, pos, botTickets);
+      const r = await closeBotPositions(key, cfg, pos, botTickets);
       await db.from("trade_signals").update({ status: "cancelled" }).eq("bot_id", bot.id).eq("status", "queued");
       const text = `Profit goal reached (${profitSinceGoal.toFixed(2)} of ${goal}). Closed ${r.closed} trade(s).`;
       if (r.failed > 0) { await save({ last_decision: `${text} ${r.failed} failed to close, retrying next cycle.`, last_error: `${r.failed} trade(s) did not close` }); return "goal close retry"; }
       // Record the closes now so their profit counts toward THIS goal and not the next one.
-      const [pos2, hist2] = await Promise.all([api.positions(cfg.accountId).catch(() => null), api.orderHistory(cfg.accountId, utcDayStart(now), new Date(now + 3_600_000)).catch(() => null)]);
+      const [pos2, hist2] = await Promise.all([api.positions(key, cfg.accountId).catch(() => null), api.orderHistory(key, cfg.accountId, utcDayStart(now), new Date(now + 3_600_000)).catch(() => null)]);
       if (pos2 && hist2) await syncClosed(db, bot, new Set(pos2.map((p) => p.ticket)), hist2);
       const again = bot.profit_goal_mode === "again";
       const doneAt = iso(Date.now());
@@ -163,7 +182,7 @@ async function runBot(db: Db, bot: BotRow, now: number, barsCache: Map<string, F
       ? { trade: b.idea, explanation: `Entry on START: ${b.why}` }
       : { trade: null, reason: `${decision.reason} · Entry on START skipped: price signals do not agree on a direction` };
   }
-  const quote = decision?.trade ? await api.getQuote(cfg.accountId, cfg.brokerSymbol).catch(() => null) : null;
+  const quote = decision?.trade ? await api.getQuote(key, cfg.accountId, cfg.brokerSymbol).catch(() => null) : null;
 
   const plan = planCloudCycle({
     status: bot.status, connected, accountType: cfg.accountType, mode: bot.trading_mode as "demo" | "live", liveConfirmed: !!bot.live_confirmed_at, demoOnly: bot.demo_only,
@@ -193,7 +212,7 @@ async function runBot(db: Db, bot: BotRow, now: number, barsCache: Map<string, F
         strategy: t.strategy, signal_key: `${t.key}_${n}`, comment: `${t.comment.slice(0, 27)} #${n}`, status: "sent", sent_at: iso(now),
       }).select("id").maybeSingle();
       if (error || !row) { outcomes.push(error?.code === "23505" ? `duplicate signal ignored (${t.key}_${n})` : "could not record strategy signal"); break; }
-      const out = await sendAndRecord(db, row.id, cfg, { side: t.side, volume: t.volume, sl: t.sl, tp: t.tp, entry: t.entry });
+      const out = await sendAndRecord(db, key, row.id, cfg, { side: t.side, volume: t.volume, sl: t.sl, tp: t.tp, entry: t.entry });
       opened++;
       outcomes.push(out);
       if (!out.startsWith("filled")) break;
@@ -212,7 +231,7 @@ async function runBot(db: Db, bot: BotRow, now: number, barsCache: Map<string, F
       }
       const claimed = await db.from("trade_signals").update({ status: "sent", sent_at: iso(now) }).eq("id", s.id).eq("status", "queued").select("id");
       if (!claimed.data?.length) continue;
-      await sendAndRecord(db, s.id, cfg, { side: s.side as "buy" | "sell", volume: Number(s.volume), sl: s.stop_loss, tp: s.take_profit, entry: null });
+      await sendAndRecord(db, key, s.id, cfg, { side: s.side as "buy" | "sell", volume: Number(s.volume), sl: s.stop_loss, tp: s.take_profit, entry: null });
     }
   }
 
@@ -247,11 +266,11 @@ export async function runCloudCycle(now = Date.now(), limit = 50): Promise<{ bot
 }
 
 /** Closes every open position of a cloud account (emergency close). */
-export async function cloudCloseAll(cfg: CloudConfig): Promise<{ closed: number; failed: number }> {
-  const open = await api.positions(cfg.accountId);
+export async function cloudCloseAll(key: string, cfg: CloudConfig): Promise<{ closed: number; failed: number }> {
+  const open = await api.positions(key, cfg.accountId);
   let closed = 0, failed = 0;
   for (const p of open) {
-    try { (await api.orderClose(cfg.accountId, p.ticket, p.volume)) ? closed++ : failed++; } catch { failed++; }
+    try { (await api.orderClose(key, cfg.accountId, p.ticket, p.volume)) ? closed++ : failed++; } catch { failed++; }
   }
   return { closed, failed };
 }
