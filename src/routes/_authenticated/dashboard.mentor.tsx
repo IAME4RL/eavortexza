@@ -11,7 +11,6 @@ import { useAuth } from "@/lib/auth";
 import { timeframeLabel } from "@/lib/instruments";
 import { STRATEGIES } from "@/lib/strategy";
 import { deleteMentorBot, issueMentorLicense, listMentorBots, listMentorLicenses, saveMentorBot, updateMentorBot, type MentorBotRecord } from "@/lib/mentorBots";
-import { sendLicenseEmail } from "@/lib/email.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard/mentor")({ component: MentorPortalPage });
 
@@ -195,26 +194,10 @@ export function MentorPortalPage() {
     try {
       const generated = await issueMentorLicense({ botId, clientName: clientNameInput, clientEmail: clientEmailInput });
 
-      // Send the branded license email. A failure here must not block license creation.
-      const selectedBot = mentorBots.find((b) => b.id === botId);
-      try {
-        await sendLicenseEmail({
-          data: {
-            clientEmail: clientEmailInput,
-            clientName: clientNameInput,
-            botName: selectedBot?.name || "EA VORTEX Bot",
-            licenseKey: generated,
-            mentorName: selectedBot?.mentorName || defaultMentorName,
-          },
-        });
-      } catch (emailError) {
-        console.error("Email failed", emailError);
-      }
-
       await queryClient.invalidateQueries({ queryKey: ["mentor-bot-licenses", user?.id] });
       setIsGenerateKeyModalOpen(false); setClientNameInput(""); setClientEmailInput("");
       await navigator.clipboard.writeText(generated);
-      alert(`License key created and copied. Give this key to ${clientEmailInput}. It can only be redeemed by that email address.`);
+      alert(`License key created and copied:\n\n${generated}\n\nSend it to ${clientEmailInput} (e.g. on WhatsApp). They can also just sign in with that email and the bot unlocks automatically. The key only works for that email address.`);
     } catch (error) { alert(error instanceof Error ? error.message : "Could not generate license key."); }
   };
 
