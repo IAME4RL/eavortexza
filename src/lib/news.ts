@@ -217,11 +217,22 @@ function toCurrency(r: Record<string, unknown>): string {
   return COUNTRY_TO_CCY[key] ?? (/^[A-Z]{3}$/.test(key) && key !== "USA" ? key : "");
 }
 
+const IMPACT_KEY = /impact|importance|volatility|priority|severity|significance|stars?$/i;
+
 function toImpact(v: unknown): string {
   if (typeof v === "number") return v >= 3 ? "High" : v === 2 ? "Medium" : "Low";
   const s = String(v ?? "").trim().toLowerCase();
-  if (["high", "3", "red", "h"].includes(s)) return "High";
-  if (["medium", "moderate", "2", "orange", "m"].includes(s)) return "Medium";
+  if (/^(high|h|3|red)\b/.test(s) || s.includes("high")) return "High";
+  if (/^(medium|med|moderate|m|2|orange)\b/.test(s) || s.includes("medium") || s.includes("moderate")) return "Medium";
+  return "Low";
+}
+
+/** Used only when the feed has no impact field at all: rate the release from its name. */
+const HIGH_TITLE = /\b(cpi|consumer price|inflation rate|pce|non.?farm|nfp|payrolls?|fomc|fed (interest )?rate|interest rate decision|rate decision|policy rate|gdp|unemployment rate|retail sales|powell|lagarde|ueda|bailey)\b/i;
+const MEDIUM_TITLE = /\b(ppi|producer price|pmi|ism|jobless|unemployment claims|initial claims|adp|consumer (confidence|sentiment)|michigan|durable goods|trade balance|industrial production|housing starts|building permits|core)\b/i;
+function impactFromTitle(title: string): string {
+  if (HIGH_TITLE.test(title)) return "High";
+  if (MEDIUM_TITLE.test(title)) return "Medium";
   return "Low";
 }
 
@@ -247,7 +258,17 @@ export function describeShape(json: unknown): string {
   const arr = findArray(json);
   if (!arr) return `no list found; top-level: ${json && typeof json === "object" ? Object.keys(json as object).slice(0, 6).join(",") : typeof json}`;
   const first = arr[0];
-  return `${arr.length} items; fields: ${first && typeof first === "object" ? Object.keys(first as object).slice(0, 10).join(",") : typeof first}`;
+  if (!first || typeof first !== "object") return `${arr.length} items; first is ${typeof first}`;
+  const r = first as Record<string, unknown>;
+  const samples = Object.keys(r)
+    .filter((k) => IMPACT_KEY.test(k))
+    .map((k) => `${k}=${JSON.stringify(r[k]).slice(0, 14)}`);
+  return `fields: ${Object.keys(r).slice(0, 14).join(",")}${samples.length ? ` | ${samples.join(" ")}` : ""}`;
+}
+
+function impactOf(r: Record<string, unknown>, title: string): string {
+  const key = Object.keys(r).find((k) => IMPACT_KEY.test(k) && r[k] !== undefined && r[k] !== null && r[k] !== "");
+  return key ? toImpact(r[key]) : impactFromTitle(title);
 }
 
 export function parseEulerpool(json: unknown): NewsEvent[] {
@@ -257,7 +278,7 @@ export function parseEulerpool(json: unknown): NewsEvent[] {
     if (!raw || typeof raw !== "object") return [];
     const r = raw as Record<string, unknown>;
     const title = pick(r, ["event", "title", "name", "indicator", "category"]);
-    let when = pick(r, ["datetime", "dateTime", "timestamp", "date", "release_date", "released", "scheduled", "time"]);
+    let when = pick(r, ["datetime", "dateTime", "timestamp", "date", "event_date", "eventDate", "start_date", "startDate", "release_date", "released", "scheduled", "time"]);
     // Some feeds give a date-only value plus a separate time of day: combine them (assumed UTC).
     const clock = pick(r, ["time", "release_time", "hour"]);
     if (typeof when === "string" && /^\d{4}-\d{2}-\d{2}$/.test(when.trim()) && typeof clock === "string" && /^\d{1,2}:\d{2}/.test(clock.trim())) {
@@ -272,7 +293,7 @@ export function parseEulerpool(json: unknown): NewsEvent[] {
       title,
       country,
       time,
-      impact: toImpact(pick(r, ["impact", "importance", "volatility", "priority"])),
+      impact: impactOf(r, title),
       forecast: toFigure(pick(r, ["forecast", "consensus", "estimate", "expected"]), unit),
       previous: toFigure(pick(r, ["previous", "prior", "last"]), unit),
     }];

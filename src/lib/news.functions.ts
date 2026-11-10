@@ -34,6 +34,7 @@ async function fetchEulerpool(failures: string[]): Promise<NewsEvent[] | null> {
       }
       const json: unknown = await res.json().catch(() => null);
       const events = parseEulerpool(json);
+      lastShape = describeShape(json);
       if (events.length === 0) {
         failures.push(`eulerpool ${tag}: no usable events (${describeShape(json)})`);
         continue;
@@ -48,17 +49,19 @@ async function fetchEulerpool(failures: string[]): Promise<NewsEvent[] | null> {
 
 // Why the last download attempt failed (shown on screen to help debugging).
 let lastFailure = "";
+// Short description of the last Eulerpool response (for on-screen diagnostics).
+let lastShape = "";
 
 // In-memory copy (per server instance)
 let cache: Stored | null = null;
 
 // Shared cache (Cloudflare Cache API) so one successful download serves every server instance.
 // Falls back to a per-instance memory copy when the Cache API is not available (e.g. local dev).
-const CACHE_KEY = "https://eavortexza.internal/news-calendar-v2";
+const CACHE_KEY = "https://eavortexza.internal/news-calendar-v3";
 const FRESH_MS = 60 * 60_000; // refresh after 1 hour
 const MAX_STALE_MS = 3 * 24 * 60 * 60_000; // still usable (as a fallback) for 3 days
 
-type Stored = { at: number; events: NewsEvent[]; src?: string };
+type Stored = { at: number; events: NewsEvent[]; src?: string; meta?: string };
 
 function sharedCache(): Cache | null {
   try {
@@ -97,21 +100,21 @@ async function writeShared(v: Stored): Promise<void> {
 }
 
 /** Returns this week's calendar, or null when it cannot be loaded (never returns made-up events). */
-async function loadCalendar(): Promise<{ events: NewsEvent[]; src: string } | null> {
+async function loadCalendar(): Promise<{ events: NewsEvent[]; src: string; meta: string } | null> {
   const now = Date.now();
   const saved = (cache && cache.events.length > 0 ? cache : null) ?? (await readShared());
   if (saved && now - saved.at < FRESH_MS) {
     cache = saved;
-    return { events: saved.events, src: saved.src ?? "cache" };
+    return { events: saved.events, src: saved.src ?? "cache", meta: saved.meta ?? "" };
   }
 
   const failures: string[] = [];
   const fromEuler = await fetchEulerpool(failures);
   if (fromEuler) {
-    cache = { at: now, events: fromEuler, src: "eulerpool" };
+    cache = { at: now, events: fromEuler, src: "eulerpool", meta: lastShape };
     lastFailure = "";
     await writeShared(cache);
-    return { events: fromEuler, src: "eulerpool" };
+    return { events: fromEuler, src: "eulerpool", meta: lastShape };
   }
   for (const url of FEED_URLS) {
     const host = new URL(url).hostname.split(".")[0];
@@ -142,7 +145,7 @@ async function loadCalendar(): Promise<{ events: NewsEvent[]; src: string } | nu
       cache = { at: now, events: parsed, src: "forexfactory" };
       lastFailure = "";
       await writeShared(cache);
-      return { events: parsed, src: "forexfactory" };
+      return { events: parsed, src: "forexfactory", meta: "" };
     } catch (err) {
       failures.push(`${host}: ${err instanceof Error ? err.name : "error"}`);
     }
@@ -151,7 +154,7 @@ async function loadCalendar(): Promise<{ events: NewsEvent[]; src: string } | nu
   console.warn("Calendar feed failed:", lastFailure);
 
   // Feed failed: use the last good copy if it is not too old, otherwise report unavailable.
-  if (saved && now - saved.at < MAX_STALE_MS) return { events: saved.events, src: `${saved.src ?? "cache"} (stale)` };
+  if (saved && now - saved.at < MAX_STALE_MS) return { events: saved.events, src: `${saved.src ?? "cache"} (stale)`, meta: saved.meta ?? "" };
   return null;
 }
 
@@ -168,7 +171,7 @@ export const getNewsSignals = createServerFn({ method: "GET" })
     if (!loaded) {
       return { ok: false as const, instrument: data.instrument, items: [] as NewsItem[], error: "calendar_unavailable", detail: lastFailure };
     }
-    const { events, src } = loaded;
+    const { events, src, meta } = loaded;
     const now = Date.now();
 
     const relevant = events
@@ -200,6 +203,7 @@ export const getNewsSignals = createServerFn({ method: "GET" })
       `USD ${events.filter((e) => e.country === "USD").length}`,
       `impact ${Object.entries(impacts).map(([k, v]) => `${k} ${v}`).join(", ") || "none"}`,
       times.length ? `dates ${day(Math.min(...times))} to ${day(Math.max(...times))}` : "no dates",
+      ...(events.some((e) => e.impact === "High" || e.impact === "Medium") || !meta ? [] : [meta]),
     ].join(" · ");
 
     return {
