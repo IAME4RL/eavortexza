@@ -52,16 +52,23 @@ let lastFailure = "";
 // Short description of the last Eulerpool response (for on-screen diagnostics).
 let lastShape = "";
 
-// In-memory copy (per server instance)
-let cache: Stored | null = null;
-
-// Shared cache (Cloudflare Cache API) so one successful download serves every server instance.
-// Falls back to a per-instance memory copy when the Cache API is not available (e.g. local dev).
-const CACHE_KEY = "https://eavortexza.internal/news-calendar-v4";
-const FRESH_MS = 60 * 60_000; // refresh after 1 hour
-const MAX_STALE_MS = 3 * 24 * 60 * 60_000; // still usable (as a fallback) for 3 days
-
+// Two sources, each with its own saved copy:
+//  - ForexFactory feed: has real forecast/previous numbers, but often blocks (HTTP 429) our server.
+//  - Eulerpool: reliable schedule, but forecast figures may be missing.
+// Copies live in memory (per server instance) and in the Cloudflare Cache API (shared by all instances).
 type Stored = { at: number; events: NewsEvent[]; src?: string; meta?: string };
+type Loaded = { events: NewsEvent[]; src: string; meta: string };
+
+const memory: Record<string, Stored | null> = { ff: null, euler: null };
+const KEYS: Record<string, string> = {
+  ff: "https://eavortexza.internal/news-calendar-ff-v1",
+  euler: "https://eavortexza.internal/news-calendar-euler-v1",
+};
+const FRESH_MS = 60 * 60_000; // re-download after 1 hour
+const FF_USABLE_MS = 12 * 60 * 60_000; // an older ForexFactory copy still beats Eulerpool (it has forecasts)
+const MAX_STALE_MS = 3 * 24 * 60 * 60_000; // last-resort fallback age
+const FF_RETRY_MS = 5 * 60_000; // do not hammer the rate-limited feed more than once per 5 min per instance
+let lastFfAttempt = 0;
 
 function sharedCache(): Cache | null {
   try {
@@ -71,25 +78,32 @@ function sharedCache(): Cache | null {
   }
 }
 
-async function readShared(): Promise<Stored | null> {
+async function readStore(name: string): Promise<Stored | null> {
+  const mem = memory[name];
+  if (mem && mem.events.length > 0) return mem;
   try {
     const c = sharedCache();
     if (!c) return null;
-    const hit = await c.match(CACHE_KEY);
+    const hit = await c.match(KEYS[name]!);
     if (!hit) return null;
     const v = (await hit.json()) as Stored;
-    return v && Array.isArray(v.events) && v.events.length > 0 ? v : null;
+    if (v && Array.isArray(v.events) && v.events.length > 0) {
+      memory[name] = v;
+      return v;
+    }
   } catch {
-    return null;
+    // ignore
   }
+  return null;
 }
 
-async function writeShared(v: Stored): Promise<void> {
+async function writeStore(name: string, v: Stored): Promise<void> {
+  memory[name] = v;
   try {
     const c = sharedCache();
     if (!c) return;
     await c.put(
-      CACHE_KEY,
+      KEYS[name]!,
       new Response(JSON.stringify(v), {
         headers: { "Content-Type": "application/json", "Cache-Control": `max-age=${MAX_STALE_MS / 1000}` },
       }),
@@ -99,23 +113,7 @@ async function writeShared(v: Stored): Promise<void> {
   }
 }
 
-/** Returns this week's calendar, or null when it cannot be loaded (never returns made-up events). */
-async function loadCalendar(): Promise<{ events: NewsEvent[]; src: string; meta: string } | null> {
-  const now = Date.now();
-  const saved = (cache && cache.events.length > 0 ? cache : null) ?? (await readShared());
-  if (saved && now - saved.at < FRESH_MS) {
-    cache = saved;
-    return { events: saved.events, src: saved.src ?? "cache", meta: saved.meta ?? "" };
-  }
-
-  const failures: string[] = [];
-  const fromEuler = await fetchEulerpool(failures);
-  if (fromEuler) {
-    cache = { at: now, events: fromEuler, src: "eulerpool", meta: lastShape };
-    lastFailure = "";
-    await writeShared(cache);
-    return { events: fromEuler, src: "eulerpool", meta: lastShape };
-  }
+async function fetchForexFactory(failures: string[]): Promise<NewsEvent[] | null> {
   for (const url of FEED_URLS) {
     const host = new URL(url).hostname.split(".")[0];
     try {
@@ -130,31 +128,66 @@ async function loadCalendar(): Promise<{ events: NewsEvent[]; src: string; meta:
         failures.push(`${host}: HTTP ${res.status}`);
         continue;
       }
-      let json: unknown;
-      try {
-        json = await res.json();
-      } catch {
-        failures.push(`${host}: not JSON`);
-        continue;
-      }
+      const json: unknown = await res.json().catch(() => null);
       const parsed = parseFeed(json);
       if (parsed.length === 0) {
-        failures.push(`${host}: empty feed`);
+        failures.push(`${host}: empty or invalid feed`);
         continue;
       }
-      cache = { at: now, events: parsed, src: "forexfactory" };
-      lastFailure = "";
-      await writeShared(cache);
-      return { events: parsed, src: "forexfactory", meta: "" };
+      return parsed;
     } catch (err) {
       failures.push(`${host}: ${err instanceof Error ? err.name : "error"}`);
     }
   }
-  lastFailure = failures.join("; ");
-  console.warn("Calendar feed failed:", lastFailure);
+  return null;
+}
 
-  // Feed failed: use the last good copy if it is not too old, otherwise report unavailable.
-  if (saved && now - saved.at < MAX_STALE_MS) return { events: saved.events, src: `${saved.src ?? "cache"} (stale)`, meta: saved.meta ?? "" };
+const ageLabel = (ms: number) => (ms < 90 * 60_000 ? `${Math.round(ms / 60_000)}m` : `${Math.round(ms / 3_600_000)}h`);
+
+/** Returns this week's calendar, or null when it cannot be loaded (never returns made-up events). */
+async function loadCalendar(): Promise<Loaded | null> {
+  const now = Date.now();
+  const failures: string[] = [];
+  const ffSaved = await readStore("ff");
+  const ffAge = ffSaved ? now - ffSaved.at : Infinity;
+
+  // 1. ForexFactory: real forecasts. Use a fresh copy, else try to download (rate-limit friendly).
+  if (ffSaved && ffAge < FRESH_MS) return { events: ffSaved.events, src: "forexfactory", meta: "" };
+  if (now - lastFfAttempt > FF_RETRY_MS) {
+    lastFfAttempt = now;
+    const ff = await fetchForexFactory(failures);
+    if (ff) {
+      await writeStore("ff", { at: now, events: ff, src: "forexfactory" });
+      lastFailure = "";
+      return { events: ff, src: "forexfactory", meta: "" };
+    }
+  } else {
+    failures.push("ff: waiting before retry");
+  }
+  // 1b. Download failed: a ForexFactory copy up to 12h old still beats Eulerpool.
+  if (ffSaved && ffAge < FF_USABLE_MS) {
+    lastFailure = failures.join("; ");
+    return { events: ffSaved.events, src: `forexfactory (saved ${ageLabel(ffAge)} ago)`, meta: "" };
+  }
+
+  // 2. Eulerpool (schedule and impact; forecast figures only when it provides them).
+  const eulerSaved = await readStore("euler");
+  if (eulerSaved && now - eulerSaved.at < FRESH_MS) {
+    return { events: eulerSaved.events, src: "eulerpool", meta: eulerSaved.meta ?? "" };
+  }
+  const euler = await fetchEulerpool(failures);
+  if (euler) {
+    await writeStore("euler", { at: now, events: euler, src: "eulerpool", meta: lastShape });
+    lastFailure = failures.join("; ");
+    return { events: euler, src: "eulerpool", meta: lastShape };
+  }
+
+  lastFailure = failures.join("; ");
+  console.warn("Calendar sources failed:", lastFailure);
+
+  // 3. Last resort: any saved copy that is not too old.
+  if (ffSaved && ffAge < MAX_STALE_MS) return { events: ffSaved.events, src: "forexfactory (old copy)", meta: "" };
+  if (eulerSaved && now - eulerSaved.at < MAX_STALE_MS) return { events: eulerSaved.events, src: "eulerpool (old copy)", meta: eulerSaved.meta ?? "" };
   return null;
 }
 
@@ -199,7 +232,7 @@ export const getNewsSignals = createServerFn({ method: "GET" })
     const times = events.map((e) => e.time).filter(Number.isFinite);
     const day = (t: number) => new Date(t).toISOString().slice(0, 10);
     const debug = items.length > 0
-      ? (items.some((i) => !i.forecast) && meta ? `${src} · ${meta}` : "")
+      ? (meta ? `${src} · ${meta}` : "")
       : [
           `${src}: ${events.length} events`,
           `USD ${events.filter((e) => e.country === "USD").length}`,
