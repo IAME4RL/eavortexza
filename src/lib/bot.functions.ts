@@ -41,8 +41,11 @@ export const startBot = createServerFn({ method: "POST" })
     if (cloud) {
       // Cloud (API2Trade) bot: verify the live connection and every safety rule before running.
       const api = await import("@/lib/api2trade");
+      const { loadApiKey, NO_KEY_MESSAGE } = await import("@/lib/cloudKeys");
+      const apiKey = await loadApiKey(await admin(), bot.user_id);
+      if (!apiKey) return { ok: false, already: false, blockers: [NO_KEY_MESSAGE] };
       let connected = false;
-      try { connected = await api.checkConnect(cloud.accountId); } catch (e) { return { ok: false, already: false, blockers: [e instanceof Error ? e.message : "Cloud trading is unavailable."] }; }
+      try { connected = await api.checkConnect(apiKey, cloud.accountId); } catch (e) { return { ok: false, already: false, blockers: [e instanceof Error ? e.message : "Cloud trading is unavailable."] }; }
       const blockers = cloudStartBlockers({
         connected, accountType: cloud.accountType, mode: bot.trading_mode as TradingMode, liveConfirmed: !!bot.live_confirmed_at, demoOnly: bot.demo_only,
         strategy: bot.strategy, defaultLot: Number(bot.default_lot), maxLot: Number(bot.max_lot), maxOpen: bot.max_open_trades,
@@ -117,7 +120,9 @@ export const requestEmergencyClose = createServerFn({ method: "POST" })
       await db.from("bots").update({ status: "stopped", stop_requested_at: t, stop_ack_at: t }).eq("id", bot.id);
       await db.from("trade_signals").update({ status: "cancelled" }).eq("bot_id", bot.id).eq("status", "queued");
       const { cloudCloseAll } = await import("@/lib/cloudEngine");
-      const r = await cloudCloseAll(cloud).catch(() => ({ closed: 0, failed: -1 }));
+      const { loadApiKey } = await import("@/lib/cloudKeys");
+      const apiKey = await loadApiKey(db, bot.user_id);
+      const r = apiKey ? await cloudCloseAll(apiKey, cloud).catch(() => ({ closed: 0, failed: -1 })) : { closed: 0, failed: -1 };
       await db.from("bots").update({ emergency_close_requested_at: t, emergency_close_ack_at: new Date().toISOString(), emergency_close_result: r.failed < 0 ? "Could not reach API2Trade — check MT5 and close manually." : `Closed ${r.closed}, failed ${r.failed}` }).eq("id", bot.id);
       return { pending: false };
     }

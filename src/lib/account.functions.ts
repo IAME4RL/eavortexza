@@ -38,7 +38,9 @@ export const changeAccount = createServerFn({ method: "POST" })
     const cfg = cloudConfigOf(bot.terminal_info);
     if (cfg) {
       const api = await import("@/lib/api2trade");
-      await api.deleteAccount(cfg.accountId).catch(() => undefined);
+      const { loadApiKey } = await import("@/lib/cloudKeys");
+      const apiKey = await loadApiKey(db, userId);
+      if (apiKey) await api.deleteAccount(apiKey, cfg.accountId).catch(() => undefined);
     }
     // 2. Stop the bot, cancel orders that have not been delivered yet, and reset to demo so live
     //    trading has to be confirmed again for the new account. Open positions are not closed.
