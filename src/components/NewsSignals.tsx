@@ -159,6 +159,10 @@ export function NewsSignals({ instrument = "XAUUSD", limit, full = false }: { in
         )}
       </div>
 
+      {items.length > 0 && q.data && "debug" in q.data && q.data.debug ? (
+        <p className="mt-3 pw-mono text-[9px] leading-snug break-all opacity-70">{q.data.debug}</p>
+      ) : null}
+
       <div className="mt-3.5 space-y-3">
         {q.isLoading && <p className="text-xs text-muted-foreground">Loading news signals…</p>}
         {(q.isError || (q.data && !q.data.ok)) && (
@@ -179,10 +183,6 @@ export function NewsSignals({ instrument = "XAUUSD", limit, full = false }: { in
           <Row key={`${n.title}-${n.time}`} n={n} full={full} />
         ))}
       </div>
-
-      {items.length > 0 && q.data && "debug" in q.data && q.data.debug ? (
-        <p className="mt-3 pw-mono text-[9px] leading-snug break-all opacity-60">{q.data.debug}</p>
-      ) : null}
 
       <p className="mt-3 text-[11px] text-muted-foreground/80">
         Signals compare expected economic figures with previous releases to project market reaction before the event.
