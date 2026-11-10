@@ -162,7 +162,11 @@ export function NewsSignals({ instrument = "XAUUSD", limit, full = false }: { in
       <div className="mt-3.5 space-y-3">
         {q.isLoading && <p className="text-xs text-muted-foreground">Loading news signals…</p>}
         {(q.isError || (q.data && !q.data.ok)) && (
-          <p className="text-xs text-muted-foreground">The economic calendar couldn't be loaded right now. It retries automatically, or pull down to refresh in a minute.</p>
+          <p className="text-xs text-muted-foreground">The economic calendar couldn't be loaded right now. It retries automatically, or pull down to refresh in a minute.
+            {q.data && !q.data.ok && "detail" in q.data && q.data.detail ? (
+              <span className="block mt-1 pw-mono text-[10px] opacity-70">Reason: {q.data.detail}</span>
+            ) : null}
+          </p>
         )}
         {q.data?.ok && items.length === 0 && (
           <p className="text-xs text-muted-foreground">No upcoming high or medium impact events found for this market.</p>
