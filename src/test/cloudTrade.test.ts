@@ -161,3 +161,16 @@ describe("per-trade amounts stored in the cloud config (no database change)", ()
     expect(cloudConfigOf({ ...ti, cloud: { ...ti.cloud, riskPerTrade: -1, targetPerTrade: "x" } })).not.toHaveProperty("targetPerTrade");
   });
 });
+
+import { validApiKey } from "@/lib/cloudKeys";
+describe("API2Trade key validation", () => {
+  it("accepts a long opaque key and trims it", () => {
+    expect(validApiKey("  abcd1234efgh5678ijkl  ")).toBe("abcd1234efgh5678ijkl");
+  });
+  it("rejects keys that are too short, contain spaces, or are huge", () => {
+    expect(validApiKey("short")).toBeNull();
+    expect(validApiKey("abcd1234 efgh5678ijkl")).toBeNull();
+    expect(validApiKey("x".repeat(257))).toBeNull();
+    expect(validApiKey("")).toBeNull();
+  });
+});
