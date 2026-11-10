@@ -1,14 +1,17 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Cloud, Loader2, RefreshCw, Unplug } from "lucide-react";
+import { Cloud, ExternalLink, Loader2, Lock, RefreshCw, Unplug } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { connectCloudAccount, disconnectCloudAccount, refreshCloudStatus } from "@/lib/cloud.functions";
+import { connectCloudAccount, disconnectCloudAccount, getCloudKeyStatus, refreshCloudStatus, removeCloudKey, saveCloudKey } from "@/lib/cloud.functions";
 import { FEED_INSTRUMENTS, FEED_TIMEFRAMES } from "@/lib/marketdata";
 import { cloudConfigOf } from "@/lib/cloudTrade";
+
+/** Where a client creates and pays for their own API2Trade account. Price and billing are API2Trade's, not ours. */
+const API2TRADE_SIGNUP_URL = "https://app.api2trade.com/sign-up";
 
 const lbl = "pw-label text-[0.62rem] text-muted-foreground";
 const field = "pw-field";
@@ -19,6 +22,11 @@ export function CloudConnect({ botId, accountLogin, accountServer, terminalInfo 
   const connectFn = useServerFn(connectCloudAccount);
   const refreshFn = useServerFn(refreshCloudStatus);
   const disconnectFn = useServerFn(disconnectCloudAccount);
+  const keyStatusFn = useServerFn(getCloudKeyStatus);
+  const saveKeyFn = useServerFn(saveCloudKey);
+  const removeKeyFn = useServerFn(removeCloudKey);
+  const keyQ = useQuery({ queryKey: ["cloud-key"], queryFn: () => keyStatusFn() });
+  const [apiKey, setApiKey] = useState("");
   const cfg = cloudConfigOf(terminalInfo);
   const info = terminalInfo as { balance?: number; currency?: string } | null;
 
@@ -30,10 +38,10 @@ export function CloudConnect({ botId, accountLogin, accountServer, terminalInfo 
   const [brokerSymbol, setBrokerSymbol] = useState("XAUUSD");
   const [timeframe, setTimeframe] = useState("H1");
   const [ack, setAck] = useState(false);
-  const [busy, setBusy] = useState<"connect" | "refresh" | "disconnect" | null>(null);
-  const refresh = () => qc.invalidateQueries({ queryKey: ["auto-trade"] });
+  const [busy, setBusy] = useState<"connect" | "refresh" | "disconnect" | "key" | null>(null);
+  const refresh = () => { qc.invalidateQueries({ queryKey: ["auto-trade"] }); qc.invalidateQueries({ queryKey: ["cloud-key"] }); };
 
-  async function run(kind: "connect" | "refresh" | "disconnect", fn: () => Promise<string>) {
+  async function run(kind: "connect" | "refresh" | "disconnect" | "key", fn: () => Promise<string>) {
     setBusy(kind);
     try { toast.success(await fn()); refresh(); }
     catch (e) { toast.error(e instanceof Error ? e.message : "Action failed"); }
@@ -68,6 +76,44 @@ export function CloudConnect({ botId, accountLogin, accountServer, terminalInfo 
     );
   }
 
+  // Locked until the client has paid API2Trade themselves and pasted their own key.
+  if (keyQ.isLoading) return <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Loading…</p>;
+  if (!keyQ.data?.hasKey) {
+    return (
+      <div className="space-y-3 text-sm">
+        <p className="flex items-center gap-2 font-semibold"><Lock className="h-4 w-4" />Cloud trading is locked</p>
+        <p className="text-muted-foreground">
+          No Windows PC? The bot can trade from the cloud for you. The connection is provided by API2Trade, and you pay API2Trade directly for your own account
+          (currently about €12 a month for one account, no setup fee, cancel anytime). That payment goes to API2Trade, not to EA VORTEX.
+        </p>
+        <ol className="list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
+          <li>Tap the button below, create your API2Trade account and subscribe for 1 account.</li>
+          <li>In API2Trade, open "Your API key" and copy the key.</li>
+          <li>Paste it here and tap Save key. This section then unlocks.</li>
+        </ol>
+        <a href={API2TRADE_SIGNUP_URL} target="_blank" rel="noopener noreferrer" className="pw-btn pw-btn-solid flex w-full items-center justify-center gap-2">
+          <ExternalLink className="h-4 w-4" />Get API2Trade (about €12/month)
+        </a>
+        <form className="space-y-2" autoComplete="off" onSubmit={(e) => {
+          e.preventDefault();
+          void run("key", async () => {
+            const k = apiKey;
+            await saveKeyFn({ data: { apiKey: k } });
+            setApiKey("");
+            return "API key saved. Cloud trading is unlocked.";
+          });
+        }}>
+          <Label className={lbl}>Your API2Trade key</Label>
+          <Input className={field} type="password" autoComplete="new-password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="Paste your API key" />
+          <button type="submit" className="pw-btn w-full" disabled={busy !== null || apiKey.trim().length < 16}>
+            {busy === "key" ? <><Loader2 className="h-4 w-4 animate-spin" />Saving…</> : "Save key"}
+          </button>
+        </form>
+        <p className="text-xs text-muted-foreground">Treat your key like a password. It is stored on the server only and is never shown again. No PC? Skip this and use the PC bridge instead, which is free.</p>
+      </div>
+    );
+  }
+
   return (
     <form className="space-y-3" autoComplete="off" onSubmit={(e) => {
       e.preventDefault();
@@ -80,6 +126,11 @@ export function CloudConnect({ botId, accountLogin, accountServer, terminalInfo 
     }}>
       <p className="text-sm text-muted-foreground">
         No Windows PC? Connect your MT5 account here and the bot trades from the cloud, about once a minute, even when your phone is off.
+      </p>
+      <p className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+        <span>API2Trade key saved (…{keyQ.data?.last4 ?? ""})</span>
+        <button type="button" className="underline" disabled={busy !== null}
+          onClick={() => run("key", async () => { await removeKeyFn(); return "API key removed."; })}>Replace key</button>
       </p>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1"><Label className={lbl}>MT5 login</Label><Input className={field} inputMode="numeric" value={login} onChange={(e) => setLogin(e.target.value)} /></div>
