@@ -159,10 +159,6 @@ export function NewsSignals({ instrument = "XAUUSD", limit, full = false }: { in
         )}
       </div>
 
-      {items.length > 0 && q.data && "debug" in q.data && q.data.debug ? (
-        <p className="mt-3 pw-mono text-[9px] leading-snug break-all opacity-70">{q.data.debug}</p>
-      ) : null}
-
       <div className="mt-3.5 space-y-3">
         {q.isLoading && <p className="text-xs text-muted-foreground">Loading news signals…</p>}
         {(q.isError || (q.data && !q.data.ok)) && (
@@ -173,11 +169,7 @@ export function NewsSignals({ instrument = "XAUUSD", limit, full = false }: { in
           </p>
         )}
         {q.data?.ok && items.length === 0 && (
-          <p className="text-xs text-muted-foreground">No upcoming high or medium impact events found for this market.
-            {"debug" in q.data && q.data.debug ? (
-              <span className="block mt-1 pw-mono text-[10px] opacity-70">{q.data.debug}</span>
-            ) : null}
-          </p>
+          <p className="text-xs text-muted-foreground">No upcoming high or medium impact events found for this market.</p>
         )}
         {items.map((n) => (
           <Row key={`${n.title}-${n.time}`} n={n} full={full} />
